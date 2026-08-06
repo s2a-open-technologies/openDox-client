@@ -79,6 +79,14 @@ func (a *App) startup(ctx context.Context) {
 	a.registerGlobalHotkeys()
 }
 
+// Event-Namen, die sowohl von den Tastatur-Hotkeys als auch von den physischen
+// Diktiermikro-Tasten (dictation_mic.go) emittiert werden — Frontend kennt nur diese drei.
+const (
+	eventToggleRecord = "hotkey:toggle-record"
+	eventTogglePause  = "hotkey:toggle-pause"
+	eventAcceptInsert = "hotkey:accept-insert"
+)
+
 // registerGlobalHotkeys registriert die systemweiten Hotkeys (funktionieren unabhängig
 // davon, welches Fenster gerade fokussiert ist) und meldet jeden Tastendruck als
 // Wails-Event an das Frontend.
@@ -87,9 +95,9 @@ func (a *App) registerGlobalHotkeys() {
 	// Modifier-Konstanten als auch die übliche Tastenkombination (Ctrl+Alt vs.
 	// Cmd+Option auf macOS) unterscheiden sich pro OS.
 	mods := hotkeyMods
-	a.registerHotkey(mods, hotkey.KeyR, "hotkey:toggle-record")
-	a.registerHotkey(mods, hotkey.KeyP, "hotkey:toggle-pause")
-	a.registerHotkey(mods, hotkey.KeyV, "hotkey:accept-insert")
+	a.registerHotkey(mods, hotkey.KeyR, eventToggleRecord)
+	a.registerHotkey(mods, hotkey.KeyP, eventTogglePause)
+	a.registerHotkey(mods, hotkey.KeyV, eventAcceptInsert)
 	a.registerWindowHotkey(mods, hotkey.KeyH) // Ctrl+Alt+H: Overlay ein-/ausblenden
 }
 
@@ -108,15 +116,23 @@ func (a *App) registerHotkey(mods []hotkey.Modifier, key hotkey.Key, eventName s
 				continue // debounce X11 auto-repeat while die Kombination gehalten wird
 			}
 			last = time.Now()
-			a.mu.Lock()
-			visible := a.visible
-			a.mu.Unlock()
-			if !visible {
-				continue // Overlay ausgeblendet -> Ctrl+Alt+R / Ctrl+Alt+P / Ctrl+Alt+V deaktiviert
-			}
-			runtime.EventsEmit(a.ctx, eventName)
+			a.emitHotkeyEvent(eventName)
 		}
 	}()
+}
+
+// emitHotkeyEvent meldet eines der drei Hotkey-Events ans Frontend, sofern das Overlay nicht
+// per Ctrl+Alt+H ausgeblendet ist. Gemeinsamer Pfad für Tastatur-Hotkeys (oben) und physische
+// Diktiermikro-Tasten (dictation_mic.go) — beide sollen sich bei ausgeblendetem Overlay gleich
+// verhalten.
+func (a *App) emitHotkeyEvent(eventName string) {
+	a.mu.Lock()
+	visible := a.visible
+	a.mu.Unlock()
+	if !visible {
+		return
+	}
+	runtime.EventsEmit(a.ctx, eventName)
 }
 
 // registerWindowHotkey registriert eine Tastenkombination (Ctrl+Alt+H) zum Ein- und
