@@ -2,7 +2,10 @@
 
 ## Diktiermikro-Tasten (Philips SpeechMike / Nuance PowerMic)
 
-**Status:** Architektur geklärt, Umsetzung ausstehend — wartet auf physische Hardware zum Testen.
+**Status:** Umgesetzt (Scaffold), unverifiziert — Byte-Offsets/Endianness sind aus der Referenz
+übernommen, aber noch nicht gegen echte Hardware geprüft. `ODX_DICTATION_MIC_DEBUG=1` loggt rohe
+Input-Reports zur Verifikation, sobald ein Gerät verfügbar ist (siehe `dictation_mic.go`,
+`docs/superpowers/specs/2026-08-06-dictation-mic-design.md`).
 
 Ziel: Physische Tasten (Aufnahme, Stopp, Rücklauf, Insert/Overwrite) an SpeechMike/PowerMic sollen
 dieselben Aktionen wie die bestehenden globalen Hotkeys auslösen. Einsatz laut Planung an
@@ -19,9 +22,7 @@ Windows-Maschinen.
   Hotkey-Muster in `Recorder.tsx` (`EventsOn`).
 - Keine echte Datenbank nötig, nur eine fest kompilierte VID/PID- und Bitmasken-Tabelle.
 - Windows braucht keine Sonderberechtigung (treiberloser HID-Zugriff). Linux/macOS sind für dieses
-  Feature nicht der Einsatzfall, bleiben aber build-fähig.
-- Vor der Umsetzung: rohe Input-Reports mit echtem Gerät gegen die Referenz verifizieren, bevor
-  Buttons scharf geschaltet werden (Byte-Offsets/Endianness ungetestet ohne Hardware).
+  Feature nicht der Einsatzfall, laufen aber aktiv mit (kein Build-Tag auf `dictation_mic.go`).
 
 Vollständige Architektur-Notizen: `~/.claude/plans/wir-wurden-unterbrochen-der-abstract-umbrella.md`
 (lokal bei Claude, nicht Teil des Repos).

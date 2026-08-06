@@ -71,7 +71,10 @@ System-wide hotkeys are registered in Go (`registerGlobalHotkeys` in `app.go`) u
 
 - `Ctrl+Alt+R` → `hotkey:toggle-record` (start/stop)
 - `Ctrl+Alt+P` → `hotkey:toggle-pause` (pause/resume)
-- `Ctrl+Alt+A` → `hotkey:accept-insert` (accept transcript + paste)
+- `Ctrl+Alt+V` → `hotkey:accept-insert` (accept transcript + paste)
+- `Ctrl+Alt+H` → toggles the overlay window's visibility (`registerWindowHotkey` in `app.go`); no
+  frontend event, handled entirely in Go via `runtime.WindowHide`/`WindowShow`. While hidden, the
+  three hotkeys above (and the dictation-mic buttons below) are suppressed via `a.emitHotkeyEvent`.
 
 `Mod1` maps to **Alt** on this X11 setup (verified via `xmodmap -pm`; the `x/hotkey` modifier mapping
 isn't platform-guaranteed). Keydown is debounced (~700ms) against X11 auto-repeat.
@@ -80,6 +83,19 @@ Closure gotcha: the `EventsOn` listeners subscribe once on mount and would other
 `Recorder.tsx` keeps latest values in refs (`isRecordingRef`, `startRecordingRef`,
 `stableTranscriptRef`, `acceptAndInsertRef`, …) synced every render — follow this pattern when adding
 hotkey-driven state.
+
+### Dictation mic buttons (`dictation_mic.go`, `dictation_mic_protocol.go`)
+
+Physical buttons on Philips SpeechMike / Nuance PowerMic devices emit the exact same
+`eventToggleRecord`/`eventTogglePause`/`eventAcceptInsert` events as the keyboard hotkeys above,
+through the shared `a.emitHotkeyEvent` helper — no frontend changes needed to support them.
+Device VID/PID table and report-parsing byte offsets are ported from
+`GoogleChromeLabs/dictation_support` (Apache-2.0); see
+`docs/superpowers/specs/2026-08-06-dictation-mic-design.md` for the full protocol reference and
+known risks. **These offsets are unverified against real hardware.** Set
+`ODX_DICTATION_MIC_DEBUG=1` to log every raw input report's hex bytes for any matched device —
+use this to confirm the offsets once a physical device is available, before trusting button
+behavior in production.
 
 ### Recording flow (`Recorder.tsx`)
 
