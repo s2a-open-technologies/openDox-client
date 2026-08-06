@@ -35,6 +35,10 @@ tag**, so it compiles unconditionally. In practice this only builds on Linux eve
 and `build/windows` assets exist — building on macOS/Windows fails unless this file gets a
 `//go:build linux` constraint (and a no-op stub for other platforms).
 
+`dictation_mic.go` uses `github.com/karalabe/hid`, which on Linux is backed by `libusb` via cgo —
+needs `libusb-1.0-0-dev` (`pkg-config libusb-1.0`) installed to build. Windows/macOS builds of this
+dependency don't need an extra system package.
+
 ## Architecture
 
 ### Two communication paths
