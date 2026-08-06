@@ -407,20 +407,14 @@ func notifyReview() {
 func (a *App) InsertTranscript(text string) error {
 	runtime.ClipboardSetText(a.ctx, text)
 	go notifyReview()
-	releaseModifierKeys()
+	// Kurze Pause statt eines synthetischen Modifier-Release: robotgo.KeyUp("ctrl"/"alt"/"shift")
+	// wurde hier kurz ausprobiert, hat aber auf Systemen mit nicht-standardmäßigem Keyboard-Mapping
+	// (siehe hotkeyMods-Kommentar in hotkey_mod_linux.go) den Shift-/CapsLock-Zustand verwürfelt und
+	// dadurch den getippten Text zerhackt - schlimmer als das Problem, das es lösen sollte. Ein
+	// reines Warten (kein zusätzliches synthetisches Tastenereignis) gibt dem Anwender Zeit, Ctrl+Alt
+	// vom gerade gedrückten Hotkey tatsächlich physisch loszulassen, bevor robotgo.TypeStr tippt -
+	// ohne das Tastatur-Modifier-Bit selbst anzufassen.
+	time.Sleep(300 * time.Millisecond)
 	robotgo.TypeStr(text)
 	return nil
-}
-
-// releaseModifierKeys erzwingt ein Loslassen von Ctrl/Alt/Shift auf X11-Ebene, bevor robotgo.TypeStr
-// tippt. Ohne das kann der Anwender Ctrl+Alt (vom gerade gedrückten Hotkey) noch physisch halten,
-// während TypeStr die ersten Zeichen des Transkripts sendet - X11 sieht z.B. ein "t" im Text dann
-// als Ctrl+Alt+T, GNOMEs Standard-Shortcut zum Öffnen eines Terminals (mehrfach, je nach Anzahl der
-// betroffenen Buchstaben, bis die Tasten tatsächlich physisch losgelassen sind). Gleiche Bugklasse
-// wie der bereits dokumentierte Ctrl+V-Modifier-Konflikt oben, jetzt beim direkten Tippen statt
-// beim Pasten.
-func releaseModifierKeys() {
-	_ = robotgo.KeyUp(robotgo.Ctrl)
-	_ = robotgo.KeyUp(robotgo.Alt)
-	_ = robotgo.KeyUp(robotgo.Shift)
 }
