@@ -404,7 +404,10 @@ func notifyReview() {
 // Hintergrund: vorher wurde Ctrl+V simuliert, was beim globalen Hotkey
 // Ctrl+Alt+V unter X11 unzuverlässig war (Modifier-Konflikt mit dem gerade
 // losgelassenen Hotkey) - der Text blieb dann nur in der Zwischenablage.
-func (a *App) InsertTranscript(text string) error {
+// InsertTranscript siehe Doc-Kommentar oben. viaHotkey unterscheidet die beiden Aufruf-Pfade aus
+// Recorder.tsx: true für Ctrl+Alt+V und die Diktiermikro-Tasten (nie fokussiert, kein Hide/Show
+// nötig - reines Flackern ohne Nutzen), false für den Button-Klick (siehe unten).
+func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	runtime.ClipboardSetText(a.ctx, text)
 	go notifyReview()
 
@@ -413,12 +416,13 @@ func (a *App) InsertTranscript(text string) error {
 	// robotgo.TypeStr sonst in openDox statt ins gewünschte Zielprogramm tippen würde (Ursache
 	// für zuvor gemeldetes Kauderwelch + CPU-Last durch fehlgeleitete Tastendrücke im Overlay).
 	// Kurzes Verstecken gibt den Fokus an das zuvor aktive Zielfenster zurück. Beim
-	// Ctrl+Alt+V-Hotkey-Pfad war das Overlay ohnehin nie fokussiert, daher ist das Verstecken dort
-	// ein No-Op fürs Fokus-Verhalten (nur ein kurzes Flackern).
+	// Ctrl+Alt+V-Hotkey-Pfad (und den Diktiermikro-Tasten) war das Overlay ohnehin nie fokussiert,
+	// daher wird dort NICHT versteckt - nur ein unnötiges Flackern ohne Fokus-Nutzen.
 	a.mu.Lock()
 	wasVisible := a.visible
 	a.mu.Unlock()
-	if wasVisible {
+	hideForFocus := wasVisible && !viaHotkey
+	if hideForFocus {
 		runtime.WindowHide(a.ctx)
 	}
 
@@ -432,7 +436,7 @@ func (a *App) InsertTranscript(text string) error {
 	time.Sleep(300 * time.Millisecond)
 	robotgo.TypeStr(text)
 
-	if wasVisible {
+	if hideForFocus {
 		runtime.WindowShow(a.ctx)
 		a.positionTopRight()
 	}

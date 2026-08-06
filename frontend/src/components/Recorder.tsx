@@ -498,9 +498,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         isPausedRef.current = false;
     };
 
-    const acceptAndInsert = () => {
+    const acceptAndInsert = (viaHotkey = false) => {
         if (!stableTranscript) return;
-        GoInsertTranscript(stableTranscript);
+        GoInsertTranscript(stableTranscript, viaHotkey);
     };
 
     const handleStopClick = () => {
@@ -587,7 +587,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         const offAccept = EventsOn("hotkey:accept-insert", () => {
             if (isRecordingRef.current || isProcessingRef.current) return;
             if (!stableTranscriptRef.current) return;
-            acceptAndInsertRef.current();
+            acceptAndInsertRef.current(true);
         });
         return () => {
             offToggle();
@@ -762,7 +762,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             {!isProcessing && stableTranscript && !isRecording && (
                 <div className="recorder-actions">
                     <button
-                        onClick={acceptAndInsert}
+                        onClick={() => acceptAndInsert(false)}
                         className="recorder-insert-btn"
                         title={`In fokussiertes Fenster einfügen (${modKeyLabel}+V)`}
                     >

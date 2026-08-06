@@ -38,8 +38,8 @@ export function GetWhisperSettings() {
   return window['go']['main']['App']['GetWhisperSettings']();
 }
 
-export function InsertTranscript(arg1) {
-  return window['go']['main']['App']['InsertTranscript'](arg1);
+export function InsertTranscript(arg1, arg2) {
+  return window['go']['main']['App']['InsertTranscript'](arg1, arg2);
 }
 
 export function LoginWithOIDC() {
