@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "opendox-client",
+  "outputfilename": "opendox-client",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "christopher.abanilla",
+    "email": "christopher.abanilla@s2a-ot.digital"
+  }
+}

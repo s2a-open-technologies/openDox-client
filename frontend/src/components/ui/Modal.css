@@ -1,0 +1,49 @@
+.od-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: od-fade-in 0.12s ease;
+}
+
+.od-modal {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 360px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.od-modal-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f3f4f6;
+}
+
+.od-modal-desc {
+    margin: 0 0 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #9ca3af;
+}
+
+.od-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+@keyframes od-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

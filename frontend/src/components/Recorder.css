@@ -1,0 +1,452 @@
+.recorder {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: #18181b;
+    color: #e4e4e7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Status-Leiste */
+.recorder-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Rechts Platz für den global fixierten Close-Button (App.css .app-close)
+       reservieren, damit Kategorie-Dropdown/Logout nicht darunter kollidieren. */
+    padding: 10px 40px 10px 14px;
+    border-bottom: 1px solid #27272a;
+    background-color: rgba(0, 0, 0, 0.2);
+    /* Drag-Region: Header lässt sich zum Verschieben des Fensters ziehen */
+    -webkit-app-region: drag;
+}
+
+.recorder-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+}
+
+.recorder-dot.reachable {
+    background-color: #22c55e;
+}
+
+.recorder-dot.unreachable {
+    background-color: #ef4444;
+}
+
+.recorder-dot.recording {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    animation: od-pulse-dot 1.4s ease-in-out infinite;
+}
+
+.recorder-dot.paused {
+    background-color: #f59e0b;
+}
+
+.recorder-status-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #a1a1aa;
+    letter-spacing: 0.01em;
+}
+
+/* Wrapper für die rechts gruppierten Aktionen (Kategorie + Logout) — nur dieser
+   Wrapper bekommt margin-left:auto, damit beide Elemente als Gruppe rechts
+   bleiben, egal ob das Dropdown gerade gerendert wird oder nicht. */
+.recorder-status-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Kategorie-Dropdown */
+.recorder-category-select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #3f3f46;
+    background-color: #09090b;
+    color: #d4d4d8;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    max-width: 160px;
+    -webkit-app-region: no-drag;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.recorder-category-select option {
+    background-color: #09090b;
+    color: #d4d4d8;
+}
+
+.recorder-category-select:focus {
+    border-color: #3b82f6;
+}
+
+.recorder-category-select:hover {
+    border-color: #52525b;
+}
+
+/* Logout-Button: eigenes Element neben dem Kategorie-Dropdown, kein Overlay */
+.recorder-logout-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background-color: transparent;
+    color: #71717a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    -webkit-app-region: no-drag;
+}
+
+.recorder-logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #e4e4e7;
+}
+
+/* Transkriptions-Bereich */
+.recorder-transcript {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px;
+}
+
+.recorder-transcript-inner {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.recorder-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 300;
+    color: #d4d4d8;
+    letter-spacing: 0.01em;
+}
+
+.recorder-text.select-none {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.recorder-text-live {
+    color: #60a5fa;
+    margin-left: 4px;
+    border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+    padding-bottom: 1px;
+    animation: od-blink 1s ease-in-out infinite;
+}
+
+.recorder-placeholder {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #52525b;
+}
+
+.recorder-placeholder p {
+    font-size: 13px;
+    font-weight: 300;
+    text-align: center;
+    margin: 0;
+}
+
+.recorder-orb {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Controls */
+.recorder-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    border-top: 1px solid #27272a;
+    background-color: rgba(0, 0, 0, 0.2);
+    /* Controls dürfen nicht als Drag-Region gelten */
+    -webkit-app-region: no-drag;
+}
+
+.recorder-mic-btn {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #3b82f6;
+    color: #fff;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.recorder-mic-btn:hover {
+    background-color: #2563eb;
+    transform: scale(1.05);
+}
+
+.recorder-mic-btn:active {
+    transform: scale(0.95);
+}
+
+.recorder-mic-btn.recording {
+    background-color: #ef4444;
+}
+
+.recorder-mic-btn.recording:hover {
+    background-color: #dc2626;
+}
+
+.recorder-pulse-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-color: rgba(239, 68, 68, 0.4);
+    animation: od-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    pointer-events: none;
+}
+
+.recorder-cancel-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: #ef4444;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.recorder-cancel-btn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.recorder-cancel-btn .icon-fill {
+    width: 18px;
+    height: 18px;
+}
+
+.recorder-pause-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.recorder-pause-btn.pausing {
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.recorder-pause-btn.pausing:hover {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.recorder-pause-btn.resuming {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.recorder-pause-btn.resuming:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.icon-fill {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+.recorder-pause-btn .icon-fill {
+    width: 18px;
+    height: 18px;
+}
+
+/* Aktions-Buttons unter den Controls (Einfügen / In openDox öffnen) */
+.recorder-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid #27272a;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-app-region: no-drag;
+}
+
+.recorder-actions .recorder-insert-btn {
+    width: 100%;
+    text-align: center;
+}
+
+/* Einfügen-Button */
+.recorder-insert-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+}
+
+.recorder-insert-btn:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: #60a5fa;
+}
+
+.recorder-insert-btn:active {
+    transform: scale(0.97);
+}
+
+.icon-inline {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    vertical-align: -2px;
+}
+
+/* Processing */
+.recorder-processing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.recorder-processing span {
+    font-size: 12px;
+    font-weight: 500;
+    color: #a1a1aa;
+}
+
+/* Shortcuts */
+.recorder-shortcuts {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 6px 14px 10px;
+    border-top: 1px solid #27272a;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #71717a;
+}
+
+.shortcut kbd {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+    background-color: #09090b;
+    color: #a1a1aa;
+}
+
+.icon-spin {
+    width: 24px;
+    height: 24px;
+    color: #3b82f6;
+    animation: od-spin 1s linear infinite;
+}
+
+/* Scrollbar */
+.recorder-transcript::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recorder-transcript::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.recorder-transcript::-webkit-scrollbar-thumb {
+    background-color: #3f3f46;
+    border-radius: 3px;
+}
+
+/* Animations */
+@keyframes od-pulse-dot {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+@keyframes od-blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes od-ping {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    75%, 100% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+}
+
+@keyframes od-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
