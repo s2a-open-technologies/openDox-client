@@ -407,14 +407,34 @@ func notifyReview() {
 func (a *App) InsertTranscript(text string) error {
 	runtime.ClipboardSetText(a.ctx, text)
 	go notifyReview()
+
+	// Ein Klick auf den "Akzeptieren und einfügen"-Button fokussiert zwangsläufig erst das
+	// openDox-Overlay selbst (jeder Mausklick auf ein Fenster holt es in den Fokus), wodurch
+	// robotgo.TypeStr sonst in openDox statt ins gewünschte Zielprogramm tippen würde (Ursache
+	// für zuvor gemeldetes Kauderwelch + CPU-Last durch fehlgeleitete Tastendrücke im Overlay).
+	// Kurzes Verstecken gibt den Fokus an das zuvor aktive Zielfenster zurück. Beim
+	// Ctrl+Alt+V-Hotkey-Pfad war das Overlay ohnehin nie fokussiert, daher ist das Verstecken dort
+	// ein No-Op fürs Fokus-Verhalten (nur ein kurzes Flackern).
+	a.mu.Lock()
+	wasVisible := a.visible
+	a.mu.Unlock()
+	if wasVisible {
+		runtime.WindowHide(a.ctx)
+	}
+
 	// Kurze Pause statt eines synthetischen Modifier-Release: robotgo.KeyUp("ctrl"/"alt"/"shift")
 	// wurde hier kurz ausprobiert, hat aber auf Systemen mit nicht-standardmäßigem Keyboard-Mapping
 	// (siehe hotkeyMods-Kommentar in hotkey_mod_linux.go) den Shift-/CapsLock-Zustand verwürfelt und
 	// dadurch den getippten Text zerhackt - schlimmer als das Problem, das es lösen sollte. Ein
-	// reines Warten (kein zusätzliches synthetisches Tastenereignis) gibt dem Anwender Zeit, Ctrl+Alt
-	// vom gerade gedrückten Hotkey tatsächlich physisch loszulassen, bevor robotgo.TypeStr tippt -
-	// ohne das Tastatur-Modifier-Bit selbst anzufassen.
+	// reines Warten (kein zusätzliches synthetisches Tastenereignis) gibt sowohl dem Anwender Zeit,
+	// Ctrl+Alt vom gerade gedrückten Hotkey physisch loszulassen, als auch dem Fenstermanager Zeit,
+	// den Fokuswechsel nach dem WindowHide oben tatsächlich zu vollziehen, bevor getippt wird.
 	time.Sleep(300 * time.Millisecond)
 	robotgo.TypeStr(text)
+
+	if wasVisible {
+		runtime.WindowShow(a.ctx)
+		a.positionTopRight()
+	}
 	return nil
 }
