@@ -95,7 +95,13 @@ Pro offenem Gerät:
 
 Die drei Event-Strings `"hotkey:toggle-record"`, `"hotkey:toggle-pause"`, `"hotkey:accept-insert"`
 werden aus `app.go` in benannte Konstanten gezogen (bisher als Literale dreifach dupliziert) und
-von `registerGlobalHotkeys()` **und** `dictation_mic.go` verwendet:
+von `registerGlobalHotkeys()` **und** `dictation_mic.go` verwendet.
+
+`app.go` prüft in `registerHotkey()` inzwischen `a.visible` (Overlay ein-/ausgeblendet via
+`Ctrl+Alt+H`) und unterdrückt Events, während das Overlay ausgeblendet ist. Damit Mikro-Tasten und
+Tastatur-Hotkeys konsistent bleiben, wird diese Prüfung in eine gemeinsame Methode
+`a.emitHotkeyEvent(eventName)` gezogen und von beiden Quellen genutzt, statt die
+Sichtbarkeitsprüfung zu duplizieren.
 
 | Physische Taste | Bit | Frontend-Event |
 |---|---|---|
