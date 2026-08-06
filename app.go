@@ -77,6 +77,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.registerGlobalHotkeys()
+	a.startDictationMic()
 }
 
 // Event-Namen, die sowohl von den Tastatur-Hotkeys als auch von den physischen
