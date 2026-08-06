@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -40,7 +42,20 @@ func (a *App) LoginWithOIDC() error {
 		return fmt.Errorf("konnte lokalen Listener nicht starten: %w", err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
-	nativeRedirect := fmt.Sprintf("http://127.0.0.1:%d/callback", port)
+
+	// Der Callback-Pfad enthält ein pro Login-Versuch zufälliges Token. Der Server MUSS
+	// exakt an native_redirect zurückleiten, damit der Loopback-Flow überhaupt funktioniert
+	// - ein beliebiger anderer lokaler Prozess/Tab, der /callback erraten würde, kennt das
+	// Token nicht und kann so keine Tokens einschleusen (Schutz gegen unauthentifizierte
+	// Callback-Aufrufe).
+	callbackToken, err := randomToken()
+	if err != nil {
+		oidcLoginInFlight.Store(false)
+		_ = listener.Close()
+		return fmt.Errorf("konnte kein Zufalls-Token erzeugen: %w", err)
+	}
+	callbackPath := "/callback/" + callbackToken
+	nativeRedirect := fmt.Sprintf("http://127.0.0.1:%d%s", port, callbackPath)
 	loginURL := fmt.Sprintf("%s/api/v1/auth/oidc/login?native_redirect=%s",
 		a.opendoxURL, url.QueryEscape(nativeRedirect))
 
@@ -48,7 +63,7 @@ func (a *App) LoginWithOIDC() error {
 	srv := &http.Server{Handler: mux}
 	done := make(chan struct{})
 
-	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(callbackPath, func(w http.ResponseWriter, r *http.Request) {
 		accessToken := r.URL.Query().Get("access_token")
 		refreshToken := r.URL.Query().Get("refresh_token")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -80,4 +95,14 @@ func (a *App) LoginWithOIDC() error {
 
 	runtime.BrowserOpenURL(a.ctx, loginURL)
 	return nil
+}
+
+// randomToken erzeugt ein kryptografisch zufälliges, URL-sicheres Token für den
+// Callback-Pfad (siehe LoginWithOIDC).
+func randomToken() (string, error) {
+	b := make([]byte, 24)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

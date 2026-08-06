@@ -115,9 +115,10 @@ always defaults to a real category.
 
 ### WebView permissions (`webview_perms.go`)
 
-Auto-grants WebKitGTK permission prompts (mic, etc.) at the GTK/cgo level so `getUserMedia` never shows an
-OS dialog. Runs once in `domReady`, idempotent (guarded by a `perms-connected` GObject data key), walks
-the whole GTK widget tree — necessary because Wails doesn't expose the underlying `WebKitWebView`.
+Auto-grants only microphone/camera (`getUserMedia`) permission prompts at the GTK/cgo level so recording
+never shows an OS dialog; every other WebKit permission type (geolocation, notifications, ...) is denied.
+Runs once in `domReady`, idempotent (guarded by a `perms-connected` GObject data key), walks the whole GTK
+widget tree — necessary because Wails doesn't expose the underlying `WebKitWebView`.
 
 ## Frontend conventions
 

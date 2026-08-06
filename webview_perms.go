@@ -8,12 +8,17 @@ package main
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
 
-// Auto-allow every permission request emitted by the WebView
-// (microphone, camera, geolocation, notifications, ...).
+// Auto-allow only microphone/camera access requests (getUserMedia) emitted by
+// the WebView — the app only ever needs microphone access for dictation.
+// Every other permission type (geolocation, notifications, ...) is denied.
 static gboolean permission_requested_cb(WebKitWebView *webview,
                                         WebKitPermissionRequest *request,
                                         gpointer data) {
-    webkit_permission_request_allow(request);
+    if (WEBKIT_IS_USER_MEDIA_PERMISSION_REQUEST(request)) {
+        webkit_permission_request_allow(request);
+    } else {
+        webkit_permission_request_deny(request);
+    }
     return TRUE;
 }
 
