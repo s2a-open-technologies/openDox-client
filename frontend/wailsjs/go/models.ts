@@ -43,6 +43,8 @@ export namespace main {
 	    }
 	}
 	export class RecordDetails {
+	    id: number;
+	    task_id: number;
 	    summarize: string;
 	
 	    static createFrom(source: any = {}) {
@@ -51,6 +53,8 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.task_id = source["task_id"];
 	        this.summarize = source["summarize"];
 	    }
 	}

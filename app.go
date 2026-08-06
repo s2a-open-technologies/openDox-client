@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/go-vgo/robotgo"
@@ -52,6 +53,8 @@ type TaskStatus struct {
 }
 
 type RecordDetails struct {
+	ID        int    `json:"id"`
+	TaskID    int    `json:"task_id"`
 	Summarize string `json:"summarize"`
 }
 
@@ -60,10 +63,13 @@ type RecordDetails struct {
 type App struct {
 	ctx        context.Context
 	opendoxURL string
+
+	mu      sync.Mutex
+	visible bool
 }
 
 func NewApp() *App {
-	return &App{opendoxURL: "http://localhost:20000"}
+	return &App{opendoxURL: "http://localhost:20000", visible: true}
 }
 
 // --- Lifecycle ---
@@ -83,7 +89,8 @@ func (a *App) registerGlobalHotkeys() {
 	mods := hotkeyMods
 	a.registerHotkey(mods, hotkey.KeyR, "hotkey:toggle-record")
 	a.registerHotkey(mods, hotkey.KeyP, "hotkey:toggle-pause")
-	a.registerHotkey(mods, hotkey.KeyA, "hotkey:accept-insert")
+	a.registerHotkey(mods, hotkey.KeyV, "hotkey:accept-insert")
+	a.registerWindowHotkey(mods, hotkey.KeyH) // Ctrl+Alt+H: Overlay ein-/ausblenden
 }
 
 // registerHotkey registriert eine einzelne Tastenkombination und emittiert bei jedem
@@ -101,7 +108,41 @@ func (a *App) registerHotkey(mods []hotkey.Modifier, key hotkey.Key, eventName s
 				continue // debounce X11 auto-repeat while die Kombination gehalten wird
 			}
 			last = time.Now()
+			a.mu.Lock()
+			visible := a.visible
+			a.mu.Unlock()
+			if !visible {
+				continue // Overlay ausgeblendet -> Ctrl+Alt+R / Ctrl+Alt+P / Ctrl+Alt+V deaktiviert
+			}
 			runtime.EventsEmit(a.ctx, eventName)
+		}
+	}()
+}
+
+// registerWindowHotkey registriert eine Tastenkombination (Ctrl+Alt+H) zum Ein- und
+// Ausblenden des Overlays. Läuft komplett in Go, da es eine reine Fensteroperation ist.
+func (a *App) registerWindowHotkey(mods []hotkey.Modifier, key hotkey.Key) {
+	hk := hotkey.New(mods, key)
+	if err := hk.Register(); err != nil {
+		log.Printf("[opendox] failed to register window hotkey: %v", err)
+		return
+	}
+	go func() {
+		var last time.Time
+		for range hk.Keydown() {
+			if time.Since(last) < 700*time.Millisecond {
+				continue // debounce X11 auto-repeat
+			}
+			last = time.Now()
+			a.mu.Lock()
+			if a.visible {
+				runtime.WindowHide(a.ctx)
+				a.visible = false
+			} else {
+				runtime.WindowShow(a.ctx)
+				a.visible = true
+			}
+			a.mu.Unlock()
 		}
 	}()
 }
@@ -271,6 +312,38 @@ func (a *App) GetRecordBySession(sessionID, token string) (RecordDetails, error)
 	return r, nil
 }
 
+// ReprocessWithCategory ändert die Kategorie eines bereits transkribierten Records und
+// stößt danach die KI-Zusammenfassung neu an, damit die neue Kategorie-Vorlage greift
+// (Kategoriewechsel nach der Aufnahme, analog zum openDox-Web-Frontend). Der
+// /summarize-Endpoint ist synchron (liefert den fertigen Text direkt, kein Task/Polling —
+// gegen den echten Server verifiziert, task_id bleibt dabei durchgehend null).
+func (a *App) ReprocessWithCategory(recordID int, categoryID int, token string) (RecordDetails, error) {
+	updateBody := map[string]interface{}{"category_id": categoryID}
+	resp, err := a.doRequest("PUT", fmt.Sprintf("/api/v1/records/record/%d", recordID), token, updateBody)
+	if err != nil {
+		return RecordDetails{}, err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return RecordDetails{}, fmt.Errorf("kategorie konnte nicht aktualisiert werden (status %d)", resp.StatusCode)
+	}
+
+	resp, err = a.doRequest("POST", fmt.Sprintf("/api/v1/records/record/%d/summarize", recordID), token, nil)
+	if err != nil {
+		return RecordDetails{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		return RecordDetails{}, fmt.Errorf("neuverarbeitung fehlgeschlagen: %s", string(b))
+	}
+
+	var r RecordDetails
+	json.NewDecoder(resp.Body).Decode(&r)
+	r.ID = recordID
+	return r, nil
+}
+
 // Quit schließt die Anwendung.
 func (a *App) Quit() {
 	runtime.Quit(a.ctx)
@@ -311,7 +384,7 @@ func notifyReview() {
 // falls das Zielfeld getippte Eingaben nicht annimmt.
 //
 // Hintergrund: vorher wurde Ctrl+V simuliert, was beim globalen Hotkey
-// Ctrl+Alt+A unter X11 unzuverlässig war (Modifier-Konflikt mit dem gerade
+// Ctrl+Alt+V unter X11 unzuverlässig war (Modifier-Konflikt mit dem gerade
 // losgelassenen Hotkey) - der Text blieb dann nur in der Zwischenablage.
 func (a *App) InsertTranscript(text string) error {
 	runtime.ClipboardSetText(a.ctx, text)

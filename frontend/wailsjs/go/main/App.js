@@ -53,3 +53,7 @@ export function OpenDashboard() {
 export function Quit() {
   return window['go']['main']['App']['Quit']();
 }
+
+export function ReprocessWithCategory(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ReprocessWithCategory'](arg1, arg2, arg3);
+}

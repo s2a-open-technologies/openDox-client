@@ -27,3 +27,5 @@ export function LoginWithOIDC():Promise<void>;
 export function OpenDashboard():Promise<void>;
 
 export function Quit():Promise<void>;
+
+export function ReprocessWithCategory(arg1:number,arg2:number,arg3:string):Promise<main.RecordDetails>;

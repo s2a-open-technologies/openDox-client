@@ -120,10 +120,27 @@
 
 /* Transkriptions-Bereich */
 .recorder-transcript {
+    position: relative;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 14px;
+}
+
+/* Wasserzeichen: eigenes Pseudo-Element statt background-image direkt auf dem
+   Container, weil CSS background-image keine eigene opacity kennt (würde sonst
+   den ganzen Container inkl. Text abdunkeln). pointer-events:none, damit es
+   Klicks/Selektion im Transkript-Bereich nicht blockiert. */
+.recorder-transcript::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("../assets/openDox.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 220px auto;
+    opacity: 0.06;
+    pointer-events: none;
 }
 
 .recorder-transcript-inner {

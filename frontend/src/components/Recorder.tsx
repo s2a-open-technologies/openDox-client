@@ -22,6 +22,7 @@ import {toast} from "sonner";
 import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
 import {InsertTranscript as GoInsertTranscript} from "../../wailsjs/go/main/App";
 import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySession} from "../../wailsjs/go/main/App";
+import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
 import {EventsOn, Environment} from "../../wailsjs/runtime/runtime";
 import {BASE_URL} from "@/api";
@@ -64,6 +65,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     // recorder-status unten — während einer Aufnahme zeigt der Punkt weiterhin
     // den Aufnahme-/Pause-Status).
     const [isBackendReachable, setIsBackendReachable] = useState(true);
+    // ID des fertigen Records (sobald die Transkription vorliegt) — wird für den
+    // nachträglichen Kategoriewechsel (Neuverarbeitung durch die KI) gebraucht.
+    const [recordId, setRecordId] = useState<number | null>(null);
 
     const streamRef = useRef<MediaStream | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
@@ -161,7 +165,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 if (sessionIdRef.current !== pollSessionId) return;
                 setStableTranscript(record.summarize || "");
                 setLiveTranscript("");
-                toast.success(`Transkription abgeschlossen – ${modKeyLabel}+A zum Einfügen`);
+                setRecordId(record.id);
+                toast.success(`Transkription abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
                 if (onFinalTranscription) {
                     onFinalTranscription(pollSessionId, taskId);
                 }
@@ -190,6 +195,36 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
         // pending / running / transcribing / processing_llm -> weiter pollen
         pollTimeoutRef.current = setTimeout(() => pollTaskStatus(taskId, pollSessionId), 2000);
+    };
+
+    // Kategoriewechsel bei bereits fertigem Transkript: Server ändert die Kategorie des
+    // Records und stößt die KI-Zusammenfassung neu an (analog zum openDox-Web-Frontend).
+    // Der /summarize-Endpoint ist synchron (gegen den echten Server verifiziert) — kein
+    // Task-Polling nötig, die Response enthält den fertigen Text direkt.
+    const reprocessWithCategory = async (newCategoryId: number) => {
+        if (!recordId || !sessionIdRef.current) return;
+        const pollSessionId = sessionIdRef.current;
+        setIsProcessing(true);
+        processingTimeoutRef.current = setTimeout(() => {
+            setIsProcessing(false);
+            toast.error("Zeitüberschreitung – Neuverarbeitung fehlgeschlagen");
+        }, 90_000);
+
+        try {
+            const record = await GoReprocessWithCategory(recordId, newCategoryId, getToken());
+            if (sessionIdRef.current !== pollSessionId) return;
+            setStableTranscript(record.summarize || "");
+            toast.success(`Neuverarbeitung abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
+        } catch (err) {
+            console.error("Neuverarbeitung fehlgeschlagen:", err);
+            toast.error("Neuverarbeitung fehlgeschlagen");
+        } finally {
+            if (processingTimeoutRef.current) {
+                clearTimeout(processingTimeoutRef.current);
+                processingTimeoutRef.current = null;
+            }
+            setIsProcessing(false);
+        }
     };
 
     const openWebSocket = async (userId: string, session_id: string) => {
@@ -286,6 +321,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             if (!resumeSessionId) {
                 setStableTranscript("");
                 setLiveTranscript("");
+                setRecordId(null);
             }
 
             // Resume an existing unfinished session or create a new recording.
@@ -429,6 +465,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         setLiveTranscript("");
         setSessionId(null);
         sessionIdRef.current = null;
+        setRecordId(null);
 
         try {
             await GoCancelSession(parseInt(userId), getToken());
@@ -610,7 +647,17 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                         <select
                             className="recorder-category-select"
                             value={selectedCategoryId}
-                            onChange={(e) => setSelectedCategoryId(parseInt(e.target.value))}
+                            onChange={(e) => {
+                                const newCategoryId = parseInt(e.target.value);
+                                setSelectedCategoryId(newCategoryId);
+                                // Liegt bereits ein fertiges Transkript vor, löst der
+                                // Kategoriewechsel eine Neuverarbeitung durch die KI aus
+                                // (wie im openDox-Web-Frontend) statt nur die Vorauswahl
+                                // für die nächste Aufnahme zu setzen.
+                                if (stableTranscript && recordId) {
+                                    reprocessWithCategory(newCategoryId);
+                                }
+                            }}
                             title="Kategorie auswählen"
                         >
                             {categories.map((cat) => (
@@ -717,7 +764,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     <button
                         onClick={acceptAndInsert}
                         className="recorder-insert-btn"
-                        title={`In fokussiertes Fenster einfügen (${modKeyLabel}+A)`}
+                        title={`In fokussiertes Fenster einfügen (${modKeyLabel}+V)`}
                     >
                         Akzeptieren und einfügen
                     </button>
@@ -744,7 +791,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     )}
                     {stableTranscript && !isRecording && (
                         <span className="shortcut">
-                            <kbd>{modKeyLabel}+A</kbd> Akzeptieren &amp; einfügen
+                            <kbd>{modKeyLabel}+V</kbd> Akzeptieren &amp; einfügen
                         </span>
                     )}
                 </div>
