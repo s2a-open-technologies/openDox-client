@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {X} from 'lucide-react';
+import {SettingsProvider, useSettings} from '@/contexts/SettingsContext';
 import {AuthProvider, useAuth} from '@/contexts/AuthContext';
 import {LoginScreen} from '@/components/LoginScreen';
 import {DisclaimerGate} from '@/components/DisclaimerGate';
@@ -60,28 +61,30 @@ function Overlay() {
 
 function App() {
     return (
-        <AuthProvider>
-            {/* Frameless-Fenster hat keinen OS-Rahmen — dieser Button ist der einzige
-                Weg, die App zu schließen, daher unabhängig vom Auth-/Ladezustand sichtbar. */}
-            <button
-                className="app-close"
-                onClick={() => GoQuit()}
-                title="Schließen"
-                aria-label="Schließen"
-            >
-                <X size={16}/>
-            </button>
-            <Overlay/>
-            <Toaster
-                position="top-center"
-                theme="dark"
-                toastOptions={{
-                    style: {
-                        fontSize: '12px',
-                    },
-                }}
-            />
-        </AuthProvider>
+        <SettingsProvider>
+            <AuthProvider>
+                {/* Frameless-Fenster hat keinen OS-Rahmen — dieser Button ist der einzige
+                    Weg, die App zu schließen, daher unabhängig vom Auth-/Ladezustand sichtbar. */}
+                <button
+                    className="app-close"
+                    onClick={() => GoQuit()}
+                    title="Schließen"
+                    aria-label="Schließen"
+                >
+                    <X size={16}/>
+                </button>
+                <Overlay/>
+                <Toaster
+                    position="top-center"
+                    theme="dark"
+                    toastOptions={{
+                        style: {
+                            fontSize: '12px',
+                        },
+                    }}
+                />
+            </AuthProvider>
+        </SettingsProvider>
     );
 }
 

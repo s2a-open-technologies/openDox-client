@@ -4,6 +4,10 @@ import {main} from '../models';
 
 export function CancelSession(arg1:number,arg2:string):Promise<void>;
 
+export function CheckAccessibility():Promise<boolean>;
+
+export function CheckHotkeys():Promise<boolean>;
+
 export function CopyToClipboard(arg1:string):Promise<void>;
 
 export function CreateRecord(arg1:number,arg2:string,arg3:number,arg4:string):Promise<main.Record>;
@@ -13,6 +17,8 @@ export function GetActiveSession(arg1:number,arg2:string):Promise<main.ActiveSes
 export function GetCategories(arg1:string):Promise<Array<main.Category>>;
 
 export function GetRecordBySession(arg1:string,arg2:string):Promise<main.RecordDetails>;
+
+export function GetSettings():Promise<main.Settings>;
 
 export function GetTaskStatus(arg1:number,arg2:string):Promise<main.TaskStatus>;
 

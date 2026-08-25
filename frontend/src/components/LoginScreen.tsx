@@ -1,14 +1,16 @@
 import {FormEvent, useEffect, useState} from 'react';
 import {Loader2, Lock, LogIn, User} from 'lucide-react';
 import {useAuth} from '@/contexts/AuthContext';
+import {useSettings} from '@/contexts/SettingsContext';
 import {Button} from '@/components/ui/Button';
-import {BASE_URL} from '@/api';
 import {LoginWithOIDC as GoLoginWithOIDC} from '../../wailsjs/go/main/App';
 import {EventsOn} from '../../wailsjs/runtime/runtime';
 import './LoginScreen.css';
 
 export const LoginScreen = () => {
     const {login, loginWithTokens, isLoading} = useAuth();
+    const {settings} = useSettings();
+    const restURL = settings?.server_url || "http://localhost:10000";
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export const LoginScreen = () => {
     const [ssoWaiting, setSsoWaiting] = useState(false);
 
     useEffect(() => {
-        fetch(`${BASE_URL}/api/v1/auth/oidc/status`)
+        fetch(`${restURL}/api/v1/auth/oidc/status`)
             .then((res) => (res.ok ? res.json() : {enabled: false}))
             .then((data) => setOidcEnabled(!!data.enabled))
             .catch(() => setOidcEnabled(false));

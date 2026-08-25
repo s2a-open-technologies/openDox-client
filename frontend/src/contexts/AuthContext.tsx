@@ -17,7 +17,7 @@
 */
 
 import {createContext, useState, useEffect, useContext, ReactNode} from 'react';
-import {BASE_URL} from '../api';
+import {useSettings} from '@/contexts/SettingsContext';
 
 type User = {
     id: number;
@@ -43,6 +43,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({children}: { children: ReactNode }) => {
+    const {settings} = useSettings();
+    const restURL = settings?.server_url || "http://localhost:10000";
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -63,7 +65,7 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
         if (!refreshToken) return false;
         try {
             const res = await fetch(
-                `${BASE_URL}/api/v1/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`,
+                `${restURL}/api/v1/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`,
                 {method: "POST"}
             );
             if (!res.ok) return false;
@@ -83,7 +85,7 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
             ...options.headers,
             Authorization: token ? `Bearer ${token}` : "",
         };
-        const fullUrl = /^https?:\/\//i.test(url) ? url : `${BASE_URL}${url}`;
+        const fullUrl = /^https?:\/\//i.test(url) ? url : `${restURL}${url}`;
         return fetch(fullUrl, {...options, headers});
     };
 
@@ -127,7 +129,7 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
     const login = async (name: string, password: string): Promise<boolean> => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+            const res = await fetch(`${restURL}/api/v1/auth/login`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({name, password}),
@@ -159,7 +161,7 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
 
     const logout = async (): Promise<void> => {
         try {
-            await fetch(`${BASE_URL}/api/v1/auth/logout`, {method: "POST"});
+            await fetch(`${restURL}/api/v1/auth/logout`, {method: "POST"});
         } catch (error) {
             console.error("Logout error:", error);
         } finally {

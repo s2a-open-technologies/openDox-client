@@ -6,6 +6,14 @@ export function CancelSession(arg1, arg2) {
   return window['go']['main']['App']['CancelSession'](arg1, arg2);
 }
 
+export function CheckAccessibility() {
+  return window['go']['main']['App']['CheckAccessibility']();
+}
+
+export function CheckHotkeys() {
+  return window['go']['main']['App']['CheckHotkeys']();
+}
+
 export function CopyToClipboard(arg1) {
   return window['go']['main']['App']['CopyToClipboard'](arg1);
 }
@@ -24,6 +32,10 @@ export function GetCategories(arg1) {
 
 export function GetRecordBySession(arg1, arg2) {
   return window['go']['main']['App']['GetRecordBySession'](arg1, arg2);
+}
+
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
 }
 
 export function GetTaskStatus(arg1, arg2) {

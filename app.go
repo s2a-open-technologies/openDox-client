@@ -1,8 +1,25 @@
+// openDox - Medical transcription platform
+// Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package main
 
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +27,8 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	goruntime "runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -58,24 +77,72 @@ type RecordDetails struct {
 	Summarize string `json:"summarize"`
 }
 
+type Settings struct {
+	ServerURL string `json:"server_url"`
+}
+
+//go:embed settings.json
+var settingsJSON []byte
+
+func loadSettings() Settings {
+	var s Settings
+	if err := json.Unmarshal(settingsJSON, &s); err != nil {
+		log.Printf("[opendox] settings.json lesen fehlgeschlagen: %v — nutze Defaults", err)
+		s.ServerURL = "http://localhost:10000"
+	}
+	return s
+}
+
+func deriveWSURL(serverURL string) string {
+	if strings.HasPrefix(serverURL, "https://") {
+		return "wss://" + serverURL[8:]
+	}
+	return "ws://" + serverURL[7:]
+}
+
 // --- App Struct ---
 
 type App struct {
 	ctx        context.Context
 	opendoxURL string
+	wsURL      string
 
 	mu      sync.Mutex
 	visible bool
+
+	// hotkeyFailures zählt die Hotkeys, deren Registrierung fehlgeschlagen ist
+	// (typischerweise weil macOS-Eingabeüberwachung fehlt). Wird über
+	// CheckHotkeys() ans Frontend gemeldet, damit der Nutzer einen Hinweis
+	// bekommt statt sich über nicht funktionierende Tastenkürzel zu wundern.
+	hotkeyFailures int
 }
 
 func NewApp() *App {
-	return &App{opendoxURL: "http://localhost:20000", visible: true}
+	s := loadSettings()
+	return &App{
+		opendoxURL: s.ServerURL,
+		wsURL:      deriveWSURL(s.ServerURL),
+		visible:    true,
+	}
+}
+
+// GetSettings liefert die aktuellen Server-Einstellungen an das Frontend.
+func (a *App) GetSettings() Settings {
+	return Settings{ServerURL: a.opendoxURL}
 }
 
 // --- Lifecycle ---
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Auf macOS: Accessibility-Berechtigung prüfen und bei Bedarf den
+	// Systemdialog auslösen. Ohne diese Berechtigung schlagen systemweite
+	// Hotkeys (golang.design/x/hotkey nutzt CGEventTap) und Tastatur-Injektion
+	// (robotgo.TypeStr) still fehl — der Nutzer würde die App starten, Hotkeys
+	// funktionieren nicht, und "Akzeptieren und einfügen" tippt nichts.
+	if !ensureAccessibility() {
+		log.Printf("[opendox] Accessibility-Berechtigung fehlt — Hotkeys und Einfügen deaktiviert bis in den Systemeinstellungen erlaubt")
+	}
 	a.registerGlobalHotkeys()
 	a.startDictationMic()
 }
@@ -102,12 +169,29 @@ func (a *App) registerGlobalHotkeys() {
 	a.registerWindowHotkey(mods, hotkey.KeyH) // Ctrl+Alt+H: Overlay ein-/ausblenden
 }
 
+// CheckAccessibility meldet dem Frontend, ob der Prozess für Accessibility
+// (Bedienhilfen) vertraut ist — nur dann funktionieren auf macOS Tastatur-
+// Injektion (robotgo.TypeStr/Paste). Auf Linux/Windows liefert der Stub
+// (accessibility_stub.go) immer true.
+func (a *App) CheckAccessibility() bool {
+	return ensureAccessibility()
+}
+
+// CheckHotkeys meldet dem Frontend, ob alle systemweiten Hotkeys erfolgreich
+// registriert wurden. Auf macOS benötigt CGEventTap (golang.design/x/hotkey)
+// die separate Berechtigung "Eingabeüberwachung" (Input Monitoring) — selbst
+// wenn Bedienhilfen aktiv sind. Liefert true, wenn keine Fehler auftraten.
+func (a *App) CheckHotkeys() bool {
+	return a.hotkeyFailures == 0
+}
+
 // registerHotkey registriert eine einzelne Tastenkombination und emittiert bei jedem
 // (entprellten) Tastendruck das angegebene Wails-Event.
 func (a *App) registerHotkey(mods []hotkey.Modifier, key hotkey.Key, eventName string) {
 	hk := hotkey.New(mods, key)
 	if err := hk.Register(); err != nil {
 		log.Printf("[opendox] failed to register global hotkey for %s: %v", eventName, err)
+		a.hotkeyFailures++
 		return
 	}
 	go func() {
@@ -271,7 +355,8 @@ func (a *App) CancelSession(userID int, token string) error {
 // GetWSURL baut die WebSocket-URL für die Live-Transkription zusammen.
 // Token kommt aus dem Frontend (localStorage).
 func (a *App) GetWSURL(sessionID, userID, token string) string {
-	return fmt.Sprintf("ws://localhost:20000/api/v1/records/ws/record?session_id=%s&user_id=%s&token=%s",
+	return fmt.Sprintf("%s/api/v1/records/ws/record?session_id=%s&user_id=%s&token=%s",
+		a.wsURL,
 		url.QueryEscape(sessionID),
 		url.QueryEscape(userID),
 		url.QueryEscape(token),
@@ -396,28 +481,31 @@ func notifyReview() {
 	}
 }
 
-// InsertTranscript schreibt den Text direkt über die Tastatur in das aktuell
-// fokussierte Fenster (robotgo.TypeStr), sodass ein separater Einfügen-Schritt
-// entfällt. Die Zwischenablage wird zusätzlich als stiller Fallback gesetzt,
-// falls das Zielfeld getippte Eingaben nicht annimmt.
+// InsertTranscript schreibt den Text in das aktuell fokussierte Fenster.
+// viaHotkey unterscheidet die beiden Aufruf-Pfade aus Recorder.tsx: true für
+// Cmd+Opt+V und die Diktiermikro-Tasten (nie fokussiert, kein Hide/Show nötig
+// - reines Flackern ohne Nutzen), false für den Button-Klick (siehe unten).
 //
-// Hintergrund: vorher wurde Ctrl+V simuliert, was beim globalen Hotkey
-// Ctrl+Alt+V unter X11 unzuverlässig war (Modifier-Konflikt mit dem gerade
-// losgelassenen Hotkey) - der Text blieb dann nur in der Zwischenablage.
-// InsertTranscript siehe Doc-Kommentar oben. viaHotkey unterscheidet die beiden Aufruf-Pfade aus
-// Recorder.tsx: true für Ctrl+Alt+V und die Diktiermikro-Tasten (nie fokussiert, kein Hide/Show
-// nötig - reines Flackern ohne Nutzen), false für den Button-Klick (siehe unten).
+// Plattform-Unterschied:
+//   - macOS: NUR Zwischenablage setzen, kein simuliertes Cmd+V (siehe unten,
+//     warum robotgo.KeyTap hier bewusst nicht verwendet wird).
+//   - Linux: robotgo.TypeStr() tippt zeichenweise direkt in das Zielfenster.
+//     Ein simuliertes Ctrl+V wurde hier zuvor verwendet, kollidierte aber mit
+//     dem gerade losgelassenen globalen Hotkey (Ctrl+Alt+V) unter X11 — der
+//     Text blieb dann nur in der Zwischenablage.
 func (a *App) InsertTranscript(text string, viaHotkey bool) error {
+	// Clipboard wird immer gesetzt — als Fallback (macOS) und als stiller
+	// Backup (Linux, falls das Zielfeld getippte Eingaben nicht annimmt).
 	runtime.ClipboardSetText(a.ctx, text)
 	go notifyReview()
 
-	// Ein Klick auf den "Akzeptieren und einfügen"-Button fokussiert zwangsläufig erst das
-	// openDox-Overlay selbst (jeder Mausklick auf ein Fenster holt es in den Fokus), wodurch
-	// robotgo.TypeStr sonst in openDox statt ins gewünschte Zielprogramm tippen würde (Ursache
-	// für zuvor gemeldetes Kauderwelch + CPU-Last durch fehlgeleitete Tastendrücke im Overlay).
-	// Kurzes Verstecken gibt den Fokus an das zuvor aktive Zielfenster zurück. Beim
-	// Ctrl+Alt+V-Hotkey-Pfad (und den Diktiermikro-Tasten) war das Overlay ohnehin nie fokussiert,
-	// daher wird dort NICHT versteckt - nur ein unnötiges Flackern ohne Fokus-Nutzen.
+	// Ein Klick auf den "Akzeptieren und einfügen"-Button fokussiert zwangsläufig
+	// erst das openDox-Overlay selbst (jeder Mausklick auf ein Fenster holt es in
+	// den Fokus), wodurch der Text sonst in openDox statt ins gewünschte Zielprogramm
+	// landen würde. Kurzes Verstecken gibt den Fokus an das zuvor aktive Zielfenster
+	// zurück. Beim Hotkey-Pfad (und den Diktiermikro-Tasten) war das Overlay ohnehin
+	// nie fokussiert, daher wird dort NICHT versteckt - nur ein unnötiges Flackern.
+	//
 	a.mu.Lock()
 	wasVisible := a.visible
 	a.mu.Unlock()
@@ -426,19 +514,34 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 		runtime.WindowHide(a.ctx)
 	}
 
-	// Kurze Pause statt eines synthetischen Modifier-Release: robotgo.KeyUp("ctrl"/"alt"/"shift")
-	// wurde hier kurz ausprobiert, hat aber auf Systemen mit nicht-standardmäßigem Keyboard-Mapping
-	// (siehe hotkeyMods-Kommentar in hotkey_mod_linux.go) den Shift-/CapsLock-Zustand verwürfelt und
-	// dadurch den getippten Text zerhackt - schlimmer als das Problem, das es lösen sollte. Ein
-	// reines Warten (kein zusätzliches synthetisches Tastenereignis) gibt sowohl dem Anwender Zeit,
-	// Ctrl+Alt vom gerade gedrückten Hotkey physisch loszulassen, als auch dem Fenstermanager Zeit,
-	// den Fokuswechsel nach dem WindowHide oben tatsächlich zu vollziehen, bevor getippt wird.
+	// Kurze Pause: gibt dem Fenstermanager Zeit, den Fokuswechsel nach dem
+	// WindowHide oben zu vollziehen, und dem Anwender Zeit, den Hotkey-Modifier
+	// physisch loszulassen, bevor der Text getippt/eingefügt wird.
 	time.Sleep(300 * time.Millisecond)
-	robotgo.TypeStr(text)
+
+	var insertErr error
+	if goruntime.GOOS == "darwin" {
+		// simulatePaste() (paste_darwin.go) statt robotgo.KeyTap("v", "command"): KeyTap löst
+		// intern Carbon-TIS/TSM-Tastaturlayout-Auflösung aus (keyCodeForChar), die laut Apple
+		// ausschließlich vom Main-Thread aufgerufen werden darf (go-vgo/robotgo#341) — InsertTranscript
+		// läuft aber in einem Wails-Dispatcher-Goroutine, nicht auf dem Main-Thread, und das crasht
+		// reproduzierbar mit SIGTRAP (go-vgo/robotgo#690, bestätigt auf macOS 26.4/arm64, robotgo
+		// v1.0.2, UNABHÄNGIG von der Bedienhilfen-Berechtigung — auch mit nachweislich funktionierender
+		// Berechtigung reproduziert). simulatePaste() sendet Cmd+V direkt über CGEventPost mit fest
+		// codiertem Tastencode, ohne TIS/TSM, und crasht deshalb nicht.
+		simulatePaste()
+	} else {
+		// Linux/Windows: zeichenweises Tippen. Ein synthetisches Modifier-Release
+		// (KeyUp "ctrl"/"alt"/"shift") wurde ausprobiert, hat aber auf Systemen mit
+		// nicht-standardmäßigem Keyboard-Mapping den Shift-/CapsLock-Zustand
+		// verwürfelt und den Text zerhackt — schlimmer als das Problem, das es lösen
+		// sollte. Ein reines Warten ist die robustere Variante.
+		robotgo.TypeStr(text)
+	}
 
 	if hideForFocus {
 		runtime.WindowShow(a.ctx)
 		a.positionTopRight()
 	}
-	return nil
+	return insertErr
 }

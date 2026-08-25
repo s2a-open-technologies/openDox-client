@@ -9,5 +9,11 @@
   "author": {
     "name": "christopher.abanilla",
     "email": "christopher.abanilla@s2a-ot.digital"
+  },
+  "info": {
+    "productName": "openDox",
+    "productVersion": "1.0.0",
+    "companyName": "openDox",
+    "comments": "openDox Client"
   }
 }

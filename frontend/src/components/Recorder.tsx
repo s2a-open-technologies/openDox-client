@@ -24,9 +24,10 @@ import {InsertTranscript as GoInsertTranscript} from "../../wailsjs/go/main/App"
 import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySession} from "../../wailsjs/go/main/App";
 import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
+import {CheckAccessibility as GoCheckAccessibility, CheckHotkeys as GoCheckHotkeys} from "../../wailsjs/go/main/App";
 import {EventsOn, Environment} from "../../wailsjs/runtime/runtime";
-import {BASE_URL} from "@/api";
 import {useAuth} from "@/contexts/AuthContext";
+import {useSettings} from "@/contexts/SettingsContext";
 import {ConfirmModal} from "@/components/ui/ConfirmModal";
 import {VoiceVisualizer, BarVisualizer} from "@/components/ui/voice-visualizer";
 import './Recorder.css';
@@ -48,6 +49,11 @@ export interface RecorderHandle {
 
 const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, categoryId, onFinalTranscription, onRecordingStart, autoStart, resumeSessionId, onLogout}, ref) => {
     const {getToken} = useAuth();
+    const {settings} = useSettings();
+    const restURL = settings?.server_url || "http://localhost:10000";
+    const wsBaseURL = restURL.startsWith('https://')
+        ? `wss://${restURL.slice(8)}`
+        : `ws://${restURL.slice(7)}`;
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState("");
@@ -105,7 +111,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     useEffect(() => {
         let cancelled = false;
         const checkReachability = () => {
-            fetch(BASE_URL)
+            fetch(restURL)
                 .then(() => { if (!cancelled) setIsBackendReachable(true); })
                 .catch(() => { if (!cancelled) setIsBackendReachable(false); });
         };
@@ -115,7 +121,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             cancelled = true;
             clearInterval(interval);
         };
-    }, []);
+    }, [restURL]);
 
     useEffect(() => {
         const el = liveTranscriptRef.current;
@@ -228,8 +234,13 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     };
 
     const openWebSocket = async (userId: string, session_id: string) => {
-        // WebSocket-URL (inkl. Token) vom Go-Backend holen
-        const wsURL = await GoGetWSURL(session_id, userId, getToken());
+        // WebSocket-URL direkt aus den Settings bauen (Fallback wenn Go-Binding nicht da ist)
+        let wsURL: string;
+        try {
+            wsURL = await GoGetWSURL(session_id, userId, getToken());
+        } catch {
+            wsURL = `${wsBaseURL}/api/v1/records/ws/record?session_id=${encodeURIComponent(session_id)}&user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(getToken())}`;
+        }
         const ws = new WebSocket(wsURL);
         socketRef.current = ws;
 
@@ -398,9 +409,32 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             setIsPaused(false);
             isPausedRef.current = false;
             setIsProcessing(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            toast.error("Fehler beim Starten der Aufnahme");
+            // Auf macOS schlägt getUserMedia ohne NSMicrophoneUsageDescription in der
+            // Info.plist (oder verweigerte TCC-Berechtigung) fehl — das ist der
+            // häufigste Grund, dass der Button nicht umschaltet, obwohl die Session
+            // auf dem Server bereits angelegt ist.
+            const msg = err?.name === "NotAllowedError"
+                ? "Mikrofonzugriff verweigert – in macOS-Einstellungen prüfen"
+                : err?.name === "NotFoundError"
+                    ? "Kein Mikrofon gefunden"
+                    : "Fehler beim Starten der Aufnahme";
+            toast.error(msg);
+            // Verwaiste Session auf dem Server abbrechen, damit keine leere Aufnahme
+            // im Web-Frontend liegen bleibt. wsFinishedRef=true verhindert, dass
+            // onclose "Verbindung unterbrochen" toast.
+            wsFinishedRef.current = true;
+            try {socketRef.current?.close();} catch (_) {
+            }
+            socketRef.current = null;
+            if (sessionIdRef.current) {
+                try {await GoCancelSession(parseInt(userId), getToken());} catch (_) {
+                }
+                setSessionId(null);
+                sessionIdRef.current = null;
+            }
+            setAnalyser(null);
         }
     };
 
@@ -500,7 +534,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
     const acceptAndInsert = (viaHotkey = false) => {
         if (!stableTranscript) return;
-        GoInsertTranscript(stableTranscript, viaHotkey);
+        GoInsertTranscript(stableTranscript, viaHotkey).catch((err: unknown) => {
+            toast.error(String(err), {duration: 12000});
+        });
     };
 
     const handleStopClick = () => {
@@ -511,6 +547,38 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         setIsStopDialogOpen(false);
         stopRecording();
     };
+
+    useEffect(() => {
+        // Auf macOS braucht die App zwei separate Berechtigungen:
+        //   - Bedienhilfen (Accessibility)    → Tastatur-Injektion (Cmd+V)
+        //   - Eingabeüberwachung (Input Mon.) → systemweite Hotkeys (CGEventTap)
+        // Die Go-Seite löst beim Start den Bedienhilfen-Dialog aus, aber
+        // Eingabeüberwachung muss der Nutzer manuell in den Systemeinstellungen
+        // erlauben. Hier wird nach dem Mount geprüft und bei Bedarf ein
+        // sichtbarer Hinweis gezeigt — ein still fehlender Hotkey ist sonst
+        // schwer zu debuggen. Auf Linux/Windows liefern die Stubs immer true.
+        Promise.all([
+            GoCheckAccessibility().catch(() => true),
+            GoCheckHotkeys().catch(() => true),
+        ]).then(([axOk, hkOk]: [boolean, boolean]) => {
+            if (!axOk && !hkOk) {
+                toast.error(
+                    "Bedienhilfen und Eingabeüberwachung fehlen – in den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen und Eingabeüberwachung erlauben.",
+                    {duration: 12000}
+                );
+            } else if (!axOk) {
+                toast.error(
+                    "Bedienhilfen-Berechtigung fehlt – Einfügen deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen erlauben.",
+                    {duration: 12000}
+                );
+            } else if (!hkOk) {
+                toast.error(
+                    "Eingabeüberwachung-Berechtigung fehlt – Hotkeys deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Eingabeüberwachung erlauben.",
+                    {duration: 12000}
+                );
+            }
+        });
+    }, []);
 
     useEffect(() => {
         // Load settings to determine if live transcription is enabled
