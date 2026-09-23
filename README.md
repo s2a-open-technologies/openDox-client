@@ -158,7 +158,12 @@ go run -tags dev,webkit2_41 .
 
 ## Konfiguration
 
-Die Server-URL wird über `settings.json` im Projektstamm konfiguriert:
+Die Server-URL wird zur **Laufzeit** aus einer plattformüblichen Konfigdatei gelesen (kein
+Rebuild pro Kunde nötig):
+
+- macOS: `~/Library/Application Support/opendox-client/settings.json`
+- Windows: `%AppData%\opendox-client\settings.json`
+- Linux: `~/.config/opendox-client/settings.json` (bzw. `$XDG_CONFIG_HOME`)
 
 ```json
 {
@@ -169,12 +174,13 @@ Die Server-URL wird über `settings.json` im Projektstamm konfiguriert:
 - `server_url` — REST-API-URL (auch für WebSocket verwendet; `http://` wird automatisch
   zu `ws://`, `https://` zu `wss://`)
 
-Beim Start liest das Go-Backend die Datei ein (`//go:embed settings.json` — die Datei
-muss zum Bauzeitpunkt existieren) und reicht die Einstellungen über `GetSettings()` ans
-Frontend weiter, das sie über `SettingsContext` an allen Stellen konsumiert, die eine
-Server-URL brauchen. Ändern der Server-Adresse erfordert also einen Rebuild — die Datei
-wird zur Kompilierzeit eingebettet, nicht zur Laufzeit gelesen. Fehlt `settings.json`
-oder ist sie ungültig, wird als Default `http://localhost:10000` verwendet.
+Beim Start liest das Go-Backend diese Datei ein (`os.UserConfigDir()`, siehe
+`runtimeSettingsPath()`/`loadSettings()` in `app.go`) und reicht die Einstellungen über
+`GetSettings()` ans Frontend weiter, das sie über `SettingsContext` an allen Stellen
+konsumiert, die eine Server-URL brauchen. Fehlt die Datei oder ist sie ungültig, wird als
+Default `http://localhost:10000` verwendet — für die lokale Entwicklung reicht das ohne
+weitere Konfiguration. Für einen Kunden-Rollout genügt es, dieselbe Build zu verteilen und
+bei der Installation die passende `settings.json` unter obigem Pfad abzulegen.
 
 ### Frontend eigenständig
 
@@ -263,7 +269,7 @@ Gerätetabelle und Protokoll sind aus
                │  Bearer-Token (vom Frontend durchgereicht)
                ▼
 ┌───────────────────────────────────────┐
-│  openDox Server (settings.json)        │
+│  openDox Server (Laufzeit-Konfig)      │
 │  - Auth · Records · Transkription      │
 │  - LLM-Zusammenfassung                 │
 └─────────────────────────────────────────┘
@@ -302,7 +308,6 @@ Gerätetabelle und Protokoll sind aus
 ├── paste_darwin.go              # macOS: simuliert Cmd+V direkt über CGEventPost
 ├── hotkey_mod_*.go              # Plattformspezifische Hotkey-Modifier (Ctrl+Alt vs. Cmd+Option)
 ├── build-macos.sh               # macOS-Produktionsbuild inkl. Signierung
-├── settings.json                # Server-URL, zur Bauzeit eingebettet
 ├── LICENSE                      # AGPLv3, vollständiger Text
 ├── DISCLAIMER.md                # Kein-Medizinprodukt-Hinweis (Langfassung)
 ├── wails.json                   # Wails-Projekt-Konfiguration

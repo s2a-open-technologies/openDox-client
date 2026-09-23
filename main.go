@@ -18,6 +18,8 @@ package main
 
 import (
 	"embed"
+	"os"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -27,6 +29,14 @@ import (
 var assets embed.FS
 
 func main() {
+	// Subprozess-Modus für den isolierten Diktiermikro-Scan — siehe
+	// dictation_mic_scan_helper.go für den Grund (crashfeste Isolation eines instabilen
+	// macOS-IOKit-Aufrufs). Muss vor jeder Wails-/GUI-Initialisierung geprüft werden.
+	if os.Getenv("ODX_DICTATION_MIC_SCAN_HELPER") == "1" {
+		runDictationMicScanHelper()
+		return
+	}
+
 	app := NewApp()
 
 	err := wails.Run(&options.App{

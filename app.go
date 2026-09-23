@@ -19,14 +19,15 @@ package main
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	goruntime "runtime"
 	"strings"
 	"sync"
@@ -81,15 +82,46 @@ type Settings struct {
 	ServerURL string `json:"server_url"`
 }
 
-//go:embed settings.json
-var settingsJSON []byte
+// appConfigDirName ist der Ordnername für die Laufzeit-Konfig, siehe runtimeSettingsPath.
+const appConfigDirName = "opendox-client"
 
-func loadSettings() Settings {
-	var s Settings
-	if err := json.Unmarshal(settingsJSON, &s); err != nil {
-		log.Printf("[opendox] settings.json lesen fehlgeschlagen: %v — nutze Defaults", err)
-		s.ServerURL = "http://localhost:10000"
+// runtimeSettingsPath liegt außerhalb des .app-Bundles, an einem plattformüblichen
+// Konfigurationsort (os.UserConfigDir(): ~/Library/Application Support auf macOS, %AppData%
+// auf Windows, ~/.config bzw. $XDG_CONFIG_HOME auf Linux). Damit lässt sich pro Kunde ein
+// anderer Server eintragen, ohne die App neu zu bauen — einfach diese Datei bei der
+// Installation dort ablegen.
+func runtimeSettingsPath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
 	}
+	return filepath.Join(dir, appConfigDirName, "settings.json"), nil
+}
+
+// loadSettings liest die Laufzeit-Konfigdatei (siehe runtimeSettingsPath). Existiert sie nicht
+// oder lässt sie sich nicht parsen (z.B. lokale Entwicklung ohne Installation), fällt es auf den
+// hartkodierten Default zurück — es gibt bewusst keine zur Compile-Zeit eingebettete
+// settings.json mehr, damit dieselbe Build für jeden Kunden funktioniert.
+func loadSettings() Settings {
+	path, err := runtimeSettingsPath()
+	if err != nil {
+		log.Printf("[opendox] Laufzeit-Konfig-Pfad nicht ermittelbar: %v — nutze Default", err)
+		return Settings{ServerURL: "http://localhost:10000"}
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		log.Printf("[opendox] keine Laufzeit-Konfig unter %s (%v) — nutze Default", path, err)
+		return Settings{ServerURL: "http://localhost:10000"}
+	}
+
+	var s Settings
+	if err := json.Unmarshal(data, &s); err != nil || s.ServerURL == "" {
+		log.Printf("[opendox] Laufzeit-Konfig %s ungültig (%v) — nutze Default", path, err)
+		return Settings{ServerURL: "http://localhost:10000"}
+	}
+
+	log.Printf("[opendox] Server-URL aus Laufzeit-Konfig geladen: %s", path)
 	return s
 }
 
@@ -135,13 +167,19 @@ func (a *App) GetSettings() Settings {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Auf macOS: Accessibility-Berechtigung prüfen und bei Bedarf den
-	// Systemdialog auslösen. Ohne diese Berechtigung schlagen systemweite
-	// Hotkeys (golang.design/x/hotkey nutzt CGEventTap) und Tastatur-Injektion
-	// (robotgo.TypeStr) still fehl — der Nutzer würde die App starten, Hotkeys
-	// funktionieren nicht, und "Akzeptieren und einfügen" tippt nichts.
-	if !ensureAccessibility() {
-		log.Printf("[opendox] Accessibility-Berechtigung fehlt — Hotkeys und Einfügen deaktiviert bis in den Systemeinstellungen erlaubt")
+	// Auf macOS: Accessibility-Berechtigung prüfen. AXIsProcessTrusted() kann
+	// auf neuerem macOS langsam sein (TCC-Abfrage) — mit Timeout absichern.
+	accDone := make(chan bool, 1)
+	go func() {
+		accDone <- ensureAccessibility()
+	}()
+	select {
+	case acc := <-accDone:
+		if !acc {
+			log.Printf("[opendox] Accessibility-Berechtigung fehlt — Hotkeys und Einfügen deaktiviert bis in den Systemeinstellungen erlaubt")
+		}
+	case <-time.After(5 * time.Second):
+		log.Printf("[opendox] Accessibility-Prüfung abgebrochen nach 5s")
 	}
 	a.registerGlobalHotkeys()
 	a.startDictationMic()
@@ -159,14 +197,39 @@ const (
 // davon, welches Fenster gerade fokussiert ist) und meldet jeden Tastendruck als
 // Wails-Event an das Frontend.
 func (a *App) registerGlobalHotkeys() {
-	// hotkeyMods ist plattformspezifisch definiert (hotkey_mod_*.go) — sowohl die
-	// Modifier-Konstanten als auch die übliche Tastenkombination (Ctrl+Alt vs.
-	// Cmd+Option auf macOS) unterscheiden sich pro OS.
-	mods := hotkeyMods
-	a.registerHotkey(mods, hotkey.KeyR, eventToggleRecord)
-	a.registerHotkey(mods, hotkey.KeyP, eventTogglePause)
-	a.registerHotkey(mods, hotkey.KeyV, eventAcceptInsert)
-	a.registerWindowHotkey(mods, hotkey.KeyH) // Ctrl+Alt+H: Overlay ein-/ausblenden
+	// golang.design/x/hotkey nutzt CGEventTap — auf macOS kann Register() blockieren,
+	// wenn TCC-Berechtigungen langsam abgefragt werden oder das EventTap-Setup hängt.
+	// Daher mit Timeout absichern.
+	type regJob struct {
+		mods       []hotkey.Modifier
+		key        hotkey.Key
+		eventName  string
+		isWindowHK bool
+	}
+	jobs := []regJob{
+		{hotkeyMods, hotkey.KeyR, eventToggleRecord, false},
+		{hotkeyMods, hotkey.KeyP, eventTogglePause, false},
+		{hotkeyMods, hotkey.KeyV, eventAcceptInsert, false},
+		{hotkeyMods, hotkey.KeyH, "", true},
+	}
+
+	done := make(chan struct{})
+	go func() {
+		for _, j := range jobs {
+			if j.isWindowHK {
+				a.registerWindowHotkeyTimeout(j.mods, j.key)
+			} else {
+				a.registerHotkeyTimeout(j.mods, j.key, j.eventName)
+			}
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		log.Printf("[opendox] hotkey registration timed out after 10s")
+	}
 }
 
 // CheckAccessibility meldet dem Frontend, ob der Prozess für Accessibility
@@ -204,6 +267,85 @@ func (a *App) registerHotkey(mods []hotkey.Modifier, key hotkey.Key, eventName s
 			a.emitHotkeyEvent(eventName)
 		}
 	}()
+}
+
+// registerHotkeyTimeout ist die timeout-geschützte Version von registerHotkey.
+func (a *App) registerHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key, eventName string) {
+	type regResult struct {
+		err error
+		hk  *hotkey.Hotkey
+	}
+	ch := make(chan regResult, 1)
+	go func() {
+		hk := hotkey.New(mods, key)
+		err := hk.Register()
+		ch <- regResult{err, hk}
+	}()
+
+	select {
+	case res := <-ch:
+		if res.err != nil {
+			log.Printf("[opendox] failed to register global hotkey for %s: %v", eventName, res.err)
+			a.hotkeyFailures++
+			return
+		}
+		go func() {
+			var last time.Time
+			for range res.hk.Keydown() {
+				if time.Since(last) < 700*time.Millisecond {
+					continue
+				}
+				last = time.Now()
+				a.emitHotkeyEvent(eventName)
+			}
+		}()
+	case <-time.After(10 * time.Second):
+		log.Printf("[opendox] hotkey register timed out for %s", eventName)
+		a.hotkeyFailures++
+	}
+}
+
+// registerWindowHotkeyTimeout ist die timeout-geschützte Version von registerWindowHotkey.
+func (a *App) registerWindowHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key) {
+	type regResult struct {
+		err error
+		hk  *hotkey.Hotkey
+	}
+	ch := make(chan regResult, 1)
+	go func() {
+		hk := hotkey.New(mods, key)
+		err := hk.Register()
+		ch <- regResult{err, hk}
+	}()
+
+	select {
+	case res := <-ch:
+		if res.err != nil {
+			log.Printf("[opendox] failed to register window hotkey: %v", res.err)
+			return
+		}
+		go func() {
+			var last time.Time
+			for range res.hk.Keydown() {
+				if time.Since(last) < 700*time.Millisecond {
+					continue
+				}
+				last = time.Now()
+				a.mu.Lock()
+				if a.visible {
+					runtime.WindowHide(a.ctx)
+					a.visible = false
+				} else {
+					runtime.WindowShow(a.ctx)
+					a.positionTopRight()
+					a.visible = true
+				}
+				a.mu.Unlock()
+			}
+		}()
+	case <-time.After(10 * time.Second):
+		log.Printf("[opendox] window hotkey register timed out")
+	}
 }
 
 // emitHotkeyEvent meldet eines der drei Hotkey-Events ans Frontend, sofern das Overlay nicht

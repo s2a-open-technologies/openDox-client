@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-vgo/robotgo v1.0.2
-	github.com/karalabe/hid v1.0.0
+	github.com/ricknicius99/hid v0.0.0-20231128165240-e77f6da9e619
 	github.com/wailsapp/wails/v2 v2.15.0
 	golang.design/x/hotkey v0.6.1
 )
@@ -61,3 +61,14 @@ require (
 )
 
 // replace github.com/wailsapp/wails/v2 v2.13.0 => /home/crizz/go/pkg/mod
+
+// Local copy of github.com/ricknicius99/hid (karalabe/hid fork) patched to fix a
+// macOS-only crash: hid_enumerate() calls IORegistryEntryGetPath() on the io_service_t
+// returned by IOHIDDeviceGetService() without checking for IO_OBJECT_NULL first. On
+// older macOS an invalid port there just failed softly (KERN_INVALID_ARGUMENT); on
+// macOS 26 (Tahoe)'s hardened mach-port guards, the same call is now a fatal EXC_GUARD/
+// GUARD_TYPE_MACH_PORT crash ("INVALID_OPTIONS on mach port 0"). See
+// third_party/hid/hidapi/mac/hid.c for the fix. Upstream karalabe/hid is archived and
+// unmaintained; this fork doesn't fix the bug either, hence vendoring the patch locally
+// instead of waiting on upstream.
+replace github.com/ricknicius99/hid => ./third_party/hid

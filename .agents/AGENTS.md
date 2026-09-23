@@ -89,15 +89,22 @@ an OS capability → new bound method on `App`.
 
 ### Server URL configuration
 
-The backend URL is **not** hardcoded on the Go side: `settings.json` (repo root) is embedded via
-`//go:embed settings.json` in `main.go` and read by `loadSettings()` into `App.opendoxURL`/`wsURL` at
-startup (falls back to `http://localhost:10000` if the file is missing/unparsable). The bound
-`GetSettings()` method exposes it to the frontend, where `SettingsContext.tsx` fetches it once on mount;
-`AuthContext.tsx`, `Recorder.tsx`, and `LoginScreen.tsx` all read `settings?.server_url` (falling back to
-the same `http://localhost:10000` default) for their REST/WS calls — a single source, no separately
-hardcoded frontend constant. Changing the server requires editing `settings.json` and rebuilding —
-`//go:embed` reads it at compile time, not runtime — and the file must exist for `wails build`/`go run`
-to compile at all.
+The backend URL is **not** hardcoded on the Go side and is **not** compiled in — it's read at runtime
+from a per-machine config file at a platform-standard location (`os.UserConfigDir()`, resolved in
+`runtimeSettingsPath()` in `app.go`):
+
+- macOS: `~/Library/Application Support/opendox-client/settings.json`
+- Windows: `%AppData%\opendox-client\settings.json`
+- Linux: `~/.config/opendox-client/settings.json` (or `$XDG_CONFIG_HOME`)
+
+`loadSettings()` reads `{"server_url": "..."}` from that path at startup into `App.opendoxURL`/`wsURL`,
+falling back to `http://localhost:10000` if the file is missing or unparsable — so local dev needs no
+setup. The bound `GetSettings()` method exposes it to the frontend, where `SettingsContext.tsx` fetches
+it once on mount; `AuthContext.tsx`, `Recorder.tsx`, and `LoginScreen.tsx` all read `settings?.server_url`
+(same `http://localhost:10000` fallback) for their REST/WS calls — a single source, no separately
+hardcoded frontend constant. This is deliberately runtime-only, not `//go:embed`-based: the same build
+gets shipped to every customer, and the server address is set per-install by dropping a `settings.json`
+at the path above — no rebuild per customer.
 
 ### Auth flow
 
