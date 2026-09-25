@@ -26,7 +26,7 @@ if ! command -v wixl >/dev/null 2>&1; then
     exit 1
 fi
 
-INSTALLED_WAILS_VERSION=$(wails version 2>/dev/null || true)
+INSTALLED_WAILS_VERSION=$(wails version 2>/dev/null | head -n1 || true)
 REQUIRED_WAILS_VERSION=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2 2>/dev/null || true)
 if [[ -n "$INSTALLED_WAILS_VERSION" && -n "$REQUIRED_WAILS_VERSION" && "$INSTALLED_WAILS_VERSION" != "$REQUIRED_WAILS_VERSION" ]]; then
     echo "Warnung: installierte wails-CLI ($INSTALLED_WAILS_VERSION) weicht von go.mod ($REQUIRED_WAILS_VERSION) ab."
