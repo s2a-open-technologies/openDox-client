@@ -27,7 +27,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -656,15 +655,13 @@ func (a *App) CopyToClipboard(text string) error {
 // Cmd+Opt+V und die Diktiermikro-Tasten (nie fokussiert, kein Hide/Show nötig
 // - reines Flackern ohne Nutzen), false für den Button-Klick (siehe unten).
 //
-// Plattform-Unterschied:
-//   - macOS: NUR Zwischenablage setzen, kein simuliertes Cmd+V (siehe unten,
-//     warum robotgo.KeyTap hier bewusst nicht verwendet wird).
-//   - Linux: robotgo.Type() tippt zeichenweise direkt in das Zielfenster.
-//     Ein simuliertes Ctrl+V wurde hier zuvor verwendet, kollidierte aber mit
-//     dem gerade losgelassenen globalen Hotkey (Ctrl+Alt+V) unter X11 — der
-//     Text blieb dann nur in der Zwischenablage.
-//   - Windows: Strg+V nach Loslassen aller Modifier; bei Citrix-Clients
-//     stattdessen Tippen (siehe insert_windows.go).
+// Das eigentliche Einfügen macht insertText (insertText_{darwin,linux,windows}.go):
+// überall zuerst warten, bis Cmd/Ctrl/Alt/Shift physisch losgelassen sind (sonst
+// würde Strg+V z.B. zu unserem eigenen Ctrl+Alt+V-Hotkey), dann Cmd+V/Strg+V —
+// exakt, landet in einem Rutsch entweder vollständig oder gar nicht, nie ein
+// still verlorenes/doppeltes Zeichen wie beim zeichenweisen Tippen. Ausnahme:
+// Windows-Citrix-Clients, wo die Zwischenablage in der Sitzung typischerweise
+// nicht ankommt — dort wird stattdessen getippt (siehe insert_windows.go).
 func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// Serialisiert gegen gleichzeitige Inserts: Ein Durchlauf (Sleep + zeichenweises
 	// Tippen) kann leicht länger als das 700ms-Hotkey-Debounce dauern. Ohne diese
@@ -706,30 +703,12 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	}
 
 	// Kurze Pause: gibt dem Fenstermanager Zeit, den Fokuswechsel nach dem
-	// WindowHide oben zu vollziehen, und dem Anwender Zeit, den Hotkey-Modifier
-	// physisch loszulassen, bevor der Text getippt/eingefügt wird.
+	// WindowHide oben zu vollziehen, bevor der Text getippt/eingefügt wird.
+	// Das Warten auf losgelassene Hotkey-Modifier passiert danach in insertText
+	// selbst, plattformspezifisch (insert_windows.go/insert_linux.go/insert_darwin.go).
 	time.Sleep(300 * time.Millisecond)
 
-	var insertErr error
-	if goruntime.GOOS == "darwin" {
-		// simulatePaste() (paste_darwin.go) statt robotgo.KeyTap("v", "command"): KeyTap löst
-		// intern Carbon-TIS/TSM-Tastaturlayout-Auflösung aus (keyCodeForChar), die laut Apple
-		// ausschließlich vom Main-Thread aufgerufen werden darf (go-vgo/robotgo#341) — InsertTranscript
-		// läuft aber in einem Wails-Dispatcher-Goroutine, nicht auf dem Main-Thread, und das crasht
-		// reproduzierbar mit SIGTRAP (go-vgo/robotgo#690, bestätigt auf macOS 26.4/arm64, robotgo
-		// v1.0.2, UNABHÄNGIG von der Bedienhilfen-Berechtigung — auch mit nachweislich funktionierender
-		// Berechtigung reproduziert). simulatePaste() sendet Cmd+V direkt über CGEventPost mit fest
-		// codiertem Tastencode, ohne TIS/TSM, und crasht deshalb nicht.
-		simulatePaste()
-	} else {
-		// Linux: zeichenweises Tippen (insert_other.go). Windows: Strg+V, außer bei
-		// Citrix, dort Tippen (insert_windows.go). Ein synthetisches Modifier-Release
-		// (KeyUp "ctrl"/"alt"/"shift") wurde ausprobiert, hat aber auf Systemen mit
-		// nicht-standardmäßigem Keyboard-Mapping den Shift-/CapsLock-Zustand
-		// verwürfelt und den Text zerhackt — Windows wartet stattdessen, bis die
-		// Modifier physisch losgelassen sind.
-		insertErr = insertText(text)
-	}
+	insertErr := insertText(text)
 	log.Printf("[opendox] InsertTranscript: type/paste call returned")
 
 	if hideForFocus {

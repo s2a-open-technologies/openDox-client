@@ -14,16 +14,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//go:build !windows
+//go:build darwin
 
 package main
 
-import "github.com/go-vgo/robotgo"
+import (
+	"log"
+	"time"
+)
 
-// insertText tippt auf Linux zeichenweise. Ein simuliertes Ctrl+V kollidierte
-// unter X11 mit dem gerade losgelassenen Ctrl+Alt des globalen Hotkeys. Auf macOS
-// nicht aufgerufen (dort simulatePaste(), siehe InsertTranscript).
+// insertText wartet, bis Cmd/Option/Control/Shift physisch losgelassen sind (siehe
+// paste_darwin.go), und löst dann simulatePaste() (Cmd+V) aus. Noch gehaltene
+// Modifier würden aus Cmd+V sonst z.B. unseren eigenen Cmd+Opt+V-Hotkey machen.
 func insertText(text string) error {
-	robotgo.Type(text)
+	waitModifiersReleased(2 * time.Second)
+	simulatePaste()
 	return nil
+}
+
+func waitModifiersReleased(timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for modifiersHeld() {
+		if time.Now().After(deadline) {
+			log.Printf("[opendox] insertText: Modifier nach %v noch gedrückt", timeout)
+			return false
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return true
 }

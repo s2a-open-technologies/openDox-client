@@ -57,6 +57,33 @@ void simulateCmdV() {
     CFRelease(keyVUp);
     CFRelease(source);
 }
+
+// Physische (layoutunabhängige) virtuelle Tastencodes der Modifier, beide Seiten
+// je Taste — Apples eigene HIToolbox-Konstanten, hartkodiert aus demselben Grund
+// wie KVK_ANSI_V oben.
+static const CGKeyCode modifierKeycodes[] = {
+    0x37, 0x36, // Command links/rechts
+    0x3A, 0x3D, // Option links/rechts
+    0x3B, 0x3E, // Control links/rechts
+    0x38, 0x3C, // Shift links/rechts
+};
+
+// modifiersHeld prüft per CGEventSourceKeyState (reiner Zustandsabruf, kein Event,
+// keine TIS/TSM-Auflösung) ob noch ein Modifier physisch gedrückt ist — z.B. weil
+// der Nutzer Cmd+Opt+V (unseren Hotkey) noch nicht ganz losgelassen hat. Ohne diese
+// Prüfung würde ein sofortiges Cmd+V-Paste danach zu Cmd+Opt+V werden.
+int modifiersHeld() {
+    CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+    int held = 0;
+    for (size_t i = 0; i < sizeof(modifierKeycodes) / sizeof(modifierKeycodes[0]); i++) {
+        if (CGEventSourceKeyState(source, modifierKeycodes[i])) {
+            held = 1;
+            break;
+        }
+    }
+    CFRelease(source);
+    return held;
+}
 */
 import "C"
 
@@ -64,4 +91,10 @@ import "C"
 // macOS, siehe Kommentar in simulateCmdV() oben für den Grund.
 func simulatePaste() {
 	C.simulateCmdV()
+}
+
+// modifiersHeld meldet, ob aktuell noch ein Modifier (Cmd/Option/Control/Shift)
+// physisch gedrückt ist, siehe modifiersHeld() oben.
+func modifiersHeld() bool {
+	return C.modifiersHeld() != 0
 }
