@@ -18,6 +18,12 @@
 
 package main
 
+import (
+	"log"
+	"os"
+	"syscall"
+)
+
 // Windows-GUI-Builds schreiben keine nativen Konsolen-Meldungen (kein
 // GTK/WebKitGTK/JSC — WebView2 läuft out-of-process), dort stillstellt
 // bereits setupConsole() über log.SetOutput. Alle Hooks hier No-ops.
@@ -25,3 +31,30 @@ package main
 func silenceNativeConsole() {}
 func quietEnv()             {}
 func preSilence()           {}
+
+var (
+	kernel32         = syscall.NewLazyDLL("kernel32.dll")
+	procAllocConsole = kernel32.NewProc("AllocConsole")
+)
+
+// ensureDebugConsole allokiert bei --debug ein sichtbares Konsolenfenster, falls der
+// Prozess noch keines hat. Der Windows-Build ist ein GUI-Subsystem-Binary (kein
+// Konsolen-Fenster beim Start per Doppelklick/Verknüpfung) — os.Stdout/os.Stderr zeigen
+// dann auf ungültige Handles, log.Printf landet also nirgendwo sichtbar, selbst mit
+// --debug. AllocConsole() schlägt mit ERROR_ACCESS_DENIED fehl, wenn bereits eine
+// Konsole angehängt ist (z.B. aus cmd.exe/PowerShell gestartet) — dort bleibt alles
+// unverändert, weil os.Stdout/os.Stderr dort schon auf die vererbte Konsole zeigen.
+func ensureDebugConsole() {
+	ret, _, _ := procAllocConsole.Call()
+	if ret == 0 {
+		return
+	}
+	if f, err := os.OpenFile("CONOUT$", os.O_RDWR, 0); err == nil {
+		os.Stdout = f
+		os.Stderr = f
+		log.SetOutput(f)
+	}
+	if f, err := os.OpenFile("CONIN$", os.O_RDWR, 0); err == nil {
+		os.Stdin = f
+	}
+}

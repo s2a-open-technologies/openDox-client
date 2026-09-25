@@ -41,7 +41,15 @@ func main() {
 	// GTK/WebKitGTK/JSC als cgo-Libs laden und ihre Meldungen nach fd 1/2
 	// schreiben. Muss nach dem Scan-Helper-Check stehen — der Helper liefert
 	// sein JSON über stdout und darf niemals umgeleitet werden.
-	if !debugRequested() {
+	//
+	// Bei --debug stattdessen ensureDebugConsole(): der Windows-Build ist ein
+	// GUI-Subsystem-Binary ohne Konsole, wenn es per Doppelklick/Verknüpfung
+	// gestartet wird — ohne eine frisch allokierte Konsole liefe --debug dort
+	// komplett ins Leere (log.Printf hätte kein sichtbares Ziel). No-Op auf
+	// macOS/Linux, wo eine Konsole ohnehin vom startenden Terminal geerbt wird.
+	if debugRequested() {
+		ensureDebugConsole()
+	} else {
 		preSilence()
 		silenceNativeConsole()
 	}

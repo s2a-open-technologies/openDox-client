@@ -46,3 +46,9 @@ func quietEnv() {
 func preSilence() {
 	quietEnv()
 }
+
+// ensureDebugConsole ist auf macOS ein No-Op-Stub — anders als das Windows-GUI-
+// Subsystem-Binary (siehe console_silence_windows.go) läuft dieser Build immer mit
+// einer vom startenden Terminal geerbten Konsole, os.Stdout/os.Stderr sind daher
+// schon nutzbar.
+func ensureDebugConsole() {}
