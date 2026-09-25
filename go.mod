@@ -7,6 +7,7 @@ require (
 	github.com/ricknicius99/hid v0.0.0-20231128165240-e77f6da9e619
 	github.com/wailsapp/wails/v2 v2.15.0
 	golang.design/x/hotkey v0.6.1
+	golang.org/x/sys v0.46.0
 )
 
 require (
@@ -56,7 +57,6 @@ require (
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/image v0.41.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )
 
@@ -72,3 +72,10 @@ require (
 // unmaintained; this fork doesn't fix the bug either, hence vendoring the patch locally
 // instead of waiting on upstream.
 replace github.com/ricknicius99/hid => ./third_party/hid
+
+// Local copy of golang.design/x/hotkey patched to enable X11 Detectable
+// Autorepeat (XkbSetDetectableAutoRepeat) on every display connection the
+// library opens. Without it, holding a hotkey floods KeyPress events, which
+// the app-side 700ms debounce can only mask, not prevent. Upstream is
+// unmaintained (last release 2023), hence vendoring the patch locally.
+replace golang.design/x/hotkey => ./third_party/hotkey

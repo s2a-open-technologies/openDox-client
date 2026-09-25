@@ -8,10 +8,10 @@
     !define INFO_PROJECTNAME "opendox-client"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "opendox-client"
+    !define INFO_COMPANYNAME "openDox"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "opendox-client"
+    !define INFO_PRODUCTNAME "openDox"
 !endif
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "1.0.0"

@@ -37,6 +37,16 @@ func main() {
 		return
 	}
 
+	// Konsolen-Ausgabe stillstellen (außer bei --debug / Dev-Builds), bevor
+	// GTK/WebKitGTK/JSC als cgo-Libs laden und ihre Meldungen nach fd 1/2
+	// schreiben. Muss nach dem Scan-Helper-Check stehen — der Helper liefert
+	// sein JSON über stdout und darf niemals umgeleitet werden.
+	if !debugRequested() {
+		preSilence()
+		silenceNativeConsole()
+	}
+	setupConsole()
+
 	app := NewApp()
 
 	err := wails.Run(&options.App{

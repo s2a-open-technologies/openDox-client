@@ -82,6 +82,13 @@ func (w *dictationMicWorker) run(timeout time.Duration, fn func()) bool {
 // Fehler (kein Gerät, kein libusb, Berechtigung fehlt) wird nur geloggt — die App inkl.
 // Tastatur-Hotkeys muss unabhängig davon voll funktionieren.
 func (a *App) startDictationMic() {
+	// Not-Aus: falls ein (noch ungetestetes) Diktiermikro Fehl-Events feuert —
+	// siehe Design-Doc "Bekanntes Risiko: Report-ID-Offset" — lässt sich der
+	// komplette Mic-Pfad hiermit abschalten, ohne die Tastatur-Hotkeys zu berühren.
+	if os.Getenv("ODX_DICTATION_MIC_DISABLE") == "1" {
+		log.Printf("[opendox] dictation mic: deaktiviert (ODX_DICTATION_MIC_DISABLE=1)")
+		return
+	}
 	if !hid.Supported() {
 		log.Printf("[opendox] dictation mic: HID nicht unterstützt auf dieser Plattform")
 		return

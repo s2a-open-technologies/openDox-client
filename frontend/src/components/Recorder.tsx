@@ -749,7 +749,10 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
             {/* Transkriptions-Bereich */}
             <div ref={liveTranscriptRef} className="recorder-transcript" onContextMenu={(e) => e.preventDefault()}>
-                {liveEnabled ? (
+                {/* Auch bei deaktivierter Live-Transkription (ORB-Modus) muss das
+                    fertige Transkript nach dem Stop sichtbar sein — der ORB ist nur
+                    für laufende Aufnahmen gedacht. */}
+                {liveEnabled || (stableTranscript && !isRecording) ? (
                     <div className="recorder-transcript-inner">
                         {(stableTranscript || liveTranscript) ? (
                             <p className="recorder-text select-none">

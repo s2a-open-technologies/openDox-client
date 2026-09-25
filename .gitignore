@@ -2,6 +2,7 @@
 build/bin
 frontend/dist
 /opendox-client
+/opendox-client.exe
 
 # Dependencies
 node_modules

@@ -8,6 +8,10 @@
 set -eu
 cd "$(dirname "$0")"
 
+# Über SSH ist DISPLAY nicht gesetzt; manche cgo-Schritte (X11-gebundene Deps wie
+# hotkey/webkit) brauchen die Variable beim Bauen. Fallback auf das lokale Display.
+export DISPLAY="${DISPLAY:-:0}"
+
 echo "==> Building Linux binary (wails build -tags webkit2_41 -platform linux/amd64)"
 wails build -clean -tags webkit2_41 -platform linux/amd64
 echo "    -> build/bin/opendox-client"
