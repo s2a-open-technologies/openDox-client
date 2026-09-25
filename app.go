@@ -32,7 +32,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-vgo/robotgo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
 )
@@ -660,10 +659,12 @@ func (a *App) CopyToClipboard(text string) error {
 // Plattform-Unterschied:
 //   - macOS: NUR Zwischenablage setzen, kein simuliertes Cmd+V (siehe unten,
 //     warum robotgo.KeyTap hier bewusst nicht verwendet wird).
-//   - Linux: robotgo.TypeStr() tippt zeichenweise direkt in das Zielfenster.
+//   - Linux: robotgo.Type() tippt zeichenweise direkt in das Zielfenster.
 //     Ein simuliertes Ctrl+V wurde hier zuvor verwendet, kollidierte aber mit
 //     dem gerade losgelassenen globalen Hotkey (Ctrl+Alt+V) unter X11 — der
 //     Text blieb dann nur in der Zwischenablage.
+//   - Windows: Strg+V nach Loslassen aller Modifier; bei Citrix-Clients
+//     stattdessen Tippen (siehe insert_windows.go).
 func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// Serialisiert gegen gleichzeitige Inserts: Ein Durchlauf (Sleep + zeichenweises
 	// Tippen) kann leicht länger als das 700ms-Hotkey-Debounce dauern. Ohne diese
@@ -721,12 +722,13 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 		// codiertem Tastencode, ohne TIS/TSM, und crasht deshalb nicht.
 		simulatePaste()
 	} else {
-		// Linux/Windows: zeichenweises Tippen. Ein synthetisches Modifier-Release
+		// Linux: zeichenweises Tippen (insert_other.go). Windows: Strg+V, außer bei
+		// Citrix, dort Tippen (insert_windows.go). Ein synthetisches Modifier-Release
 		// (KeyUp "ctrl"/"alt"/"shift") wurde ausprobiert, hat aber auf Systemen mit
 		// nicht-standardmäßigem Keyboard-Mapping den Shift-/CapsLock-Zustand
-		// verwürfelt und den Text zerhackt — schlimmer als das Problem, das es lösen
-		// sollte. Ein reines Warten ist die robustere Variante.
-		robotgo.Type(text, 0, typeCharDelayMs)
+		// verwürfelt und den Text zerhackt — Windows wartet stattdessen, bis die
+		// Modifier physisch losgelassen sind.
+		insertErr = insertText(text)
 	}
 	log.Printf("[opendox] InsertTranscript: type/paste call returned")
 

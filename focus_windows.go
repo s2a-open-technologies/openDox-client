@@ -25,11 +25,6 @@ import (
 	"unsafe"
 )
 
-// Pause zwischen den einzelnen SendInput-Unicode-Events von robotgo.Type. Ohne
-// Pause verschluckt/verstümmelt das Windows-11-Notepad die Eingabe, während
-// Terminal und Browser den Burst problemlos annehmen.
-const typeCharDelayMs = 10
-
 const (
 	gwlExStyle      = -20
 	wsExNoActivate  = 0x08000000

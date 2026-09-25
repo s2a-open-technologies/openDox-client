@@ -18,8 +18,6 @@
 
 package main
 
-const typeCharDelayMs = 0
-
 // Kein NOACTIVATE-Äquivalent auf macOS/Linux — dort bleibt der Button beim
 // bisherigen Hide/Show-Weg in InsertTranscript.
 func setOverlayNoActivate(enabled bool) bool { return false }
