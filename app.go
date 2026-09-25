@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
@@ -147,6 +146,13 @@ type App struct {
 	// CheckHotkeys() ans Frontend gemeldet, damit der Nutzer einen Hinweis
 	// bekommt statt sich über nicht funktionierende Tastenkürzel zu wundern.
 	hotkeyFailures int
+
+	// insertMu serialisiert InsertTranscript-Aufrufe. Ohne das liefen bei
+	// mehrfachem Drücken von Ctrl+Alt+V (Debounce ist nur 700ms, ein Insert
+	// inkl. Sleep+Tippen kann aber länger dauern) mehrere robotgo.TypeStr-Aufrufe
+	// gleichzeitig - die interleaven ihre Tastatur-Injektion zu verstümmeltem
+	// Text ("Ja, wo ist denn ??????" statt des vollständigen Satzes).
+	insertMu sync.Mutex
 }
 
 func NewApp() *App {
@@ -613,16 +619,6 @@ func (a *App) CopyToClipboard(text string) error {
 	return nil
 }
 
-// notifyReview zeigt eine native Desktop-Benachrichtigung als Erinnerung, den kopierten
-// Text vor Verwendung zu prüfen. Best-effort: falls notify-send fehlt oder fehlschlägt,
-// wird das nur geloggt, da die Zwischenablage bereits erfolgreich gesetzt wurde.
-func notifyReview() {
-	cmd := exec.Command("notify-send", "openDox", "Text eingefügt – bitte vor Verwendung prüfen.")
-	if err := cmd.Run(); err != nil {
-		log.Printf("[opendox] notify-send failed: %v", err)
-	}
-}
-
 // InsertTranscript schreibt den Text in das aktuell fokussierte Fenster.
 // viaHotkey unterscheidet die beiden Aufruf-Pfade aus Recorder.tsx: true für
 // Cmd+Opt+V und die Diktiermikro-Tasten (nie fokussiert, kein Hide/Show nötig
@@ -636,6 +632,18 @@ func notifyReview() {
 //     dem gerade losgelassenen globalen Hotkey (Ctrl+Alt+V) unter X11 — der
 //     Text blieb dann nur in der Zwischenablage.
 func (a *App) InsertTranscript(text string, viaHotkey bool) error {
+	// Serialisiert gegen gleichzeitige Inserts: Ein Durchlauf (Sleep + zeichenweises
+	// Tippen) kann leicht länger als das 700ms-Hotkey-Debounce dauern. Ohne diese
+	// Sperre liefen bei mehrfachem Ctrl+Alt+V mehrere robotgo.TypeStr-Aufrufe parallel
+	// und interleavten ihre Tastatur-Injektion zu verstümmeltem Text. Ein bereits
+	// laufender Insert wird nicht angehängt, sondern schlägt sichtbar fehl (Toast im
+	// Frontend) — besser als lautlos zu verwürfeln.
+	if !a.insertMu.TryLock() {
+		log.Printf("[opendox] InsertTranscript: bereits ein Insert aktiv, ignoriere weiteren Aufruf (viaHotkey=%v)", viaHotkey)
+		return fmt.Errorf("Einfügen läuft bereits – bitte kurz warten")
+	}
+	defer a.insertMu.Unlock()
+
 	// Clipboard wird immer gesetzt — als Fallback (macOS) und als stiller
 	// Backup (Linux, falls das Zielfeld getippte Eingaben nicht annimmt).
 	runtime.ClipboardSetText(a.ctx, text)
@@ -652,8 +660,10 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	wasVisible := a.visible
 	a.mu.Unlock()
 	hideForFocus := wasVisible && !viaHotkey
+	log.Printf("[opendox] InsertTranscript: start viaHotkey=%v wasVisible=%v hideForFocus=%v len=%d", viaHotkey, wasVisible, hideForFocus, len(text))
 	if hideForFocus {
 		runtime.WindowHide(a.ctx)
+		log.Printf("[opendox] InsertTranscript: WindowHide done")
 	}
 
 	// Kurze Pause: gibt dem Fenstermanager Zeit, den Fokuswechsel nach dem
@@ -680,10 +690,12 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 		// sollte. Ein reines Warten ist die robustere Variante.
 		robotgo.TypeStr(text)
 	}
+	log.Printf("[opendox] InsertTranscript: type/paste call returned")
 
 	if hideForFocus {
 		runtime.WindowShow(a.ctx)
 		a.positionTopRight()
+		log.Printf("[opendox] InsertTranscript: WindowShow done")
 	}
 	return insertErr
 }
