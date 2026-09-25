@@ -8,7 +8,6 @@ require (
 	github.com/ricknicius99/hid v0.0.0-20231128165240-e77f6da9e619
 	github.com/wailsapp/wails/v2 v2.15.0
 	golang.design/x/hotkey v0.6.1
-	golang.org/x/sys v0.46.0
 )
 
 require (
@@ -57,6 +56,7 @@ require (
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/image v0.41.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )
 

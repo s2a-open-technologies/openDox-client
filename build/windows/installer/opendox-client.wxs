@@ -15,22 +15,22 @@
   mit einer Installation alle Windows-Konten auf einem gemeinsam genutzten
   Praxis-/Klinik-PC ab. Braucht Admin/Elevation beim Setup.
 
-  Da Program Files nach der Installation für Nicht-Admins schreibgeschützt ist, wird die
-  Server-URL NICHT nachträglich von Hand editiert, sondern direkt beim Setup über den
-  öffentlichen Property SERVERURL gesetzt:
-    msiexec /i opendox-client-installer.msi SERVERURL=https://kunde.example.com /quiet
-  Landet als HKLM\Software\openDox\openDox\ServerURL in der Registry (siehe
-  ServerUrlRegistry-Component weiter unten) — rein deklarativ über RegistryValue's
-  Value="[SERVERURL]", OHNE CustomAction. Eine frühere Version versuchte stattdessen,
-  settings.json über eine deferred CustomAction zu befüllen (erneuter Aufruf von
-  opendox-client.exe in einem eigenen Kommandozeilen-Hilfsmodus) — das scheiterte auf
-  einer echten Windows-Installation wiederholt und ohne eindeutig identifizierbare Ursache
-  (Kandidaten: FileKey-Pfadauflösung, CustomActionData-Weiterreichung, oder ein weiterer
-  wixl-Bug — keiner davon ließ sich ohne Windows-Testumgebung zweifelsfrei verifizieren).
-  Der Registry-Weg braucht keine der dafür nötigen fragilen Mechaniken (Execute="deferred",
-  CustomActionData, Impersonate="no", FileKey) und nutzt stattdessen exakt denselben,
-  bereits nachweislich funktionierenden RegistryValue-Mechanismus wie die
-  Start-Menü-/Desktop-Verknüpfungen weiter unten.
+  Server-URL: die settings.json (Component SettingsJson unten, aus
+  SettingsTemplatePath) landet direkt neben der .exe in Program Files. loadSettings()
+  in app.go liest genau diese Datei (exeDirSettingsPath()) VOR dem plattformüblichen
+  %AppData%-Fallback. IT/Admin passt die Server-URL nach der Installation einfach per
+  Texteditor (mit Adminrechten, da Program Files) in dieser Datei an — kein
+  msiexec-Property, kein Rebuild pro Kunde. Eine frühere Version versuchte stattdessen,
+  die URL über eine deferred CustomAction beim Setup selbst in die Datei zu schreiben
+  (erneuter Aufruf von opendox-client.exe in einem eigenen Kommandozeilen-Hilfsmodus) —
+  das scheiterte auf einer echten Windows-Installation wiederholt und ohne eindeutig
+  identifizierbare Ursache (Kandidaten: FileKey-Pfadauflösung, CustomActionData-
+  Weiterreichung, oder ein weiterer wixl-Bug — keiner davon ließ sich ohne
+  Windows-Testumgebung zweifelsfrei verifizieren). Ein danach versuchter Zwischenschritt
+  über eine HKLM-Registry-Property (SERVERURL) funktionierte zwar deklarativ beim
+  Schreiben, wurde aber von loadSettings() nie gelesen — schlicht totes Gewicht. Die
+  einfache Datei-Deployment-Komponente unten ist der zuverlässigste Weg: kein
+  CustomAction-Mechanismus involviert, nur der normale MSI-File-Table-Kopiervorgang.
 
   UpgradeCode (unten in <Upgrade Id="...">) darf sich über KEINE künftige Version
   mehr ändern — er ist die einzige Kennung, über die der Windows Installer ein
@@ -67,16 +67,6 @@
                        IncludeMinimum="yes" IncludeMaximum="no"
                        Property="OLDERVERSIONFOUND" OnlyDetect="no" />
     </Upgrade>
-    <!-- SERVERURL: öffentlicher Property, über msiexec-Kommandozeile setzbar (siehe
-         Kommentar oben). Default ist bewusst der ECHTE, funktionierende Fallback-Wert
-         (identisch zum hartkodierten Go-Default in app.go) statt eines leeren Strings oder
-         Sentinels — ein <Property> mit Value="" bringt diese wixl-Version beim Bauen mit
-         einem unklaren Fehler zum Absturz (keine Fehlermeldung, nur der interne
-         libmsi-Funktionsname "libmsi_query_execute" auf stderr). Da der Default hier
-         inhaltlich exakt dem Go-seitigen Fallback entspricht, ist keine
-         Bedingung/Unterscheidung "wurde SERVERURL übergeben oder nicht" nötig — der
-         Registry-Wert wird immer geschrieben, ob mit echter URL oder mit diesem Default. -->
-    <Property Id="SERVERURL" Value="http://localhost:10000" />
 
     <InstallExecuteSequence>
       <RemoveExistingProducts After="InstallExecute" />
@@ -110,16 +100,6 @@
           <Component Id="SettingsJson" Guid="C2840E38-3FA1-42DD-AC6E-A63CCEF0ABCC">
             <File Id="settingsJson" Name="settings.json" Source="$(var.SettingsTemplatePath)" KeyPath="yes" />
           </Component>
-          <!-- Rein deklarativ, keine CustomAction: Windows Installer formatiert [SERVERURL]
-               selbst beim Schreiben dieses Registry-Werts, während der ganz normalen
-               WriteRegistryValues-Sequenzaktion — derselbe Mechanismus, der die
-               Start-Menü-/Desktop-Verknüpfungen weiter unten schon zuverlässig markiert.
-               HKLM statt HKCU, passend zum maschinenweiten (perMachine) Scope dieses
-               Installers. -->
-          <Component Id="ServerUrlRegistry" Guid="9E3B9C7A-6C0E-4C0D-9C7E-8B6E4B2E5C31">
-            <RegistryValue Root="HKLM" Key="Software\$(var.Manufacturer)\$(var.ProductName)"
-                            Name="ServerURL" Type="string" Value="[SERVERURL]" KeyPath="yes" />
-          </Component>
         </Directory>
       </Directory>
 
@@ -151,7 +131,6 @@
     <Feature Id="MainFeature" Title="$(var.ProductName)" Level="1">
       <ComponentRef Id="MainExecutable" />
       <ComponentRef Id="SettingsJson" />
-      <ComponentRef Id="ServerUrlRegistry" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>

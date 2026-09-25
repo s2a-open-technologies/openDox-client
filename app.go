@@ -87,8 +87,7 @@ const appConfigDirName = "opendox-client"
 // runtimeSettingsPath liegt außerhalb des .app-Bundles, an einem plattformüblichen
 // Konfigurationsort (os.UserConfigDir(): ~/Library/Application Support auf macOS, %AppData%
 // auf Windows, ~/.config bzw. $XDG_CONFIG_HOME auf Linux). Damit lässt sich pro Kunde ein
-// anderer Server eintragen, ohne die App neu zu bauen — einfach diese Datei bei der
-// Installation dort ablegen.
+// anderer Server eintragen, ohne die App neu zu bauen — einfach diese Datei dort ablegen.
 func runtimeSettingsPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -97,31 +96,52 @@ func runtimeSettingsPath() (string, error) {
 	return filepath.Join(dir, appConfigDirName, "settings.json"), nil
 }
 
-// loadSettings liest die Laufzeit-Konfigdatei (siehe runtimeSettingsPath). Existiert sie nicht
-// oder lässt sie sich nicht parsen (z.B. lokale Entwicklung ohne Installation), fällt es auf den
+// loadSettings liest die Laufzeit-Konfig in dieser Reihenfolge:
+//  1. exeDirSettingsPath() — auf Windows die settings.json direkt neben der .exe
+//     (z.B. C:\Program Files\openDox\openDox\settings.json), die der MSI-Installer
+//     aus settings.json.template mitbringt. IT/Admin editiert diese Datei einfach
+//     nach der Installation mit den ohnehin für eine Program-Files-Installation
+//     nötigen Adminrechten — kein separates msiexec-Property, kein Rebuild.
+//     No-Op-Stub auf macOS/Linux (siehe settings_path_other.go).
+//  2. runtimeSettingsPath() — plattformüblicher Konfigordner, für macOS/Linux und
+//     lokale Entwicklung ohne Installation.
+//
+// Existiert keine der beiden oder lässt sich keine parsen, fällt es auf den
 // hartkodierten Default zurück — es gibt bewusst keine zur Compile-Zeit eingebettete
-// settings.json mehr, damit dieselbe Build für jeden Kunden funktioniert.
+// settings.json, damit dieselbe Build für jeden Kunden funktioniert.
 func loadSettings() Settings {
-	path, err := runtimeSettingsPath()
+	if s, ok := trySettingsFile(exeDirSettingsPath); ok {
+		return s
+	}
+	if s, ok := trySettingsFile(runtimeSettingsPath); ok {
+		return s
+	}
+	log.Printf("[opendox] keine Laufzeit-Konfig gefunden — nutze Default")
+	return Settings{ServerURL: "http://localhost:10000"}
+}
+
+// trySettingsFile liest und parst die settings.json unter dem von pathFn gelieferten Pfad.
+// ok=false bei jedem Fehler (Pfad nicht ermittelbar, Datei fehlt, ungültiges JSON, leere
+// server_url) — der Aufrufer versucht dann die nächste Quelle in loadSettings' Reihenfolge.
+func trySettingsFile(pathFn func() (string, error)) (Settings, bool) {
+	path, err := pathFn()
 	if err != nil {
-		log.Printf("[opendox] Laufzeit-Konfig-Pfad nicht ermittelbar: %v — nutze Default", err)
-		return Settings{ServerURL: "http://localhost:10000"}
+		return Settings{}, false
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("[opendox] keine Laufzeit-Konfig unter %s (%v) — nutze Default", path, err)
-		return Settings{ServerURL: "http://localhost:10000"}
+		return Settings{}, false
 	}
 
 	var s Settings
 	if err := json.Unmarshal(data, &s); err != nil || s.ServerURL == "" {
-		log.Printf("[opendox] Laufzeit-Konfig %s ungültig (%v) — nutze Default", path, err)
-		return Settings{ServerURL: "http://localhost:10000"}
+		log.Printf("[opendox] Laufzeit-Konfig %s ungültig (%v) — ignoriere", path, err)
+		return Settings{}, false
 	}
 
 	log.Printf("[opendox] Server-URL aus Laufzeit-Konfig geladen: %s", path)
-	return s
+	return s, true
 }
 
 func deriveWSURL(serverURL string) string {
