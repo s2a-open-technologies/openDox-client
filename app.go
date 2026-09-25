@@ -421,6 +421,10 @@ func (a *App) domReady(ctx context.Context) {
 	a.ctx = ctx
 	setupWebviewPermissions()
 	a.positionTopRight()
+	// Windows-only (siehe focus_windows.go); No-Op sonst. Muss laufen, solange die
+	// App lebt, damit InsertTranscript beim Button-Klick weiß, welches Fenster vor
+	// dem Klick aktiv war und dorthin zurückgeholt werden soll.
+	startForegroundWatcher()
 }
 
 func (a *App) positionTopRight() {
@@ -683,6 +687,14 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	log.Printf("[opendox] InsertTranscript: start viaHotkey=%v wasVisible=%v hideForFocus=%v len=%d", viaHotkey, wasVisible, hideForFocus, len(text))
 	if hideForFocus {
 		runtime.WindowHide(a.ctx)
+		// Windows-only (No-Op sonst, siehe focus_other.go): WindowHide() verlässt sich
+		// auf ShowWindow(SW_HIDE), das die Aktivierung eines anderen Fensters laut
+		// Win32-Doku zwar auslösen SOLLTE, das aber auf Windows 11 in der Praxis
+		// unzuverlässig genug ist, dass der komplette Insert danach ins Leere lief
+		// (Text kam nirgends an, ohne jeden Fehler) — bestätigt, während derselbe
+		// Tastatur-Injektionscode über den Hotkey-Pfad (der nie versteckt) zuverlässig
+		// funktioniert. Holt das vor dem Klick aktive Fenster stattdessen aktiv zurück.
+		restoreLastForegroundWindow()
 		log.Printf("[opendox] InsertTranscript: WindowHide done")
 	}
 
