@@ -160,6 +160,9 @@ type App struct {
 
 	mu      sync.Mutex
 	visible bool
+	// noActivate: Overlay hat WS_EX_NOACTIVATE (nur Windows), ein Button-Klick
+	// nimmt dem Zielprogramm also nicht den Fokus — kein Hide/Show nötig.
+	noActivate bool
 
 	// hotkeyFailures zählt die Hotkeys, deren Registrierung fehlgeschlagen ist
 	// (typischerweise weil macOS-Eingabeüberwachung fehlt). Wird über
@@ -421,10 +424,16 @@ func (a *App) domReady(ctx context.Context) {
 	a.ctx = ctx
 	setupWebviewPermissions()
 	a.positionTopRight()
-	// Windows-only (siehe focus_windows.go); No-Op sonst. Muss laufen, solange die
-	// App lebt, damit InsertTranscript beim Button-Klick weiß, welches Fenster vor
-	// dem Klick aktiv war und dorthin zurückgeholt werden soll.
-	startForegroundWatcher()
+}
+
+// SetOverlayNoActivate wird vom Recorder beim Mount (true) / Unmount (false)
+// aufgerufen. Nur solange der Recorder sichtbar ist, darf das Overlay
+// nicht-aktivierbar sein — der Login-Screen braucht Tastatureingaben.
+func (a *App) SetOverlayNoActivate(enabled bool) {
+	applied := setOverlayNoActivate(enabled)
+	a.mu.Lock()
+	a.noActivate = enabled && applied
+	a.mu.Unlock()
 }
 
 func (a *App) positionTopRight() {
@@ -682,19 +691,16 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	//
 	a.mu.Lock()
 	wasVisible := a.visible
+	noActivate := a.noActivate
 	a.mu.Unlock()
-	hideForFocus := wasVisible && !viaHotkey
-	log.Printf("[opendox] InsertTranscript: start viaHotkey=%v wasVisible=%v hideForFocus=%v len=%d", viaHotkey, wasVisible, hideForFocus, len(text))
+	// Unter Windows ist das Overlay im Recorder WS_EX_NOACTIVATE (siehe
+	// focus_windows.go): der Klick hat den Fokus gar nicht erst genommen, der
+	// Button verhält sich damit wie der Hotkey. Hide-and-hope war dort nicht
+	// zuverlässig — der Text kam nach WindowHide() in keinem Zielprogramm an.
+	hideForFocus := wasVisible && !viaHotkey && !noActivate
+	log.Printf("[opendox] InsertTranscript: start viaHotkey=%v wasVisible=%v noActivate=%v hideForFocus=%v len=%d", viaHotkey, wasVisible, noActivate, hideForFocus, len(text))
 	if hideForFocus {
 		runtime.WindowHide(a.ctx)
-		// Windows-only (No-Op sonst, siehe focus_other.go): WindowHide() verlässt sich
-		// auf ShowWindow(SW_HIDE), das die Aktivierung eines anderen Fensters laut
-		// Win32-Doku zwar auslösen SOLLTE, das aber auf Windows 11 in der Praxis
-		// unzuverlässig genug ist, dass der komplette Insert danach ins Leere lief
-		// (Text kam nirgends an, ohne jeden Fehler) — bestätigt, während derselbe
-		// Tastatur-Injektionscode über den Hotkey-Pfad (der nie versteckt) zuverlässig
-		// funktioniert. Holt das vor dem Klick aktive Fenster stattdessen aktiv zurück.
-		restoreLastForegroundWindow()
 		log.Printf("[opendox] InsertTranscript: WindowHide done")
 	}
 
@@ -720,7 +726,7 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 		// nicht-standardmäßigem Keyboard-Mapping den Shift-/CapsLock-Zustand
 		// verwürfelt und den Text zerhackt — schlimmer als das Problem, das es lösen
 		// sollte. Ein reines Warten ist die robustere Variante.
-		robotgo.TypeStr(text)
+		robotgo.Type(text, 0, typeCharDelayMs)
 	}
 	log.Printf("[opendox] InsertTranscript: type/paste call returned")
 

@@ -35,3 +35,5 @@ export function OpenDashboard():Promise<void>;
 export function Quit():Promise<void>;
 
 export function ReprocessWithCategory(arg1:number,arg2:number,arg3:string):Promise<main.RecordDetails>;
+
+export function SetOverlayNoActivate(arg1:boolean):Promise<void>;

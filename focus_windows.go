@@ -20,79 +20,77 @@ package main
 
 import (
 	"log"
-	"sync/atomic"
+	"os"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
-var (
-	user32                  = syscall.NewLazyDLL("user32.dll")
-	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
-	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
-	procFindWindowW         = user32.NewProc("FindWindowW")
+// Pause zwischen den einzelnen SendInput-Unicode-Events von robotgo.Type. Ohne
+// Pause verschluckt/verstümmelt das Windows-11-Notepad die Eingabe, während
+// Terminal und Browser den Burst problemlos annehmen.
+const typeCharDelayMs = 10
+
+const (
+	gwlExStyle      = -20
+	wsExNoActivate  = 0x08000000
+	swpNoMove       = 0x0002
+	swpNoSize       = 0x0001
+	swpNoZOrder     = 0x0004
+	swpNoActivate   = 0x0010
+	swpFrameChanged = 0x0020
 )
 
-// ownHWND wird beim ersten erfolgreichen Poll in startForegroundWatcher per
-// FindWindowW anhand des Fenstertitels ermittelt (siehe Title: "openDox" in
-// main.go) und danach nicht mehr neu gesucht.
-var ownHWND uintptr
+var (
+	user32                       = syscall.NewLazyDLL("user32.dll")
+	procFindWindowExW            = user32.NewProc("FindWindowExW")
+	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
+	procGetWindowLongPtrW        = user32.NewProc("GetWindowLongPtrW")
+	procSetWindowLongPtrW        = user32.NewProc("SetWindowLongPtrW")
+	procSetWindowPos             = user32.NewProc("SetWindowPos")
+)
 
-// lastForeignHWND ist das zuletzt beobachtete Vordergrundfenster, das NICHT
-// openDox selbst war — also der wahrscheinliche Insert-Zielfenster-Kandidat.
-var lastForeignHWND atomic.Uintptr
-
-// startForegroundWatcher pollt alle 200ms das aktuelle Vordergrundfenster und merkt
-// sich in lastForeignHWND das letzte, das nicht openDox selbst war.
-//
-// Grund: WindowHide() (winc.ControlBase.Hide(), reines ShowWindow(hwnd, SW_HIDE))
-// verlässt sich implizit darauf, dass Windows nach dem Verstecken automatisch das
-// vorherige Fenster aktiviert - das ist auf Windows 11 in der Praxis nicht
-// zuverlässig genug (bestätigt: Button-Insert liefert dort konsequent NICHTS,
-// während derselbe Tastatur-Injektionscode über den Hotkey-Pfad - der nie versteckt
-// - zuverlässig funktioniert). InsertTranscript ruft stattdessen nach dem Hide
-// explizit restoreLastForegroundWindow() auf, um das zuvor aktive Fenster gezielt
-// zurückzuholen, statt auf den impliziten OS-Mechanismus zu hoffen.
-//
-// SetForegroundWindow() darf laut Microsoft-Doku vom aktuellen Eigentümer des
-// Vordergrundfensters aufgerufen werden, ohne durch den üblichen Fokus-Diebstahl-
-// Schutz blockiert zu werden - genau dieser Fall liegt hier vor, da openDox beim
-// Klick auf "Akzeptieren und einfügen" selbst gerade das Vordergrundfenster ist.
-func startForegroundWatcher() {
-	go func() {
-		for {
-			time.Sleep(200 * time.Millisecond)
-
-			if ownHWND == 0 {
-				titlePtr, err := syscall.UTF16PtrFromString("openDox")
-				if err != nil {
-					continue
-				}
-				h, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
-				if h == 0 {
-					continue
-				}
-				ownHWND = h
-			}
-
-			fg, _, _ := procGetForegroundWindow.Call()
-			if fg != 0 && fg != ownHWND {
-				lastForeignHWND.Store(fg)
-			}
+// ownWindow sucht das Wails-Hauptfenster dieses Prozesses (Klasse "wailsWindow",
+// siehe wails internal/frontend/desktop/windows/window.go). Wails gibt das HWND
+// nicht heraus; der PID-Abgleich verhindert, dass eine zweite laufende Instanz
+// getroffen wird.
+func ownWindow() uintptr {
+	class, _ := syscall.UTF16PtrFromString("wailsWindow")
+	pid := uint32(os.Getpid())
+	var hwnd uintptr
+	for {
+		hwnd, _, _ = procFindWindowExW.Call(0, hwnd, uintptr(unsafe.Pointer(class)), 0)
+		if hwnd == 0 {
+			return 0
 		}
-	}()
+		var wpid uint32
+		procGetWindowThreadProcessId.Call(hwnd, uintptr(unsafe.Pointer(&wpid)))
+		if wpid == pid {
+			return hwnd
+		}
+	}
 }
 
-// restoreLastForegroundWindow holt das zuletzt beobachtete Nicht-openDox-Fenster
-// (siehe startForegroundWatcher) aktiv in den Vordergrund. No-Op, falls seit dem
-// App-Start noch nie ein anderes Fenster im Vordergrund war.
-func restoreLastForegroundWindow() {
-	hwnd := lastForeignHWND.Load()
+// setOverlayNoActivate setzt/entfernt WS_EX_NOACTIVATE am Overlay. Mit gesetztem
+// Stil holt ein Mausklick auf openDox den Fokus nicht aus dem Zielprogramm — der
+// Button kann dann denselben Weg nehmen wie der Hotkey (kein Hide/Show). Gibt
+// zurück, ob der Stil jetzt tatsächlich im gewünschten Zustand ist.
+func setOverlayNoActivate(enabled bool) bool {
+	hwnd := ownWindow()
 	if hwnd == 0 {
-		return
+		log.Printf("[opendox] setOverlayNoActivate: eigenes Fenster nicht gefunden")
+		return false
 	}
-	ret, _, err := procSetForegroundWindow.Call(hwnd)
-	if ret == 0 {
-		log.Printf("[opendox] SetForegroundWindow(%x) fehlgeschlagen: %v", hwnd, err)
+	// GetWindowLongPtrW liefert einen LONG_PTR; negative Indizes als uintptr übergeben.
+	idx := gwlExStyle
+	style, _, _ := procGetWindowLongPtrW.Call(hwnd, uintptr(idx))
+	if enabled {
+		style |= wsExNoActivate
+	} else {
+		style &^= wsExNoActivate
 	}
+	procSetWindowLongPtrW.Call(hwnd, uintptr(idx), style)
+	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0,
+		swpNoMove|swpNoSize|swpNoZOrder|swpNoActivate|swpFrameChanged)
+	log.Printf("[opendox] setOverlayNoActivate(%v) ok", enabled)
+	return true
 }

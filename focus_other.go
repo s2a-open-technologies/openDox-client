@@ -18,11 +18,8 @@
 
 package main
 
-// startForegroundWatcher/restoreLastForegroundWindow sind auf macOS/Linux No-Op-Stubs
-// — siehe focus_windows.go für den Grund, warum Windows das explizit braucht
-// (WindowHide() dort verlässt sich nicht zuverlässig genug auf die automatische
-// Fokus-Rückgabe des Betriebssystems). Auf Linux/macOS hat sich das bisherige
-// Hide-and-hope-Verhalten (siehe Kommentare in InsertTranscript) als ausreichend
-// erwiesen.
-func startForegroundWatcher()      {}
-func restoreLastForegroundWindow() {}
+const typeCharDelayMs = 0
+
+// Kein NOACTIVATE-Äquivalent auf macOS/Linux — dort bleibt der Button beim
+// bisherigen Hide/Show-Weg in InsertTranscript.
+func setOverlayNoActivate(enabled bool) bool { return false }

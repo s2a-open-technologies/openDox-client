@@ -20,7 +20,7 @@ import {useState, useRef, useEffect, forwardRef, useImperativeHandle} from "reac
 import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut} from "lucide-react";
 import {toast} from "sonner";
 import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
-import {InsertTranscript as GoInsertTranscript} from "../../wailsjs/go/main/App";
+import {InsertTranscript as GoInsertTranscript, SetOverlayNoActivate as GoSetOverlayNoActivate} from "../../wailsjs/go/main/App";
 import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySession} from "../../wailsjs/go/main/App";
 import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
@@ -106,6 +106,14 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 setModKeyLabel("⌘+⌥");
             }
         });
+    }, []);
+
+    // Windows: Overlay nimmt bei Klicks keinen Fokus, damit "Akzeptieren und
+    // einfügen" ins Zielprogramm tippt wie der Hotkey. Beim Verlassen (Login-Screen
+    // braucht Tastatureingaben) wieder aus. No-Op auf macOS/Linux.
+    useEffect(() => {
+        GoSetOverlayNoActivate(true);
+        return () => { GoSetOverlayNoActivate(false); };
     }, []);
 
     useEffect(() => {

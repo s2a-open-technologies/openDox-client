@@ -69,3 +69,7 @@ export function Quit() {
 export function ReprocessWithCategory(arg1, arg2, arg3) {
   return window['go']['main']['App']['ReprocessWithCategory'](arg1, arg2, arg3);
 }
+
+export function SetOverlayNoActivate(arg1) {
+  return window['go']['main']['App']['SetOverlayNoActivate'](arg1);
+}
