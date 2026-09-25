@@ -32,6 +32,10 @@
   einfache Datei-Deployment-Komponente unten ist der zuverlässigste Weg: kein
   CustomAction-Mechanismus involviert, nur der normale MSI-File-Table-Kopiervorgang.
 
+  Für Rollout an viele Rechner (unterschiedliche Server-URL pro Kunde/Standort) NICHT
+  die MSI pro Kunde neu bauen — siehe DEPLOYMENT.md in diesem Verzeichnis für den
+  empfohlenen Weg über die Softwareverteilung (Intune/SCCM/GPO).
+
   UpgradeCode (unten in <Upgrade Id="...">) darf sich über KEINE künftige Version
   mehr ändern — er ist die einzige Kennung, über die der Windows Installer ein
   Release als Upgrade eines bereits installierten Produkts statt als komplett
