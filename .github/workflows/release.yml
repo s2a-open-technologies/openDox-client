@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches wails.json version
+        run: |
+          current="$(python3 scripts/bump_version.py --current)"
+          if [ "v${current}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match wails.json productVersion ${current}" \
+              "(bump with scripts/bump_version.py --commit)"
+            exit 1
+          fi
+
+      - name: Extract CHANGELOG section for this version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$version" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]") > 0) { found=1; next }
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "::error::No CHANGELOG.md section found for version $version" \
+              "(expected a '## [$version]' heading — see scripts/bump_version.py)"
+            exit 1
+          fi
+
+      # The signed installers are built locally (Windows MSI/NSIS, macOS) and attached
+      # afterwards with scripts/release.sh — the server's download buttons link to them.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # scripts/release.sh may have created the release already (installers first)
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" --notes-file release_notes.md
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "openDox Client ${GITHUB_REF_NAME#v}" \
+              --notes-file release_notes.md
+          fi

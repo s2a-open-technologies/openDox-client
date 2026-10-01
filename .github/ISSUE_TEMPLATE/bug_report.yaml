@@ -1,0 +1,68 @@
+name: Bug Report
+description: Report something that is not working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        **Note:** openDox is not a certified medical device
+        ("Kein Medizinprodukt"). Do not include real patient data, dictated
+        text, tokens or window titles in screenshots, logs, or descriptions.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the unexpected behavior.
+      placeholder: "..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Concrete steps to trigger the bug.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux (X11)
+        - Linux (Wayland)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Versions and setup.
+      placeholder: |
+        - openDox Client version (installer / About):
+        - openDox server version (/api/version):
+        - OS version:
+        - Installed via: MSI / NSIS setup / macOS app / built from source
+        - Insert target (program receiving the text; Citrix/RDP?):
+        - Dictation microphone (model) or keyboard hotkeys only:
+        - settings.json keys in use (do NOT paste the server URL if it is internal):
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: |
+        Start the client with `--debug` for log output. Redact any sensitive
+        data (server addresses, user names, window titles, dictated text)!
+      render: shell

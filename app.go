@@ -1,5 +1,7 @@
 // openDox - Medical transcription platform
 // Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-FileCopyrightText: 2026 Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -186,10 +188,14 @@ type App struct {
 	// Text ("Ja, wo ist denn ??????" statt des vollständigen Satzes).
 	insertMu sync.Mutex
 
-	// policy: Zwischenablage-/Einfügeziel-Einstellungen aus settings.json (Defaults,
-	// wenn nicht gesetzt). clipCleaner leert die Zwischenablage zeitverzögert nach
-	// dem Einfügen, solange sie unverändert ist (nur Windows, siehe clipboard_*.go).
+	// policy: Zwischenablage-/Einfügeziel-Einstellungen — die Richtlinie vom Server
+	// (bzw. ihr Cache) über localPolicy aus settings.json gelegt, siehe policy_sync.go.
+	// Ändert sich zur Laufzeit, daher nur über currentPolicy() lesen. clipCleaner
+	// leert die Zwischenablage zeitverzögert nach dem Einfügen, solange sie
+	// unverändert ist (nur Windows, siehe clipboard_*.go).
+	policyMu    sync.RWMutex
 	policy      clientpolicy.Settings
+	localPolicy clientpolicy.Settings
 	clipCleaner *clientpolicy.Cleaner
 }
 
@@ -200,7 +206,8 @@ func NewApp() *App {
 		wsURL:      deriveWSURL(s.ServerURL),
 		visible:    true,
 
-		policy:      s.policySettings,
+		policy:      initialPolicy(s.ServerURL, s.policySettings),
+		localPolicy: s.policySettings,
 		clipCleaner: clientpolicy.NewCleaner(clearClipboardIfUnchanged),
 	}
 }
@@ -230,6 +237,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.registerGlobalHotkeys()
 	a.startDictationMic()
+	go a.syncPolicyLoop()
 }
 
 // shutdown wird beim Beenden aufgerufen: Text, den der Client selbst in die
@@ -655,9 +663,10 @@ func (a *App) GetWSURL(sessionID, userID, token string, live bool) string {
 	return u
 }
 
-// GetLiveViewDefault liefert den Default der Live-Ansicht aus settings.json (live_view).
+// GetLiveViewDefault liefert den Default der Live-Ansicht (live_view, Server-Richtlinie
+// bzw. settings.json). Bei Änderung durch den Server kommt das Event policy:changed.
 func (a *App) GetLiveViewDefault() bool {
-	return a.policy.LiveViewDefault()
+	return a.currentPolicy().LiveViewDefault()
 }
 
 // Fenstergröße des Overlays (main.go).
@@ -767,12 +776,12 @@ func (a *App) OpenDashboard() {
 // Verwendung geprüft werden müssen (siehe DISCLAIMER.md) und dieser automatische Kopiervorgang
 // sonst ganz ohne Nutzerinteraktion abläuft.
 func (a *App) CopyToClipboard(text string) error {
-	seq, err := setClipboardText(a.ctx, text, a.policy.ClipboardExclude())
+	seq, err := setClipboardText(a.ctx, text, a.currentPolicy().ClipboardExclude())
 	if err != nil {
 		return err
 	}
 	if seq != 0 {
-		a.clipCleaner.Schedule(seq, a.policy.ClipboardClearAfter())
+		a.clipCleaner.Schedule(seq, a.currentPolicy().ClipboardClearAfter())
 	}
 	go notifyReview()
 	return nil
@@ -810,7 +819,7 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// nach der konfigurierten Frist wieder geleert, siehe internal/clientpolicy.
 	var clipSeq uint32
 	if usesClipboardPath() {
-		seq, err := setClipboardText(a.ctx, text, a.policy.ClipboardExclude())
+		seq, err := setClipboardText(a.ctx, text, a.currentPolicy().ClipboardExclude())
 		if err != nil {
 			// Ohne frisch gesetzte Zwischenablage würde Strg+V einen alten, fremden
 			// Inhalt einfügen — lieber sichtbar abbrechen.
@@ -855,7 +864,7 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// Frist das Strg+V nicht unterläuft. Nur wenn diesmal wirklich die Zwischenablage
 	// gesetzt wurde — ein getippter Insert darf den Plan eines früheren nicht kappen.
 	if clipSeq != 0 {
-		a.clipCleaner.Schedule(clipSeq, a.policy.ClipboardClearAfter())
+		a.clipCleaner.Schedule(clipSeq, a.currentPolicy().ClipboardClearAfter())
 	}
 
 	if hideForFocus {

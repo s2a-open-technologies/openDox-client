@@ -1,5 +1,7 @@
 // openDox - Medical transcription platform
 // Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-FileCopyrightText: 2026 Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -112,7 +114,7 @@ func TestParsePowerMic3Report(t *testing.T) {
 
 func TestRisingEdge(t *testing.T) {
 	cases := []struct {
-		name             string
+		name            string
 		prev, cur, want micButtonMask
 	}{
 		{"press from idle", 0, micRecord, micRecord},
@@ -131,7 +133,7 @@ func TestRisingEdge(t *testing.T) {
 
 func TestFallingEdge(t *testing.T) {
 	cases := []struct {
-		name             string
+		name            string
 		prev, cur, want micButtonMask
 	}{
 		{"press (no edge)", 0, micRecord, 0},

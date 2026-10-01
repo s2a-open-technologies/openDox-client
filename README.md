@@ -181,11 +181,21 @@ Beim Start liest das Go-Backend diese Datei ein (siehe `loadSettings()` in `app.
 konsumiert, die eine Server-URL brauchen. Fehlt die Datei oder ist sie ungültig, wird als
 Default `http://localhost:10000` verwendet — für die lokale Entwicklung reicht das ohne
 weitere Konfiguration. Für einen Kunden-Rollout genügt es, dieselbe Build zu verteilen und
-bei der Installation die passende `settings.json` unter obigem Pfad abzulegen.
+bei der Installation die passende `settings.json` unter obigem Pfad abzulegen. Der openDox-Server
+bietet beides im Admin-Bereich unter **Clients** an: Links auf die Installer (neuestes GitHub-Release)
+und eine fertige `settings.json` mit seiner eigenen Adresse.
 
-### Zwischenablage und Einfügeziel (optionale Einstellungen)
+### Zwischenablage und Einfügeziel (Client-Richtlinie)
 
-Weitere, alle optionale Schlüssel in derselben `settings.json`. Fehlt ein Schlüssel, gilt der Default:
+Die folgenden Einstellungen verwaltet der Admin **zentral im openDox-Server** (Admin → Clients). Der
+Client holt sie beim Start und danach alle 10 Minuten (`GET /api/v1/settings/client-config/`, ohne
+Login), speichert den letzten Stand im Cache-Ordner des Benutzers (`client-policy-cache.json` unter
+`~/.cache/opendox-client`, `~/Library/Caches/opendox-client` bzw. `%LocalAppData%\opendox-client`)
+und nutzt ihn, wenn der Server beim Start nicht erreichbar ist. **Werte vom Server haben Vorrang.**
+
+Dieselben Schlüssel können zusätzlich in der `settings.json` stehen. Sie gelten nur, solange der
+Client noch nie einen Stand vom Server bekommen hat, oder bei einem älteren Server ohne diesen Endpunkt.
+Fehlt ein Schlüssel überall, gilt der Default:
 
 ```json
 {
@@ -223,8 +233,17 @@ Weitere, alle optionale Schlüssel in derselben `settings.json`. Fehlt ein Schl�
 
 Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches Programm** eingefügt wird
 ("Einfügen in: …"). Auf einem Rechner mit der Windows-Installation gilt die `settings.json` neben der
-`.exe` (nur mit Adminrechten änderbar) vor der in `%AppData%` — eine Allow-Liste gehört deshalb dorthin,
-siehe [`build/windows/installer/DEPLOYMENT.md`](build/windows/installer/DEPLOYMENT.md).
+`.exe` (nur mit Adminrechten änderbar) vor der in `%AppData%`, siehe
+[`build/windows/installer/DEPLOYMENT.md`](build/windows/installer/DEPLOYMENT.md).
+
+### Release (Installer für die Server-Downloads)
+
+Der Server speichert keine Installer, sondern verlinkt auf
+`https://github.com/daemolition/opendox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
+sind deshalb fest: `opendox-client-installer.msi`, `opendox-client-amd64-installer.exe`,
+`opendox-client-macos.zip`. `scripts/release.sh <version>` lädt die vorhandenen Builds unter genau
+diesen Namen in ein GitHub-Release hoch (braucht die `gh` CLI). Solange das Repository privat ist,
+funktionieren die Links nur für eingeloggte GitHub-Nutzer mit Zugriff.
 
 ### Frontend eigenständig
 
@@ -352,10 +371,17 @@ Gerätetabelle und Protokoll sind aus
 ├── accessibility_darwin.go      # macOS: prüft Bedienhilfen-Berechtigung (AXIsProcessTrusted)
 ├── paste_darwin.go              # macOS: simuliert Cmd+V direkt über CGEventPost
 ├── hotkey_mod_*.go              # Plattformspezifische Hotkey-Modifier (Ctrl+Alt vs. Cmd+Option)
+├── policy_sync.go               # Client-Richtlinie vom Server holen, cachen, anwenden
+├── internal/                    # OS-unabhängig testbare Logik (clientpolicy) und Windows-Pakete
+├── third_party/                 # gepatchte Abhängigkeiten (hid, hotkey), per replace in go.mod
 ├── build-macos.sh               # macOS-Produktionsbuild inkl. Signierung
-├── LICENSE                      # AGPLv3, vollständiger Text
+├── scripts/                     # bump_version.py, check_licenses.py, add_spdx_headers.py, release.sh
+├── docs/                        # Überblick, Data-Mapping, Audit-Checkliste
+├── .github/                     # CI, Release-Workflow, Dependabot, Issue-/PR-Templates
+├── LICENSE, LICENSES/           # AGPLv3, vollständiger Text (REUSE-konform, REUSE.toml)
+├── CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, THIRD_PARTY_NOTICES.md
 ├── DISCLAIMER.md                # Kein-Medizinprodukt-Hinweis (Langfassung)
-├── wails.json                   # Wails-Projekt-Konfiguration
+├── wails.json                   # Wails-Projekt-Konfiguration; productVersion = Programmversion
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx                    # Root: Login/Disclaimer/Recorder
@@ -383,9 +409,22 @@ AI-Coding-Agents geschrieben, aber auch für Menschen lesbar.
 ## Beitragen
 
 Issues und Pull Requests sind willkommen. Vor größeren Änderungen gerne erst ein Issue
-aufmachen, um Richtung und Umfang abzustimmen. Neue oder substanziell überarbeitete
-Quelldateien sollten den AGPLv3-Lizenzkopf tragen (siehe bestehende `.go`- und
-`.tsx`-Dateien für das Format).
+aufmachen, um Richtung und Umfang abzustimmen. Details zu Entwicklung, Tests, Lizenzköpfen
+(SPDX/REUSE), Commit-Nachrichten und dem Release-Ablauf stehen in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md); der Verhaltenskodex in
+[`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Sicherheitslücken bitte **nicht** als öffentliches
+Issue melden, sondern wie in [`SECURITY.md`](./SECURITY.md) beschrieben.
+
+## Dokumentation
+
+- [`docs/opendox-client.md`](docs/opendox-client.md) — was der Client ist und wie er aufgebaut ist
+- [`docs/data-mapping.md`](docs/data-mapping.md) — Datenfluss und lokale Speicherung (Grundlage für
+  ein Verzeichnis von Verarbeitungstätigkeiten)
+- [`docs/audit-checklist-opendox-client.md`](docs/audit-checklist-opendox-client.md) — Selbstauskunft
+  für Audits
+- [`CHANGELOG.md`](./CHANGELOG.md) — Änderungen je Version
+- [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) — Abhängigkeiten und ihre Lizenzen
+- [`DISCLAIMER.md`](./DISCLAIMER.md) — kein Medizinprodukt
 
 ## Lizenz
 

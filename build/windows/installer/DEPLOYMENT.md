@@ -7,6 +7,12 @@ eine `settings.json` mit der zum Build-Zeitpunkt eingebetteten Server-URL ab
 das — ein Admin öffnet die Datei danach einmal im Texteditor und trägt die richtige
 URL ein.
 
+**Einfachster Weg:** Im openDox-Server unter Admin → **Clients** gibt es die Installer (Links auf das
+neueste GitHub-Release), eine fertige `settings.json` mit der Adresse dieses Servers und die Befehle
+unten bereits ausgefüllt zum Kopieren. Die `settings.json` enthält nur `server_url` und ändert sich
+danach nicht mehr — alle übrigen Einstellungen (Zwischenablage, Allow-Liste, Diktiermikro, Live-Ansicht)
+stellt der Admin dort zentral ein, die Clients holen sie sich selbst (siehe unten).
+
 Für eine Verteilung an viele Rechner mit fester/unterschiedlicher URL **nicht** die
 MSI pro Kunde neu bauen. Stattdessen: **eine** MSI für alle, und die passende
 `settings.json` als zweiten, unabhängigen Schritt eurer Softwareverteilung an
@@ -81,23 +87,24 @@ deutsche Oberfläche zeigt sie übersetzt):
 
 **2. Schutz im Client (zusätzlich, abhängig vom Betriebssystem).** Ab dieser Version markiert der Client
 den Text als vertraulich (das Betriebssystem schließt ihn dann aus Verlauf und Cloud aus) und leert die
-Zwischenablage nach dem Einfügen, sofern sie unverändert ist. Beides steuert die `settings.json`, siehe
-`README.md` → "Zwischenablage und Einfügeziel": `clipboard_exclude_from_history` (Default `true`) und
+Zwischenablage nach dem Einfügen, sofern sie unverändert ist. Beides stellt der Admin im openDox-Server
+unter Admin → Clients ein (Vorrang vor der `settings.json`, siehe `README.md` → "Zwischenablage und
+Einfügeziel"): `clipboard_exclude_from_history` (Default `true`) und
 `clipboard_clear_after_seconds` (Default `30`, `0` = nie). Die Richtlinien aus Punkt 1 bleiben trotzdem
 sinnvoll, denn die Markierung wirkt nur, wenn das Betriebssystem bzw. ein Zwischenablage-Manager sie beachtet.
 
 **3. Optional: Allow-Liste für das Einfügeziel.** Auf Arbeitsplätzen, die ausschließlich für die
 Patientendokumentation gedacht sind, lässt sich per `insert_allowlist` festlegen, in welche Programme ohne
-Rückfrage eingefügt werden darf (z. B. `["orbis.exe"]`); bei anderen Zielen fragt der Client nach. Diese
-Einstellung gehört in die `settings.json` **neben der `.exe`** (`%ProgramFiles%\openDox\openDox\`), die
-nur mit Adminrechten änderbar ist und Vorrang vor der Datei in `%AppData%` hat. Auf Geräten ohne Liste
-(Standard) gibt es keine Rückfrage — der Client bleibt ein allgemeines Diktierwerkzeug.
+Rückfrage eingefügt werden darf (z. B. `orbis.exe`); bei anderen Zielen fragt der Client nach. Die Liste
+wird im openDox-Server (Admin → Clients) gepflegt und gilt für alle Clients dieses Servers; Nutzer können
+sie am Rechner nicht überschreiben. Ohne Liste (Standard) gibt es keine Rückfrage — der Client bleibt ein
+allgemeines Diktierwerkzeug.
 
-**3a. Diktiermikro-Modus.** Bei SpeechMike/PowerMic gilt standardmäßig Push-to-Talk (`dictation_mic_mode`:
+**3a. Diktiermikro-Modus** (Admin → Clients). Bei SpeechMike/PowerMic gilt standardmäßig Push-to-Talk (`dictation_mic_mode`:
 `"hold"`, Record-Taste halten, beim Loslassen wird gestoppt und der Text automatisch eingefügt). Mit
 `"toggle"` lässt sich das bisherige Verhalten (Druck startet, Druck stoppt) wiederherstellen.
 
-**3b. Live-Ansicht.** `live_view` (Default `true`) legt fest, ob die Live-Ansicht standardmäßig an ist. `false`
+**3b. Live-Ansicht** (Admin → Clients). `live_view` (Default `true`) legt fest, ob die Live-Ansicht standardmäßig an ist. `false`
 = Overlay ohne Live-Text (nur Orb) und ohne Live-Transkription auf dem Server; Nutzer können es im Overlay
 selbst umschalten (gilt dann pro Rechner und überschreibt diesen Default).
 

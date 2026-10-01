@@ -1,6 +1,8 @@
 /*
   openDox - Medical transcription platform
   Copyright (C) 2025  Christopher Abanilla <christopher.abanilla@gmx.de>
+  SPDX-FileCopyrightText: 2025 Christopher Abanilla <christopher.abanilla@gmx.de>
+  SPDX-License-Identifier: AGPL-3.0-or-later
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -710,12 +712,17 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }, []);
 
     useEffect(() => {
-        // Default der Live-Ansicht aus settings.json (live_view), sofern der Nutzer nichts gewählt hat.
-        try {
-            if (localStorage.getItem("live_view") === null) {
-                GoGetLiveViewDefault().then(setLiveView).catch(() => { /* Default true */ });
-            }
-        } catch (_) { /* localStorage nicht verfügbar */ }
+        // Default der Live-Ansicht (live_view aus Server-Richtlinie bzw. settings.json), sofern
+        // der Nutzer nichts gewählt hat. Ändert der Admin ihn am Server, kommt policy:changed.
+        const applyLiveViewDefault = () => {
+            try {
+                if (localStorage.getItem("live_view") === null) {
+                    GoGetLiveViewDefault().then(setLiveView).catch(() => { /* Default true */ });
+                }
+            } catch (_) { /* localStorage nicht verfügbar */ }
+        };
+        applyLiveViewDefault();
+        const offPolicy = EventsOn("policy:changed", applyLiveViewDefault);
 
         // Load settings to determine if live transcription is enabled
         GoGetWhisperSettings()
@@ -736,6 +743,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 }
             })
             .catch(() => setCategories([]));
+
+        return () => offPolicy();
     }, []);
 
     useEffect(() => {

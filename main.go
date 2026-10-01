@@ -1,5 +1,7 @@
 // openDox - Medical transcription platform
 // Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-FileCopyrightText: 2026 Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -58,11 +60,11 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:  "openDox",
-		Width:  overlayWidth,
-		Height: overlayHeight,
+		Title:       "openDox",
+		Width:       overlayWidth,
+		Height:      overlayHeight,
 		AlwaysOnTop: true,
-		Frameless: false,
+		Frameless:   false,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

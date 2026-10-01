@@ -181,6 +181,20 @@ Stop/Rewind/Ins-Ovr buttons and keyboard hotkeys are unchanged.
 use this to confirm the offsets once a physical device is available, before trusting button
 behavior in production.
 
+### Server-managed client policy (`policy_sync.go`)
+
+The policy keys of settings.json (`clipboard_*`, `insert_allowlist`, `dictation_mic_mode`, `live_view`) are
+managed centrally on the openDox server (admin UI → Clients, server repo `~/python/project_red`,
+`GET /api/v1/settings/client-config/`, unauthenticated). `syncPolicyLoop` fetches it at startup and every
+10 min; `clientpolicy.Merge` lets every field the server sets win over the local file (an explicitly empty
+server allowlist turns a local one off). The last server state is cached per server URL
+(`os.UserCacheDir()/opendox-client/client-policy-cache.json`) and applied in `NewApp` without network. The
+policy can change at runtime: read it only via `a.currentPolicy()` (never cache it in a long-lived variable
+— `readDictationMicLoop` reads `MicHoldMode()` per key press), and the frontend re-reads
+`GetLiveViewDefault()` on the `policy:changed` event. Installers are not stored on the server: it links to
+`releases/latest/download/<fixed name>` of this repo, uploaded by `scripts/release.sh` — keep those
+names in sync with `_CLIENT_DOWNLOAD_FILES` in the server's `settings_routes.py`.
+
 ### Live view off / compact overlay (`live_view`)
 
 `live_view` in settings.json (`clientpolicy.Settings.LiveViewDefault`, exposed via the bound
@@ -312,6 +326,36 @@ from `domReady` (`setupWebviewPermissions()`), but for different reasons and via
 - No CSS framework — plain per-component `.css` imported directly into its `.tsx`.
 - `color-scheme: dark` in `style.css` is load-bearing for native form controls (`<select>` + its option
   popup, scrollbars) on WebKitGTK — removing it reintroduces a white-on-white dropdown. Don't drop it.
+## Open-source hygiene and releases
+
+The repo mirrors the server repo's governance setup (same shape as `~/python/project_red`):
+
+- **Docs:** `README.md` (German, setup/config), `docs/opendox-client.md` (overview),
+  `docs/data-mapping.md` (data flow / local storage / known gaps — update it whenever data handling,
+  network targets, logging, clipboard or `localStorage` keys change), `docs/audit-checklist-opendox-client.md`
+  (self-assessment with evidence), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
+  `CHANGELOG.md` (Keep a Changelog; add user-visible changes under `[Unreleased]`, German entries).
+- **Version:** single source of truth is `info.productVersion` in `wails.json`. Never hand-edit it or
+  `frontend/package.json`; run `python3 scripts/bump_version.py patch|minor|major [--commit]`, which also
+  syncs the lockfile, moves `[Unreleased]` in the changelog and (with `--commit`) commits and tags `vX.Y.Z`.
+  Pushing the tag runs `.github/workflows/release.yml` (checks tag == `wails.json`, publishes the changelog
+  section as release notes). Installers are built locally (signed) and attached with `scripts/release.sh`
+  under **fixed file names** — the server's admin UI links to `releases/latest/download/<name>`.
+- **CI** (`.github/workflows/ci.yml`): gofmt (excl. `third_party/`), `go vet`, `xvfb-run go test`
+  (with `-tags webkit2_41`; `frontend/dist` must be built first because of `//go:embed`),
+  `GOOS=windows go vet ./internal/...`, frontend typecheck + build, REUSE lint. Dependabot covers
+  gomod, npm and Actions. Not verified on GitHub until the first push.
+- **REUSE / SPDX:** every `.go`/`.ts(x)`/`.py` source file carries the AGPL header plus the SPDX short tags
+  (`python3 scripts/add_spdx_headers.py` adds the tags to headered files); everything else is covered by
+  `REUSE.toml`, including vendored `third_party/` (licenses taken from the upstream notices) and the Wails
+  template files. Check with `pip install reuse && reuse lint`. A new file without a header must either get one
+  or an explicit entry in `REUSE.toml`.
+- **Dependencies:** `python3 scripts/check_licenses.py [--write-notices]` checks Go (union of linux/windows/darwin
+  `go list -deps`) and production npm licenses against an AGPL-compatible allowlist and regenerates
+  `THIRD_PARTY_NOTICES.md` — never hand-edit that file.
+- `build/windows/installer/tmp/` (Microsoft WebView2 bootstrapper) is gitignored: Wails downloads it for the
+  NSIS build; don't commit proprietary binaries.
+
 ## Licensing (AGPLv3, open source)
 
 Every `.go` file and several key `.tsx` files (`AuthContext.tsx`, `Recorder.tsx`,

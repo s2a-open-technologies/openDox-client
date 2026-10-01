@@ -1,0 +1,151 @@
+version = 1
+
+# openDox - Medical transcription platform
+# Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Bulk (REUSE.software) licensing declarations for everything that does NOT carry a
+# per-file SPDX header: documentation, build scripts, configs, lockfiles, binary
+# assets, a few older frontend files, and the vendored/generated code. Actual source
+# code (.go, .ts/.tsx, .py) carries real per-file SPDX tags — see
+# scripts/add_spdx_headers.py. Run `reuse lint` after adding files; new source files
+# should get the header (copy from a neighbour) instead of a line in this file.
+
+# --- Own files -----------------------------------------------------------------
+
+[[annotations]]
+path = [
+  "README.md",
+  "CHANGELOG.md",
+  "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
+  "SECURITY.md",
+  "DISCLAIMER.md",
+  "THIRD_PARTY_NOTICES.md",
+  "AUTHORS",
+  "docs/**",
+  ".agents/AGENTS.md",
+  ".github/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [
+  ".gitignore",
+  "go.mod",
+  "go.sum",
+  "wails.json",
+  "compile.sh",
+  "build-macos.sh",
+  "build-windows-msi.sh",
+  "scripts/release.sh",
+  "build/windows/installer/opendox-client.wxs",
+  "build/windows/installer/settings.json.template",
+  "build/windows/installer/DEPLOYMENT.md",
+  "build/windows/info.json",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Frontend: config, lockfile, generated Wails bindings of our own App type, and the
+# files from the first versions that never had a header (new files get one).
+[[annotations]]
+path = [
+  "frontend/index.html",
+  "frontend/package.json",
+  "frontend/package-lock.json",
+  "frontend/tsconfig.json",
+  "frontend/vite.config.js",
+  "frontend/wailsjs/go/**",
+  "frontend/src/App.css",
+  "frontend/src/App.tsx",
+  "frontend/src/main.tsx",
+  "frontend/src/style.css",
+  "frontend/src/vite-env.d.ts",
+  "frontend/src/lib/utils.ts",
+  "frontend/src/components/DisclaimerGate.css",
+  "frontend/src/components/LoginScreen.css",
+  "frontend/src/components/LoginScreen.tsx",
+  "frontend/src/components/Recorder.css",
+  "frontend/src/components/ui/Button.tsx",
+  "frontend/src/components/ui/ConfirmModal.tsx",
+  "frontend/src/components/ui/Modal.css",
+  "frontend/src/components/ui/ui.css",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Logo / icons (project artwork).
+[[annotations]]
+path = [
+  "build/appicon.png",
+  "build/windows/icon.ico",
+  "frontend/src/assets/openDox.svg",
+  "frontend/src/assets/favicon.png",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# --- Wails project template (MIT) + our modifications (AGPL) ---------------------
+
+[[annotations]]
+path = [
+  "build/README.md",
+  "build/darwin/Info.plist",
+  "build/darwin/Info.dev.plist",
+  "build/windows/wails.exe.manifest",
+  "build/windows/installer/project.nsi",
+  "build/windows/installer/wails_tools.nsh",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "2018-Present Lea Anthony (Wails project template)",
+  "2026 Christopher Abanilla <christopher.abanilla@gmx.de>",
+]
+SPDX-License-Identifier = "MIT AND AGPL-3.0-or-later"
+
+# Wails JS runtime, copied unchanged into frontend/wailsjs by `wails dev|build`.
+[[annotations]]
+path = "frontend/wailsjs/runtime/**"
+SPDX-FileCopyrightText = "2018-Present Lea Anthony"
+SPDX-License-Identifier = "MIT"
+
+# --- Third-party assets ----------------------------------------------------------
+
+[[annotations]]
+path = ["frontend/src/assets/fonts/**"]
+SPDX-FileCopyrightText = "2016 The Nunito Project Authors (contact@sansoxygen.com)"
+SPDX-License-Identifier = "OFL-1.1"
+
+# --- Vendored Go modules (go.mod `replace` -> ./third_party) ---------------------
+# Licenses taken from the upstream notices in each directory; files that carry their
+# own SPDX tag keep it (default precedence "closest"). Review when updating them.
+
+# golang.design/x/hotkey
+[[annotations]]
+path = "third_party/hotkey/**"
+SPDX-FileCopyrightText = "2021 The golang.design Initiative Authors"
+SPDX-License-Identifier = "MIT"
+
+# github.com/ricknicius99/hid (fork of karalabe/hid), see third_party/hid/LICENSE.md:
+# Go wrapper BSD (hid.go: "3-clause BSD", go.hid/gowchar: BSD), hidapi 3-clause BSD,
+# libusb LGPL-2.1-or-later (dynamically linked on Linux via pkg-config).
+[[annotations]]
+path = "third_party/hid/**"
+SPDX-FileCopyrightText = "The hid authors (see third_party/hid/LICENSE.md)"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "third_party/hid/hidapi/**"
+SPDX-FileCopyrightText = "2010 Alan Ott, Signal 11 Software"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "third_party/hid/libusb/**"
+SPDX-FileCopyrightText = "The libusb authors (see third_party/hid/libusb/AUTHORS)"
+SPDX-License-Identifier = "LGPL-2.1-or-later"

@@ -1,5 +1,7 @@
 # Build output
 build/bin
+# Von Wails beim NSIS-Build geladen (Microsoft-Binary, nicht Teil des Quelltexts)
+build/windows/installer/tmp/
 frontend/dist
 /opendox-client
 /opendox-client.exe

@@ -1,5 +1,7 @@
 // openDox - Medical transcription platform
 // Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-FileCopyrightText: 2026 Christopher Abanilla <christopher.abanilla@gmx.de>
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -25,7 +27,7 @@ type InsertTarget struct {
 	// Title ist der Fenstertitel. Kann Patientennamen enthalten: nur anzeigen, nie
 	// loggen oder speichern.
 	Title string `json:"title"`
-	// ListActive ist true, wenn per settings.json eine Allow-Liste konfiguriert ist.
+	// ListActive ist true, wenn eine Allow-Liste konfiguriert ist (Server oder settings.json).
 	ListActive bool `json:"list_active"`
 	// Allowed ist false, wenn eine Liste aktiv ist und Process nicht darin steht —
 	// dann fragt das Frontend vor dem Einfügen nach.
@@ -36,10 +38,11 @@ type InsertTarget struct {
 // Rückfrage erlaubt ist.
 func (a *App) GetInsertTarget() InsertTarget {
 	process, title := foregroundTarget()
+	policy := a.currentPolicy()
 	return InsertTarget{
 		Process:    process,
 		Title:      title,
-		ListActive: a.policy.AllowlistActive(),
-		Allowed:    a.policy.Allows(process),
+		ListActive: policy.AllowlistActive(),
+		Allowed:    policy.Allows(process),
 	}
 }
