@@ -30,6 +30,14 @@ export function GetCategories(arg1) {
   return window['go']['main']['App']['GetCategories'](arg1);
 }
 
+export function GetInsertTarget() {
+  return window['go']['main']['App']['GetInsertTarget']();
+}
+
+export function GetLiveViewDefault() {
+  return window['go']['main']['App']['GetLiveViewDefault']();
+}
+
 export function GetRecordBySession(arg1, arg2) {
   return window['go']['main']['App']['GetRecordBySession'](arg1, arg2);
 }
@@ -42,8 +50,8 @@ export function GetTaskStatus(arg1, arg2) {
   return window['go']['main']['App']['GetTaskStatus'](arg1, arg2);
 }
 
-export function GetWSURL(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetWSURL'](arg1, arg2, arg3);
+export function GetWSURL(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetWSURL'](arg1, arg2, arg3, arg4);
 }
 
 export function GetWhisperSettings() {

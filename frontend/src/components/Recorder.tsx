@@ -17,10 +17,12 @@
 */
 
 import {useState, useRef, useEffect, forwardRef, useImperativeHandle} from "react";
-import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut} from "lucide-react";
+import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut, Check, Eye, EyeOff, HelpCircle} from "lucide-react";
 import {toast} from "sonner";
-import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
+import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetLiveViewDefault as GoGetLiveViewDefault, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
 import {InsertTranscript as GoInsertTranscript, SetOverlayNoActivate as GoSetOverlayNoActivate} from "../../wailsjs/go/main/App";
+import {GetInsertTarget as GoGetInsertTarget} from "../../wailsjs/go/main/App";
+import type {main} from "../../wailsjs/go/models";
 import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySession} from "../../wailsjs/go/main/App";
 import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
@@ -59,6 +61,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const [liveTranscript, setLiveTranscript] = useState("");
     const [stableTranscript, setStableTranscript] = useState("");
     const [isPaused, setIsPaused] = useState(false);
+    const [helpOpen, setHelpOpen] = useState(false);
     const [isStopDialogOpen, setIsStopDialogOpen] = useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -89,8 +92,35 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     // eines veralteten Closures.
     const isRecordingRef = useRef(false);
     const isProcessingRef = useRef(false);
+    // Push-to-talk des Tastenmikrofons (hotkey:mic-record-down/-up, Hold-Modus): Die Aufnahme
+    // wurde per gehaltener Record-Taste gestartet, das fertige Ergebnis wird dann automatisch
+    // eingefügt. micStartingRef/micReleasedEarlyRef fangen ein Loslassen ab, bevor der
+    // (asynchrone) Aufnahmestart durch ist.
+    const autoInsertRef = useRef(false);
+    const micStartingRef = useRef(false);
+    const micReleasedEarlyRef = useRef(false);
 
-    const [liveEnabled, setLiveEnabled] = useState(true);
+    // Live-Ansicht: der Server kann sie global abschalten (live_backend "disabled", serverLive);
+    // zusätzlich der Nutzer (Umschalter im Overlay, localStorage) bzw. settings.json (live_view,
+    // Default). liveEnabled ist das Ergebnis aus beidem — bei false zeigt das Overlay nur den
+    // Orb und der Server startet keine Live-ASR (live=0 am WebSocket).
+    const [serverLive, setServerLive] = useState(true);
+    const [liveView, setLiveView] = useState<boolean>(() => {
+        try {
+            const v = localStorage.getItem("live_view");
+            if (v === "1") return true;
+            if (v === "0") return false;
+        } catch (_) { /* localStorage nicht verfügbar */ }
+        return true;
+    });
+    const liveEnabled = serverLive && liveView;
+    const liveEnabledRef = useRef(true);
+    liveEnabledRef.current = liveEnabled;
+    const toggleLiveView = () => {
+        const next = !liveView;
+        setLiveView(next);
+        try {localStorage.setItem("live_view", next ? "1" : "0");} catch (_) { /* egal */ }
+    };
     const [categories, setCategories] = useState<{id: number; name: string}[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number>(() => {
         const stored = localStorage.getItem(`selected_category_id_${userId}`);
@@ -99,6 +129,16 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         return isNaN(parsed) ? 0 : parsed;
     });
     const liveTranscriptRef = useRef<HTMLDivElement | null>(null);
+
+    // Mikrofon-Auswahl: Liste der Eingabegeräte + persistierte Auswahl
+    // ("" = System-Standard). Wechsel nur im Leerlauf möglich — während einer
+    // Aufnahme bleibt das gerade verwendete Gerät aktiv.
+    const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedMicId, setSelectedMicId] = useState<string>(() => {
+        return localStorage.getItem(`selected_mic_id_${userId}`) || "";
+    });
+    const [micMenuOpen, setMicMenuOpen] = useState(false);
+    const selectedMicIdRef = useRef(selectedMicId);
 
     useEffect(() => {
         Environment().then((env) => {
@@ -180,12 +220,19 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 setStableTranscript(record.summarize || "");
                 setLiveTranscript("");
                 setRecordId(record.id);
-                toast.success(`Transkription abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
+                const autoInsert = autoInsertRef.current;
+                autoInsertRef.current = false;
+                if (autoInsert && record.summarize) {
+                    acceptAndInsertRef.current(true, record.summarize);
+                } else {
+                    toast.success(`Transkription abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
+                }
                 if (onFinalTranscription) {
                     onFinalTranscription(pollSessionId, taskId);
                 }
             } catch (err) {
                 console.error(err);
+                autoInsertRef.current = false;
                 toast.error("Fehler beim Abrufen der fertigen Aufnahme");
             } finally {
                 setIsProcessing(false);
@@ -198,6 +245,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         }
 
         if (status.status === "error") {
+            autoInsertRef.current = false;
             setIsProcessing(false);
             if (processingTimeoutRef.current) {
                 clearTimeout(processingTimeoutRef.current);
@@ -245,9 +293,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         // WebSocket-URL direkt aus den Settings bauen (Fallback wenn Go-Binding nicht da ist)
         let wsURL: string;
         try {
-            wsURL = await GoGetWSURL(session_id, userId, getToken());
+            wsURL = await GoGetWSURL(session_id, userId, getToken(), liveEnabledRef.current);
         } catch {
-            wsURL = `${wsBaseURL}/api/v1/records/ws/record?session_id=${encodeURIComponent(session_id)}&user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(getToken())}`;
+            wsURL = `${wsBaseURL}/api/v1/records/ws/record?session_id=${encodeURIComponent(session_id)}&user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(getToken())}${liveEnabledRef.current ? "" : "&live=0"}`;
         }
         const ws = new WebSocket(wsURL);
         socketRef.current = ws;
@@ -259,7 +307,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            if (data.partial) {
+            if (data.partial && liveEnabledRef.current) {
                 setLiveTranscript(data.partial);
             }
 
@@ -325,7 +373,10 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         };
     };
 
-    const startRecording = async () => {
+    const startRecording = async (opts?: {autoInsert?: boolean}) => {
+        // Nur ein ausdrückliches autoInsert:true (Tastenmikrofon, Hold-Modus) schaltet das
+        // Auto-Einfügen ein; jeder andere Start (Button, Hotkey, Resume) setzt es zurück.
+        autoInsertRef.current = opts?.autoInsert === true;
         try {
             // Verwaiste Polls einer vorherigen Session (z.B. abgebrochen) verwerfen.
             if (pollTimeoutRef.current) {
@@ -356,13 +407,17 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
             await openWebSocket(userId, record.session_id);
 
-            // 1) User-Audio holen
+            // 1) User-Audio holen — deviceId aus dem Ref, weil startRecording über
+            //    Hotkey-/Mount-Closures laufen kann, die einen veralteten State sähen.
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     channelCount: 1,
                     sampleRate: 16000,
                     echoCancellation: true,
                     noiseSuppression: true,
+                    ...(selectedMicIdRef.current
+                        ? {deviceId: {exact: selectedMicIdRef.current}}
+                        : {}),
                 }
             });
             streamRef.current = stream;
@@ -429,6 +484,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     ? "Kein Mikrofon gefunden"
                     : "Fehler beim Starten der Aufnahme";
             toast.error(msg);
+            autoInsertRef.current = false;
+            micReleasedEarlyRef.current = false;
             // Verwaiste Session auf dem Server abbrechen, damit keine leere Aufnahme
             // im Web-Frontend liegen bleibt. wsFinishedRef=true verhindert, dass
             // onclose "Verbindung unterbrochen" toast.
@@ -473,10 +530,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     clearTimeout(pollTimeoutRef.current);
                     pollTimeoutRef.current = null;
                 }
+                autoInsertRef.current = false;
                 setIsProcessing(false);
                 toast.error("Zeitüberschreitung – Aufnahme konnte nicht verarbeitet werden");
             }, 90_000);
         } else {
+            autoInsertRef.current = false;
             setIsProcessing(false);
             toast.error("Verbindung bereits unterbrochen");
         }
@@ -488,6 +547,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const cancelRecording = async () => {
         if (!isRecording) return;
 
+        autoInsertRef.current = false;
         isPausedRef.current = true;
         wsFinishedRef.current = true; // erwarteter Close, keine "Verbindung unterbrochen"-Meldung
         try {workletRef.current?.disconnect();} catch (_) {
@@ -540,11 +600,72 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         isPausedRef.current = false;
     };
 
-    const acceptAndInsert = (viaHotkey = false) => {
-        if (!stableTranscript) return;
-        GoInsertTranscript(stableTranscript, viaHotkey).catch((err: unknown) => {
+    // Einfügeziel (nur unter Windows befüllt): zeigt, in welches Programm "Akzeptieren und
+    // einfügen" schreibt. Ist per settings.json eine Allow-Liste konfiguriert (Standard:
+    // keine) und das Ziel nicht darauf, wird vorher nachgefragt.
+    const [insertTarget, setInsertTarget] = useState<main.InsertTarget | null>(null);
+    const [pendingInsert, setPendingInsert] = useState<{target: main.InsertTarget; viaHotkey: boolean; text: string} | null>(null);
+    const insertVisible = !isProcessing && !!stableTranscript && !isRecording;
+    useEffect(() => {
+        if (!insertVisible) {
+            setInsertTarget(null);
+            setPendingInsert(null);
+            return;
+        }
+        let cancelled = false;
+        const poll = () => {
+            GoGetInsertTarget()
+                .then((t) => { if (!cancelled) setInsertTarget(t); })
+                .catch(() => { /* Die Anzeige ist optional. */ });
+        };
+        poll();
+        const id = setInterval(poll, 1500);
+        return () => { cancelled = true; clearInterval(id); };
+    }, [insertVisible]);
+
+    const insertNow = (viaHotkey: boolean, text: string = stableTranscript) => {
+        setPendingInsert(null);
+        GoInsertTranscript(text, viaHotkey).catch((err: unknown) => {
             toast.error(String(err), {duration: 12000});
         });
+    };
+
+    // text: für das Auto-Einfügen nach dem Loslassen der Mic-Taste, wo der State
+    // stableTranscript im aufrufenden Closure noch der alte (leere) Stand ist.
+    const acceptAndInsert = (viaHotkey = false, text: string = stableTranscript) => {
+        if (!text) return;
+        // Standard (keine Allow-Liste): wie bisher direkt einfügen — der Client ist ein
+        // allgemeines Diktierwerkzeug, nicht nur für ein bestimmtes Zielprogramm.
+        if (insertTarget && !insertTarget.list_active) {
+            insertNow(viaHotkey, text);
+            return;
+        }
+        // Liste aktiv oder Ziel noch unbekannt: das Ziel jetzt frisch prüfen.
+        GoGetInsertTarget()
+            .then((target) => {
+                if (target.list_active && !target.allowed) {
+                    setPendingInsert({target, viaHotkey, text});
+                } else {
+                    insertNow(viaHotkey, text);
+                }
+            })
+            .catch(() => insertNow(viaHotkey, text)); // Prüfung nicht möglich: wie bisher einfügen
+    };
+
+    const confirmPendingInsert = () => {
+        if (!pendingInsert) return;
+        const {target: asked, viaHotkey, text} = pendingInsert;
+        // Der Fokus kann seit der Rückfrage gewechselt haben: bei einem anderen, ebenfalls
+        // nicht freigegebenen Ziel erneut nachfragen statt dorthin einzufügen.
+        GoGetInsertTarget()
+            .then((now) => {
+                if (now.list_active && !now.allowed && now.process !== asked.process) {
+                    setPendingInsert({target: now, viaHotkey, text});
+                } else {
+                    insertNow(viaHotkey, text);
+                }
+            })
+            .catch(() => insertNow(viaHotkey, text));
     };
 
     const handleStopClick = () => {
@@ -589,12 +710,19 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }, []);
 
     useEffect(() => {
+        // Default der Live-Ansicht aus settings.json (live_view), sofern der Nutzer nichts gewählt hat.
+        try {
+            if (localStorage.getItem("live_view") === null) {
+                GoGetLiveViewDefault().then(setLiveView).catch(() => { /* Default true */ });
+            }
+        } catch (_) { /* localStorage nicht verfügbar */ }
+
         // Load settings to determine if live transcription is enabled
         GoGetWhisperSettings()
             .then((data) => {
-                setLiveEnabled(data.live_backend !== "disabled");
+                setServerLive(data.live_backend !== "disabled");
             })
-            .catch(() => setLiveEnabled(true));
+            .catch(() => setServerLive(true));
 
         // Kategorien vom Server laden
         GoGetCategories(getToken())
@@ -613,6 +741,35 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     useEffect(() => {
         localStorage.setItem(`selected_category_id_${userId}`, String(selectedCategoryId));
     }, [selectedCategoryId, userId]);
+
+    // Mikrofonliste laden + auf Hot-Plug (USB-Mikro an/ab) reagieren.
+    // Vor der ersten getUserMedia-Berechtigung liefern WebKit-Browser leere
+    // Labels — die UI zeigt dann einen Fallback-Text ("Mikrofon N").
+    useEffect(() => {
+        const refreshMics = () => {
+            navigator.mediaDevices?.enumerateDevices()
+                .then((devices) => {
+                    const mics = devices.filter((d) => d.kind === "audioinput");
+                    setMicDevices(mics);
+                    // Verschwindenes Gerät (z.B. USB-Mikro gezogen) aus der
+                    // Auswahl nehmen, sonst schlägt getUserMedia({exact}) fehl.
+                    setSelectedMicId((current) =>
+                        current && !mics.some((m) => m.deviceId === current) ? "" : current
+                    );
+                })
+                .catch(() => setMicDevices([]));
+        };
+        refreshMics();
+        const md = navigator.mediaDevices;
+        if (!md) return;
+        md.addEventListener("devicechange", refreshMics);
+        return () => md.removeEventListener("devicechange", refreshMics);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem(`selected_mic_id_${userId}`, selectedMicId);
+        selectedMicIdRef.current = selectedMicId;
+    }, [selectedMicId, userId]);
 
     useEffect(() => {
         isRecordingRef.current = isRecording;
@@ -665,12 +822,37 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             if (!stableTranscriptRef.current) return;
             acceptAndInsertRef.current(true);
         });
+        const offMicDown = EventsOn("hotkey:mic-record-down", () => {
+            if (isRecordingRef.current || isProcessingRef.current || micStartingRef.current) return;
+            micStartingRef.current = true;
+            micReleasedEarlyRef.current = false;
+            Promise.resolve(startRecordingRef.current({autoInsert: true})).finally(() => {
+                micStartingRef.current = false;
+            });
+        });
+        const offMicUp = EventsOn("hotkey:mic-record-up", () => {
+            if (isRecordingRef.current) {
+                stopRecordingRef.current();
+            } else if (micStartingRef.current) {
+                // Losgelassen, bevor die Aufnahme lief: der Effekt auf isRecording stoppt sie.
+                micReleasedEarlyRef.current = true;
+            }
+        });
         return () => {
             offToggle();
             offPause();
             offAccept();
+            offMicDown();
+            offMicUp();
         };
     }, []);
+
+    useEffect(() => {
+        if (isRecording && micReleasedEarlyRef.current) {
+            micReleasedEarlyRef.current = false;
+            stopRecordingRef.current();
+        }
+    }, [isRecording]);
 
     useEffect(() => {
         // Resume an existing unfinished session or auto-start a new recording.
@@ -716,9 +898,70 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     {isPaused ? "Aufnahme pausiert" : isRecording ? "Aufnahme läuft..." : (isBackendReachable ? "Bereit" : "Nicht erreichbar")}
                 </span>
 
-                {/* Rechts gruppierte Aktionen: Kategorie-Dropdown + Logout, getrennt
-                    voneinander und vom global fixierten Close-Button (App.tsx). */}
+                {/* Rechts gruppierte Aktionen: Mikrofon-Wahl + Kategorie-Dropdown +
+                    Logout, getrennt voneinander und vom global fixierten
+                    Close-Button (App.tsx). */}
                 <div className="recorder-status-actions">
+                    {serverLive && !isRecording && !isProcessing && (
+                        <button
+                            className="recorder-logout-btn"
+                            onClick={toggleLiveView}
+                            title={liveView ? "Live-Ansicht ausschalten" : "Live-Ansicht einschalten"}
+                            aria-label={liveView ? "Live-Ansicht ausschalten" : "Live-Ansicht einschalten"}
+                            aria-pressed={liveView}
+                        >
+                            {liveView ? <Eye size={14}/> : <EyeOff size={14}/>}
+                        </button>
+                    )}
+                    <button
+                        className="recorder-logout-btn"
+                        onClick={() => setHelpOpen(true)}
+                        title="Tastenkürzel"
+                        aria-label="Tastenkürzel anzeigen"
+                    >
+                        <HelpCircle size={14}/>
+                    </button>
+                    {!isRecording && !isProcessing && micDevices.length > 1 && (
+                        <div className="recorder-mic-wrap">
+                            <button
+                                className={`recorder-mic-select-btn ${micMenuOpen ? "open" : ""}`}
+                                onClick={() => setMicMenuOpen((o) => !o)}
+                                title="Mikrofon auswählen"
+                                aria-label="Mikrofon auswählen"
+                                aria-haspopup="menu"
+                                aria-expanded={micMenuOpen}
+                            >
+                                <Mic size={14}/>
+                            </button>
+                            {micMenuOpen && (
+                                <>
+                                    {/* Fängt Klicks außerhalb des Menüs ab */}
+                                    <div className="recorder-mic-backdrop" onClick={() => setMicMenuOpen(false)}/>
+                                    <div className="recorder-mic-menu" role="menu">
+                                        <div className="recorder-mic-menu-title">Mikrofon</div>
+                                        {micDevices.map((mic, idx) => (
+                                            <button
+                                                key={mic.deviceId || idx}
+                                                role="menuitemradio"
+                                                aria-checked={mic.deviceId === selectedMicId}
+                                                className={`recorder-mic-item ${mic.deviceId === selectedMicId ? "active" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedMicId(mic.deviceId);
+                                                    setMicMenuOpen(false);
+                                                }}
+                                            >
+                                                <span className="recorder-mic-item-label">
+                                                    {mic.label || `Mikrofon ${idx + 1}`}
+                                                </span>
+                                                {mic.deviceId === selectedMicId && <Check size={13}/>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {!isRecording && !isProcessing && categories.length > 0 && (
                         <select
                             className="recorder-category-select"
@@ -815,7 +1058,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                         )}
 
                         <button
-                            onClick={isRecording ? handleStopClick : startRecording}
+                            onClick={isRecording ? handleStopClick : () => startRecording()}
                             className={`recorder-mic-btn ${isRecording ? "recording" : ""}`}
                             aria-label={isRecording ? "Stop" : "Aufnahme starten"}
                         >
@@ -840,21 +1083,40 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             {/* Aktions-Buttons unter dem Aufnahme-Button (nur wenn fertig transkribiert) */}
             {!isProcessing && stableTranscript && !isRecording && (
                 <div className="recorder-actions">
-                    <button
-                        onClick={() => acceptAndInsert(false)}
-                        className="recorder-insert-btn"
-                        title={`In fokussiertes Fenster einfügen (${modKeyLabel}+V)`}
-                    >
-                        Akzeptieren und einfügen
-                    </button>
-                    <button
-                        onClick={() => GoOpenDashboard()}
-                        className="recorder-insert-btn"
-                        title="Aufnahme in openDox öffnen"
-                    >
-                        <ExternalLink className="icon-inline"/>
-                        In openDox öffnen
-                    </button>
+                    {insertTarget?.process && (
+                        <div
+                            className={`recorder-target${insertTarget.list_active && !insertTarget.allowed ? ' warn' : ''}`}
+                            title={insertTarget.title ? `Einfügen in: ${insertTarget.process} – ${insertTarget.title}` : `Einfügen in: ${insertTarget.process}`}
+                        >
+                            <strong>{insertTarget.process}</strong>
+                        </div>
+                    )}
+                    <div className="recorder-action-icons">
+                        <button
+                            onClick={() => acceptAndInsert(false)}
+                            className="recorder-icon-btn primary"
+                            title={`Akzeptieren und einfügen (${modKeyLabel}+V)`}
+                            aria-label="Akzeptieren und einfügen"
+                        >
+                            <Check size={18}/>
+                        </button>
+                        <button
+                            onClick={() => startRecording()}
+                            className="recorder-icon-btn"
+                            title={`Neue Aufnahme starten (${modKeyLabel}+R)`}
+                            aria-label="Neue Aufnahme"
+                        >
+                            <Mic size={18}/>
+                        </button>
+                        <button
+                            onClick={() => GoOpenDashboard()}
+                            className="recorder-icon-btn"
+                            title="In openDox öffnen"
+                            aria-label="In openDox öffnen"
+                        >
+                            <ExternalLink size={18}/>
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -876,6 +1138,30 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 </div>
             )}
 
+            {helpOpen && (
+                <div className="recorder-help-overlay" onClick={() => setHelpOpen(false)}>
+                    <div className="recorder-help" onClick={(e) => e.stopPropagation()}>
+                        <div className="recorder-help-head">
+                            <span>Tastenkürzel</span>
+                            <button
+                                className="recorder-logout-btn"
+                                onClick={() => setHelpOpen(false)}
+                                aria-label="Schließen"
+                            >
+                                <X size={14}/>
+                            </button>
+                        </div>
+                        <ul>
+                            <li><kbd>{modKeyLabel}+R</kbd> Aufnahme starten / stoppen</li>
+                            <li><kbd>{modKeyLabel}+P</kbd> Pausieren / Fortsetzen</li>
+                            <li><kbd>{modKeyLabel}+V</kbd> Akzeptieren und einfügen</li>
+                            <li><kbd>{modKeyLabel}+D</kbd> Halten zum Diktieren</li>
+                            <li><kbd>{modKeyLabel}+H</kbd> Overlay ein- / ausblenden</li>
+                        </ul>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 open={isStopDialogOpen}
                 title="Aufnahme beenden"
@@ -894,6 +1180,16 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 cancelLabel="Zurück"
                 onConfirm={confirmCancel}
                 onCancel={() => setIsCancelDialogOpen(false)}
+            />
+
+            <ConfirmModal
+                open={pendingInsert !== null}
+                title="Einfügen bestätigen"
+                description={`„${pendingInsert?.target.process || 'Unbekanntes Fenster'}“ ist auf diesem Arbeitsplatz nicht freigegeben. Trotzdem einfügen?`}
+                confirmLabel="Trotzdem einfügen"
+                cancelLabel="Abbrechen"
+                onConfirm={confirmPendingInsert}
+                onCancel={() => setPendingInsert(null)}
             />
         </div>
     );

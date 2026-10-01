@@ -33,6 +33,8 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
+
+	"opendox-client/internal/clientpolicy"
 )
 
 // --- OpenDox API Typen (passen zur OpenAPI-Spec) ---
@@ -79,6 +81,18 @@ type Settings struct {
 	ServerURL string `json:"server_url"`
 }
 
+// policySettings: die optionalen Verhaltens-Einstellungen (Zwischenablage, Einfügeziel).
+// Alias, damit der eingebettete Feldname nicht mit dem lokalen Typ Settings kollidiert.
+type policySettings = clientpolicy.Settings
+
+// fileSettings ist das vollständige Schema der settings.json: die ans Frontend
+// gebundenen Server-Einstellungen (Settings) plus die nur Go-seitig genutzten
+// Verhaltens-Einstellungen. Beide Structs sind eingebettet, das JSON bleibt flach.
+type fileSettings struct {
+	Settings
+	policySettings
+}
+
 // appConfigDirName ist der Ordnername für die Laufzeit-Konfig, siehe runtimeSettingsPath.
 const appConfigDirName = "opendox-client"
 
@@ -95,19 +109,16 @@ func runtimeSettingsPath() (string, error) {
 }
 
 // loadSettings liest die Laufzeit-Konfig in dieser Reihenfolge:
-//  1. exeDirSettingsPath() — auf Windows die settings.json direkt neben der .exe
-//     (z.B. C:\Program Files\openDox\openDox\settings.json), die der MSI-Installer
-//     aus settings.json.template mitbringt. IT/Admin editiert diese Datei einfach
-//     nach der Installation mit den ohnehin für eine Program-Files-Installation
-//     nötigen Adminrechten — kein separates msiexec-Property, kein Rebuild.
-//     No-Op-Stub auf macOS/Linux (siehe settings_path_other.go).
-//  2. runtimeSettingsPath() — plattformüblicher Konfigordner, für macOS/Linux und
-//     lokale Entwicklung ohne Installation.
+//  1. exeDirSettingsPath() — die settings.json im selben Ordner wie das Programm
+//     (Windows z.B. C:\Program Files\openDox\settings.json, die der Installer aus
+//     settings.json.template mitbringt; macOS neben der .app, nicht darin). IT/Admin
+//     editiert diese Datei einfach nach der Installation — kein Rebuild.
+//  2. runtimeSettingsPath() — plattformüblicher Konfigordner des Benutzers.
 //
 // Existiert keine der beiden oder lässt sich keine parsen, fällt es auf den
 // hartkodierten Default zurück — es gibt bewusst keine zur Compile-Zeit eingebettete
 // settings.json, damit dieselbe Build für jeden Kunden funktioniert.
-func loadSettings() Settings {
+func loadSettings() fileSettings {
 	if s, ok := trySettingsFile(exeDirSettingsPath); ok {
 		return s
 	}
@@ -115,27 +126,27 @@ func loadSettings() Settings {
 		return s
 	}
 	log.Printf("[opendox] keine Laufzeit-Konfig gefunden — nutze Default")
-	return Settings{ServerURL: "http://localhost:10000"}
+	return fileSettings{Settings: Settings{ServerURL: "http://localhost:10000"}}
 }
 
 // trySettingsFile liest und parst die settings.json unter dem von pathFn gelieferten Pfad.
 // ok=false bei jedem Fehler (Pfad nicht ermittelbar, Datei fehlt, ungültiges JSON, leere
 // server_url) — der Aufrufer versucht dann die nächste Quelle in loadSettings' Reihenfolge.
-func trySettingsFile(pathFn func() (string, error)) (Settings, bool) {
+func trySettingsFile(pathFn func() (string, error)) (fileSettings, bool) {
 	path, err := pathFn()
 	if err != nil {
-		return Settings{}, false
+		return fileSettings{}, false
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Settings{}, false
+		return fileSettings{}, false
 	}
 
-	var s Settings
+	var s fileSettings
 	if err := json.Unmarshal(data, &s); err != nil || s.ServerURL == "" {
 		log.Printf("[opendox] Laufzeit-Konfig %s ungültig (%v) — ignoriere", path, err)
-		return Settings{}, false
+		return fileSettings{}, false
 	}
 
 	log.Printf("[opendox] Server-URL aus Laufzeit-Konfig geladen: %s", path)
@@ -174,6 +185,12 @@ type App struct {
 	// gleichzeitig - die interleaven ihre Tastatur-Injektion zu verstümmeltem
 	// Text ("Ja, wo ist denn ??????" statt des vollständigen Satzes).
 	insertMu sync.Mutex
+
+	// policy: Zwischenablage-/Einfügeziel-Einstellungen aus settings.json (Defaults,
+	// wenn nicht gesetzt). clipCleaner leert die Zwischenablage zeitverzögert nach
+	// dem Einfügen, solange sie unverändert ist (nur Windows, siehe clipboard_*.go).
+	policy      clientpolicy.Settings
+	clipCleaner *clientpolicy.Cleaner
 }
 
 func NewApp() *App {
@@ -182,6 +199,9 @@ func NewApp() *App {
 		opendoxURL: s.ServerURL,
 		wsURL:      deriveWSURL(s.ServerURL),
 		visible:    true,
+
+		policy:      s.policySettings,
+		clipCleaner: clientpolicy.NewCleaner(clearClipboardIfUnchanged),
 	}
 }
 
@@ -212,12 +232,35 @@ func (a *App) startup(ctx context.Context) {
 	a.startDictationMic()
 }
 
+// shutdown wird beim Beenden aufgerufen: Text, den der Client selbst in die
+// Zwischenablage gelegt hat, soll nicht über das Programmende hinaus dort liegen bleiben
+// (nur wenn sie unverändert ist und das Leeren nicht per Einstellung ausgeschaltet wurde).
+func (a *App) shutdown(ctx context.Context) {
+	a.clipCleaner.ClearNow()
+}
+
 // Event-Namen, die sowohl von den Tastatur-Hotkeys als auch von den physischen
 // Diktiermikro-Tasten (dictation_mic.go) emittiert werden — Frontend kennt nur diese drei.
 const (
 	eventToggleRecord = "hotkey:toggle-record"
 	eventTogglePause  = "hotkey:toggle-pause"
 	eventAcceptInsert = "hotkey:accept-insert"
+)
+
+// Nur im Hold-Modus der Diktiermikro-Record-Taste (dictation_mic_mode, siehe dictation_mic.go):
+// Taste gedrückt bzw. losgelassen.
+const (
+	eventMicRecordDown = "hotkey:mic-record-down"
+	eventMicRecordUp   = "hotkey:mic-record-up"
+)
+
+// hotkeyKind unterscheidet, was ein globaler Hotkey auslöst (siehe registerGlobalHotkeys).
+type hotkeyKind int
+
+const (
+	hotkeyEvent  hotkeyKind = iota // Keydown -> ein Wails-Event
+	hotkeyWindow                   // Keydown -> Overlay ein-/ausblenden
+	hotkeyHold                     // Keydown/Keyup -> mic-record-down/-up (Push-to-Talk)
 )
 
 // registerGlobalHotkeys registriert die systemweiten Hotkeys (funktionieren unabhängig
@@ -228,24 +271,30 @@ func (a *App) registerGlobalHotkeys() {
 	// wenn TCC-Berechtigungen langsam abgefragt werden oder das EventTap-Setup hängt.
 	// Daher mit Timeout absichern.
 	type regJob struct {
-		mods       []hotkey.Modifier
-		key        hotkey.Key
-		eventName  string
-		isWindowHK bool
+		mods      []hotkey.Modifier
+		key       hotkey.Key
+		eventName string
+		kind      hotkeyKind
 	}
 	jobs := []regJob{
-		{hotkeyMods, hotkey.KeyR, eventToggleRecord, false},
-		{hotkeyMods, hotkey.KeyP, eventTogglePause, false},
-		{hotkeyMods, hotkey.KeyV, eventAcceptInsert, false},
-		{hotkeyMods, hotkey.KeyH, "", true},
+		{hotkeyMods, hotkey.KeyR, eventToggleRecord, hotkeyEvent},
+		{hotkeyMods, hotkey.KeyP, eventTogglePause, hotkeyEvent},
+		{hotkeyMods, hotkey.KeyV, eventAcceptInsert, hotkeyEvent},
+		{hotkeyMods, hotkey.KeyH, "", hotkeyWindow},
+		// Halten-zum-Diktieren per Tastatur: dieselben Events wie die Record-Taste eines
+		// Tastenmikrofons (Push-to-Talk mit Auto-Einfügen), auch zum Testen ohne Hardware.
+		{hotkeyMods, hotkey.KeyD, "", hotkeyHold},
 	}
 
 	done := make(chan struct{})
 	go func() {
 		for _, j := range jobs {
-			if j.isWindowHK {
+			switch j.kind {
+			case hotkeyWindow:
 				a.registerWindowHotkeyTimeout(j.mods, j.key)
-			} else {
+			case hotkeyHold:
+				a.registerHoldHotkeyTimeout(j.mods, j.key)
+			default:
 				a.registerHotkeyTimeout(j.mods, j.key, j.eventName)
 			}
 		}
@@ -332,6 +381,51 @@ func (a *App) registerHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key, even
 	}
 }
 
+// registerHoldHotkeyTimeout registriert einen Halten-Hotkey: Keydown startet die Aufnahme,
+// Keyup stoppt sie (hotkey:mic-record-down/-up, siehe Recorder.tsx). Timeout-geschützt wie die
+// übrigen Register-Varianten.
+func (a *App) registerHoldHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key) {
+	type regResult struct {
+		err error
+		hk  *hotkey.Hotkey
+	}
+	ch := make(chan regResult, 1)
+	go func() {
+		hk := hotkey.New(mods, key)
+		err := hk.Register()
+		ch <- regResult{err, hk}
+	}()
+
+	select {
+	case res := <-ch:
+		if res.err != nil {
+			log.Printf("[opendox] failed to register hold hotkey: %v", res.err)
+			a.hotkeyFailures++
+			return
+		}
+		var h holdTracker
+		go func() {
+			for range res.hk.Keydown() {
+				// Nur ein Down pro Halten (Auto-Wiederholung schlucken); wurde es wegen
+				// ausgeblendetem Overlay nicht gesendet, auch kein späteres Up.
+				if h.down() && !a.emitHotkeyEvent(eventMicRecordDown) {
+					h.cancel()
+				}
+			}
+		}()
+		go func() {
+			for range res.hk.Keyup() {
+				if h.up() {
+					a.emitMicRelease()
+				}
+			}
+		}()
+	case <-time.After(10 * time.Second):
+		log.Printf("[opendox] hold hotkey register timed out")
+		a.hotkeyFailures++
+	}
+}
+
 // registerWindowHotkeyTimeout ist die timeout-geschützte Version von registerWindowHotkey.
 func (a *App) registerWindowHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key) {
 	type regResult struct {
@@ -363,6 +457,7 @@ func (a *App) registerWindowHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key
 					runtime.WindowHide(a.ctx)
 					a.visible = false
 				} else {
+					runtime.WindowUnminimise(a.ctx)
 					runtime.WindowShow(a.ctx)
 					a.positionTopRight()
 					a.visible = true
@@ -379,14 +474,24 @@ func (a *App) registerWindowHotkeyTimeout(mods []hotkey.Modifier, key hotkey.Key
 // per Ctrl+Alt+H ausgeblendet ist. Gemeinsamer Pfad für Tastatur-Hotkeys (oben) und physische
 // Diktiermikro-Tasten (dictation_mic.go) — beide sollen sich bei ausgeblendetem Overlay gleich
 // verhalten.
-func (a *App) emitHotkeyEvent(eventName string) {
+//
+// Liefert true, wenn das Event tatsächlich gesendet wurde.
+func (a *App) emitHotkeyEvent(eventName string) bool {
 	a.mu.Lock()
 	visible := a.visible
 	a.mu.Unlock()
 	if !visible {
-		return
+		return false
 	}
 	runtime.EventsEmit(a.ctx, eventName)
+	return true
+}
+
+// emitMicRelease meldet das Loslassen der Record-Taste auch bei ausgeblendetem Overlay: das
+// zugehörige "down" kam evtl. noch im sichtbaren Zustand, sonst bliebe die Aufnahme hängen.
+// Ein "up" ohne laufende Aufnahme ignoriert das Frontend.
+func (a *App) emitMicRelease() {
+	runtime.EventsEmit(a.ctx, eventMicRecordUp)
 }
 
 // registerWindowHotkey registriert eine Tastenkombination (Ctrl+Alt+H) zum Ein- und
@@ -409,6 +514,7 @@ func (a *App) registerWindowHotkey(mods []hotkey.Modifier, key hotkey.Key) {
 				runtime.WindowHide(a.ctx)
 				a.visible = false
 			} else {
+				runtime.WindowUnminimise(a.ctx)
 				runtime.WindowShow(a.ctx)
 				a.positionTopRight()
 				a.visible = true
@@ -533,14 +639,32 @@ func (a *App) CancelSession(userID int, token string) error {
 
 // GetWSURL baut die WebSocket-URL für die Live-Transkription zusammen.
 // Token kommt aus dem Frontend (localStorage).
-func (a *App) GetWSURL(sessionID, userID, token string) string {
-	return fmt.Sprintf("%s/api/v1/records/ws/record?session_id=%s&user_id=%s&token=%s",
+// live=false hängt live=0 an: der Server startet dann keine Live-ASR für die Session (Audio wird
+// nur aufgezeichnet, die Transkription läuft erst nach dem Stop). Ältere Server ignorieren den
+// Parameter.
+func (a *App) GetWSURL(sessionID, userID, token string, live bool) string {
+	u := fmt.Sprintf("%s/api/v1/records/ws/record?session_id=%s&user_id=%s&token=%s",
 		a.wsURL,
 		url.QueryEscape(sessionID),
 		url.QueryEscape(userID),
 		url.QueryEscape(token),
 	)
+	if !live {
+		u += "&live=0"
+	}
+	return u
 }
+
+// GetLiveViewDefault liefert den Default der Live-Ansicht aus settings.json (live_view).
+func (a *App) GetLiveViewDefault() bool {
+	return a.policy.LiveViewDefault()
+}
+
+// Fenstergröße des Overlays (main.go).
+const (
+	overlayWidth  = 360
+	overlayHeight = 520
+)
 
 // GetWhisperSettings liefert die Whisper/ASR-Konfiguration (öffentlich, kein Token nötig).
 func (a *App) GetWhisperSettings() (WhisperSettings, error) {
@@ -643,8 +767,12 @@ func (a *App) OpenDashboard() {
 // Verwendung geprüft werden müssen (siehe DISCLAIMER.md) und dieser automatische Kopiervorgang
 // sonst ganz ohne Nutzerinteraktion abläuft.
 func (a *App) CopyToClipboard(text string) error {
-	if err := runtime.ClipboardSetText(a.ctx, text); err != nil {
+	seq, err := setClipboardText(a.ctx, text, a.policy.ClipboardExclude())
+	if err != nil {
 		return err
+	}
+	if seq != 0 {
+		a.clipCleaner.Schedule(seq, a.policy.ClipboardClearAfter())
 	}
 	go notifyReview()
 	return nil
@@ -675,9 +803,22 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	}
 	defer a.insertMu.Unlock()
 
-	// Clipboard wird immer gesetzt — als Fallback (macOS) und als stiller
-	// Backup (Linux, falls das Zielfeld getippte Eingaben nicht annimmt).
-	runtime.ClipboardSetText(a.ctx, text)
+	// Zwischenablage: Weg für Strg+V/Cmd+V und zugleich Fallback, falls das Einfügen
+	// scheitert. Nicht gesetzt wird sie unter Windows, wenn getippt wird (Citrix):
+	// Patiententext soll dann nicht in der lokalen Zwischenablage landen. Unter Windows
+	// wird der Eintrag als vertraulich markiert (kein Verlauf/Cloud-Clipboard) und
+	// nach der konfigurierten Frist wieder geleert, siehe internal/clientpolicy.
+	var clipSeq uint32
+	if usesClipboardPath() {
+		seq, err := setClipboardText(a.ctx, text, a.policy.ClipboardExclude())
+		if err != nil {
+			// Ohne frisch gesetzte Zwischenablage würde Strg+V einen alten, fremden
+			// Inhalt einfügen — lieber sichtbar abbrechen.
+			log.Printf("[opendox] InsertTranscript: Zwischenablage nicht gesetzt: %v", err)
+			return fmt.Errorf("Zwischenablage nicht verfügbar – bitte erneut versuchen")
+		}
+		clipSeq = seq
+	}
 	go notifyReview()
 
 	// Ein Klick auf den "Akzeptieren und einfügen"-Button fokussiert zwangsläufig
@@ -710,6 +851,12 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 
 	insertErr := insertText(text)
 	log.Printf("[opendox] InsertTranscript: type/paste call returned")
+	// Erst nach dem Einfügen planen (nicht beim Setzen), damit auch eine kurze
+	// Frist das Strg+V nicht unterläuft. Nur wenn diesmal wirklich die Zwischenablage
+	// gesetzt wurde — ein getippter Insert darf den Plan eines früheren nicht kappen.
+	if clipSeq != 0 {
+		a.clipCleaner.Schedule(clipSeq, a.policy.ClipboardClearAfter())
+	}
 
 	if hideForFocus {
 		runtime.WindowShow(a.ctx)

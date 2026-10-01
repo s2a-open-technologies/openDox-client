@@ -9,7 +9,7 @@ import './LoginScreen.css';
 
 export const LoginScreen = () => {
     const {login, loginWithTokens, isLoading} = useAuth();
-    const {settings} = useSettings();
+    const {settings, isLoading: settingsLoading} = useSettings();
     const restURL = settings?.server_url || "http://localhost:10000";
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
@@ -19,11 +19,14 @@ export const LoginScreen = () => {
     const [ssoWaiting, setSsoWaiting] = useState(false);
 
     useEffect(() => {
+        // Erst abfragen, wenn die Server-URL feststeht — sonst geht der Request
+        // an den localhost-Fallback und der SSO-Button erscheint fälschlich nie.
+        if (settingsLoading) return;
         fetch(`${restURL}/api/v1/auth/oidc/status`)
             .then((res) => (res.ok ? res.json() : {enabled: false}))
             .then((data) => setOidcEnabled(!!data.enabled))
             .catch(() => setOidcEnabled(false));
-    }, []);
+    }, [settingsLoading]);
 
     useEffect(() => {
         const offComplete = EventsOn('oidc:login-complete', (accessToken: string, refreshToken: string) => {

@@ -58,3 +58,50 @@ praktisch, weil SCCM das dann laufend gegenprüfen und bei Abweichung reparieren
 über GPO", die kann nur die MSI selbst, keine Zusatzdateien). Die Datei-Preference
 kopiert `settings.json` an den Zielpfad, unabhängig von der MSI-Installation, pro
 OU/Gruppe unterschiedlich konfigurierbar.
+
+## Zwischenablage und Einfügeziel absichern
+
+Der Client legt diktierten Text zum Einfügen (Strg+V) kurz in die Windows-Zwischenablage. Ohne
+Gegenmaßnahmen könnte dieser Text im Zwischenablage-Verlauf (Win+V) oder in der Cloud-Zwischenablage
+liegen bleiben — auf gemeinsam genutzten Stationsrechnern ein Datenschutzproblem.
+
+**1. Windows-Richtlinien (die eigentliche Absicherung).** Verlauf und geräteübergreifende
+Synchronisation per GPO/Intune abschalten (Namen wie in der englischen ADMX `OSPolicy.admx`, die
+deutsche Oberfläche zeigt sie übersetzt):
+
+| Zweck | GPO (Computerkonfiguration → Administrative Vorlagen → System → OS Policies) | Intune |
+| --- | --- | --- |
+| Zwischenablage-Verlauf (Win+V) aus | "Allow Clipboard History" = Disabled | Policy CSP `./Device/Vendor/MSFT/Policy/Config/Experience/AllowClipboardHistory` = `0` |
+| Cloud-Synchronisierung aus | "Allow Clipboard synchronization across devices" = Disabled (Registrywert `AllowCrossDeviceClipboard` im selben Schlüssel `HKLM\Software\Policies\Microsoft\Windows\System`) | Einstellungskatalog → Administrative Templates → System → OS Policies |
+
+> Die erste Zeile ist gegen die Microsoft-Dokumentation (Policy CSP "Experience") geprüft. Für die zweite
+> Zeile habe ich in der Doku keinen eigenen CSP-Eintrag gefunden; Bezeichnung und Registrywert stammen aus
+> dem Gedächtnis und sollten in der eigenen ADMX-Version bzw. im Intune-Einstellungskatalog gegengeprüft
+> werden.
+
+**2. Schutz im Client (zusätzlich, abhängig vom Betriebssystem).** Ab dieser Version markiert der Client
+den Text als vertraulich (das Betriebssystem schließt ihn dann aus Verlauf und Cloud aus) und leert die
+Zwischenablage nach dem Einfügen, sofern sie unverändert ist. Beides steuert die `settings.json`, siehe
+`README.md` → "Zwischenablage und Einfügeziel": `clipboard_exclude_from_history` (Default `true`) und
+`clipboard_clear_after_seconds` (Default `30`, `0` = nie). Die Richtlinien aus Punkt 1 bleiben trotzdem
+sinnvoll, denn die Markierung wirkt nur, wenn das Betriebssystem bzw. ein Zwischenablage-Manager sie beachtet.
+
+**3. Optional: Allow-Liste für das Einfügeziel.** Auf Arbeitsplätzen, die ausschließlich für die
+Patientendokumentation gedacht sind, lässt sich per `insert_allowlist` festlegen, in welche Programme ohne
+Rückfrage eingefügt werden darf (z. B. `["orbis.exe"]`); bei anderen Zielen fragt der Client nach. Diese
+Einstellung gehört in die `settings.json` **neben der `.exe`** (`%ProgramFiles%\openDox\openDox\`), die
+nur mit Adminrechten änderbar ist und Vorrang vor der Datei in `%AppData%` hat. Auf Geräten ohne Liste
+(Standard) gibt es keine Rückfrage — der Client bleibt ein allgemeines Diktierwerkzeug.
+
+**3a. Diktiermikro-Modus.** Bei SpeechMike/PowerMic gilt standardmäßig Push-to-Talk (`dictation_mic_mode`:
+`"hold"`, Record-Taste halten, beim Loslassen wird gestoppt und der Text automatisch eingefügt). Mit
+`"toggle"` lässt sich das bisherige Verhalten (Druck startet, Druck stoppt) wiederherstellen.
+
+**3b. Live-Ansicht.** `live_view` (Default `true`) legt fest, ob die Live-Ansicht standardmäßig an ist. `false`
+= Overlay ohne Live-Text (nur Orb) und ohne Live-Transkription auf dem Server; Nutzer können es im Overlay
+selbst umschalten (gilt dann pro Rechner und überschreibt diesen Default).
+
+**4. Citrix/RDP.** Ob die lokale Zwischenablage in eine Sitzung umgeleitet wird, bestimmt die Klinik-IT
+(Zwischenablage-Umleitung der Sitzung). In Citrix-Clients (`wfica32.exe`, `cdviewer.exe`) tippt der Client
+den Text und legt ihn dabei nicht in die lokale Zwischenablage; bei RDP wird per Strg+V eingefügt, die
+Umleitung kann den Text also in die Sitzung tragen.

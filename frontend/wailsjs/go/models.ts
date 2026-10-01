@@ -28,6 +28,24 @@ export namespace main {
 	        this.description = source["description"];
 	    }
 	}
+	export class InsertTarget {
+	    process: string;
+	    title: string;
+	    list_active: boolean;
+	    allowed: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new InsertTarget(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.process = source["process"];
+	        this.title = source["title"];
+	        this.list_active = source["list_active"];
+	        this.allowed = source["allowed"];
+	    }
+	}
 	export class Record {
 	    session_id: string;
 	    id: number;

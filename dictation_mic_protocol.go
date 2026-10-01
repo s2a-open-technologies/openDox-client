@@ -121,3 +121,9 @@ func parsePowerMic3Report(report []byte) (micButtonMask, bool) {
 func risingEdge(prev, cur micButtonMask) micButtonMask {
 	return cur &^ prev
 }
+
+// fallingEdge liefert die Bits, die in cur gegenüber prev gelöscht wurden (1->0-Übergang) — das
+// Loslassen einer Taste.
+func fallingEdge(prev, cur micButtonMask) micButtonMask {
+	return prev &^ cur
+}

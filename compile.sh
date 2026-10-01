@@ -15,7 +15,7 @@ export DISPLAY="${DISPLAY:-:0}"
 echo "==> Building Linux binary (wails build -tags webkit2_41 -platform linux/amd64)"
 wails build -clean -tags webkit2_41 -platform linux/amd64
 echo "    -> build/bin/opendox-client"
-
+ 
 if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && command -v makensis >/dev/null 2>&1; then
     echo "==> Building Windows binary + NSIS installer (wails build -platform windows/amd64 -nsis)"
     # No -clean here: it wipes the whole build/bin dir, which would delete the

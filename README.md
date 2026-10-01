@@ -158,8 +158,10 @@ go run -tags dev,webkit2_41 .
 
 ## Konfiguration
 
-Die Server-URL wird zur **Laufzeit** aus einer plattformüblichen Konfigdatei gelesen (kein
-Rebuild pro Kunde nötig):
+Die Server-URL wird zur **Laufzeit** aus einer `settings.json` gelesen (kein Rebuild pro Kunde
+nötig). Zuerst wird **im selben Ordner wie das Programm** gesucht (z.B.
+`C:\Program Files\openDox\settings.json`; unter macOS neben der `.app`, nicht darin), danach im
+plattformüblichen Konfigordner des Benutzers:
 
 - macOS: `~/Library/Application Support/opendox-client/settings.json`
 - Windows: `%AppData%\opendox-client\settings.json`
@@ -174,13 +176,55 @@ Rebuild pro Kunde nötig):
 - `server_url` — REST-API-URL (auch für WebSocket verwendet; `http://` wird automatisch
   zu `ws://`, `https://` zu `wss://`)
 
-Beim Start liest das Go-Backend diese Datei ein (`os.UserConfigDir()`, siehe
-`runtimeSettingsPath()`/`loadSettings()` in `app.go`) und reicht die Einstellungen über
+Beim Start liest das Go-Backend diese Datei ein (siehe `loadSettings()` in `app.go`) und reicht die Einstellungen über
 `GetSettings()` ans Frontend weiter, das sie über `SettingsContext` an allen Stellen
 konsumiert, die eine Server-URL brauchen. Fehlt die Datei oder ist sie ungültig, wird als
 Default `http://localhost:10000` verwendet — für die lokale Entwicklung reicht das ohne
 weitere Konfiguration. Für einen Kunden-Rollout genügt es, dieselbe Build zu verteilen und
 bei der Installation die passende `settings.json` unter obigem Pfad abzulegen.
+
+### Zwischenablage und Einfügeziel (optionale Einstellungen)
+
+Weitere, alle optionale Schlüssel in derselben `settings.json`. Fehlt ein Schlüssel, gilt der Default:
+
+```json
+{
+    "server_url": "http://localhost:10000",
+    "clipboard_exclude_from_history": true,
+    "clipboard_clear_after_seconds": 30,
+    "insert_allowlist": [],
+    "dictation_mic_mode": "hold",
+    "live_view": true
+}
+```
+
+- `clipboard_exclude_from_history` (Default `true`, nur Windows) — der eingefügte Text wird als
+  vertraulich markiert und taucht nicht im Windows-Zwischenablage-Verlauf (Win+V) und nicht in der
+  Cloud-Zwischenablage auf. Auf `false` setzen, wenn der Verlauf bewusst erhalten bleiben soll.
+- `clipboard_clear_after_seconds` (Default `30`, nur Windows) — so viele Sekunden nach dem Einfügen wird
+  die Zwischenablage geleert, **sofern sie unverändert ist** (hat der Nutzer zwischendurch etwas anderes
+  kopiert, bleibt das erhalten). Ebenso beim Beenden des Clients. `0` = nie leeren.
+- `insert_allowlist` (Default leer = aus, nur Windows) — `.exe`-Namen (z. B. `["orbis.exe", "chrome"]`,
+  Groß-/Kleinschreibung egal, `.exe` optional), in die ohne Rückfrage eingefügt werden darf. Steht das
+  Zielprogramm nicht auf der Liste, fragt der Client vor dem Einfügen nach. Gedacht für IT-verwaltete
+  Arbeitsplätze; der Client ist ein allgemeines Diktierwerkzeug und hat deshalb standardmäßig keine Liste.
+
+- `dictation_mic_mode` (Default `"hold"`, gilt nur für die Tasten von SpeechMike/PowerMic, nicht für
+  Tastatur-Hotkeys und Bluetooth-Mikros) — `"hold"`: Record-Taste **halten** = aufnehmen, **loslassen** =
+  stoppen; nach der Verarbeitung wird der Text automatisch ins fokussierte Programm eingefügt (wie
+  Dragon/Orpheus). `"toggle"`: bisheriges Verhalten (Druck startet, nächster Druck stoppt, Einfügen per
+  Taste/Button). Bei unerwartetem Verhalten am Gerät auf `"toggle"` zurückstellen.
+
+- `live_view` (Default `true`) — Live-Ansicht (Text erscheint während des Sprechens). Auf `false` zeigt das
+  Overlay nur einen Orb (Fenstergröße unverändert), und der Server startet für die Aufnahme keine Live-
+  Transkription (WebSocket-Parameter `live=0`; spart Rechenlast, das Endergebnis nach dem Stop bleibt gleich).
+  Der Nutzer kann das im Overlay (Auge-Symbol) pro Rechner überschreiben. Ältere Server ignorieren den
+  Parameter, dann ist es nur eine Anzeige-Frage.
+
+Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches Programm** eingefügt wird
+("Einfügen in: …"). Auf einem Rechner mit der Windows-Installation gilt die `settings.json` neben der
+`.exe` (nur mit Adminrechten änderbar) vor der in `%AppData%` — eine Allow-Liste gehört deshalb dorthin,
+siehe [`build/windows/installer/DEPLOYMENT.md`](build/windows/installer/DEPLOYMENT.md).
 
 ### Frontend eigenständig
 
@@ -223,6 +267,7 @@ macOS-Targets von einem Nicht-Mac-Host. Auf einem Mac nativ bauen, siehe
 | `Ctrl+Alt+P`  | `Cmd+Option+P` | Aufnahme pausieren / fortsetzen            |
 | `Ctrl+Alt+V`  | `Cmd+Option+V` | Transkript akzeptieren & in Zielfenster einfügen |
 | `Ctrl+Alt+H`  | `Cmd+Option+H` | Overlay ein-/ausblenden                    |
+| `Ctrl+Alt+D`  | `Cmd+Option+D` | Halten = aufnehmen, Loslassen = stoppen und automatisch einfügen (wie die Record-Taste eines Tastenmikrofons im Hold-Modus, auch zum Testen ohne Hardware) |
 
 Die Hotkeys sind systemweit registriert und funktionieren unabhängig davon, welches
 Fenster fokussiert ist (auf macOS erfordert das die Eingabeüberwachung-Berechtigung, siehe

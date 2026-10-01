@@ -59,8 +59,8 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:  "openDox",
-		Width:  360,
-		Height: 520,
+		Width:  overlayWidth,
+		Height: overlayHeight,
 		AlwaysOnTop: true,
 		Frameless: false,
 		AssetServer: &assetserver.Options{
@@ -69,6 +69,7 @@ func main() {
 		BackgroundColour:         &options.RGBA{R: 24, G: 24, B: 27, A: 255},
 		EnableDefaultContextMenu: true,
 		OnStartup:                app.startup,
+		OnShutdown:               app.shutdown,
 		OnDomReady:               app.domReady,
 		Bind: []interface{}{
 			app,

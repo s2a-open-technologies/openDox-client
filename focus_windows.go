@@ -28,6 +28,7 @@ import (
 const (
 	gwlExStyle      = -20
 	wsExNoActivate  = 0x08000000
+	wsExAppWindow   = 0x00040000
 	swpNoMove       = 0x0002
 	swpNoSize       = 0x0001
 	swpNoZOrder     = 0x0004
@@ -79,7 +80,11 @@ func setOverlayNoActivate(enabled bool) bool {
 	idx := gwlExStyle
 	style, _, _ := procGetWindowLongPtrW.Call(hwnd, uintptr(idx))
 	if enabled {
-		style |= wsExNoActivate
+		// Ein Fenster mit WS_EX_NOACTIVATE bekommt standardmäßig keinen Taskleisten-Button
+		// (Microsoft Learn → Extended Window Styles) und würde beim Minimieren als kleine
+		// Titelleiste am Desktop-Rand landen. Wails setzt WS_EX_APPWINDOW nur, wenn
+		// options.Windows gesetzt ist — hier also explizit ergänzen.
+		style |= wsExNoActivate | wsExAppWindow
 	} else {
 		style &^= wsExNoActivate
 	}

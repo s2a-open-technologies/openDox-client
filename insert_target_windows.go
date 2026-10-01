@@ -18,19 +18,6 @@
 
 package main
 
-import (
-	"os"
-	"path/filepath"
-)
+import "opendox-client/internal/winfocus"
 
-// exeDirSettingsPath liegt direkt neben der .exe (z.B. C:\Program Files\openDox\
-// openDox\settings.json). Der MSI-Installer legt hier eine Vorlage ab, die IT pro
-// Kunde anpasst — hat Vorrang vor %AppData% (siehe runtimeSettingsPath), da eine
-// Program-Files-Installation den Server üblicherweise zentral vorkonfiguriert.
-func exeDirSettingsPath() (string, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(filepath.Dir(exe), "settings.json"), nil
-}
+func foregroundTarget() (process, title string) { return winfocus.Foreground() }

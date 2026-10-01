@@ -16,13 +16,17 @@ export function GetActiveSession(arg1:number,arg2:string):Promise<main.ActiveSes
 
 export function GetCategories(arg1:string):Promise<Array<main.Category>>;
 
+export function GetInsertTarget():Promise<main.InsertTarget>;
+
+export function GetLiveViewDefault():Promise<boolean>;
+
 export function GetRecordBySession(arg1:string,arg2:string):Promise<main.RecordDetails>;
 
 export function GetSettings():Promise<main.Settings>;
 
 export function GetTaskStatus(arg1:number,arg2:string):Promise<main.TaskStatus>;
 
-export function GetWSURL(arg1:string,arg2:string,arg3:string):Promise<string>;
+export function GetWSURL(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<string>;
 
 export function GetWhisperSettings():Promise<main.WhisperSettings>;
 

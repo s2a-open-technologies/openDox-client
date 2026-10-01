@@ -14,18 +14,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//go:build !windows
-
 package main
 
-import "os"
+import "testing"
 
-// exeDirSettingsPath ist auf macOS/Linux ein No-Op-Stub — dort bleibt es bei
-// %AppData%-Äquivalent via os.UserConfigDir() (siehe runtimeSettingsPath). Kein
-// exe-Verzeichnis-Lookup auf macOS: eine zusätzliche Datei neben der .exe innerhalb
-// von opendox-client.app/Contents/MacOS/ würde die codesign --deep-Signatur des
-// Bundles gefährden (siehe build-macos.sh zur TCC-/Codesign-Fragilität). Linux hat
-// kein Program-Files-Äquivalent, das diesen Lookup bräuchte.
-func exeDirSettingsPath() (string, error) {
-	return "", os.ErrNotExist
+func TestHoldTracker(t *testing.T) {
+	var h holdTracker
+	if h.up() {
+		t.Fatal("up ohne down darf nichts melden")
+	}
+	if !h.down() {
+		t.Fatal("erster down muss gemeldet werden")
+	}
+	if h.down() || h.down() {
+		t.Fatal("Auto-Wiederholung darf kein weiteres down melden")
+	}
+	if !h.up() {
+		t.Fatal("up nach down muss gemeldet werden")
+	}
+	if h.up() {
+		t.Fatal("zweites up darf nichts melden")
+	}
+	if !h.down() {
+		t.Fatal("nach up ist ein neues down möglich")
+	}
+	h.cancel()
+	if h.up() {
+		t.Fatal("nach cancel kein up")
+	}
 }

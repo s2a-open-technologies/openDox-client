@@ -128,3 +128,22 @@ func TestRisingEdge(t *testing.T) {
 		})
 	}
 }
+
+func TestFallingEdge(t *testing.T) {
+	cases := []struct {
+		name             string
+		prev, cur, want micButtonMask
+	}{
+		{"press (no edge)", 0, micRecord, 0},
+		{"held (no edge)", micRecord, micRecord, 0},
+		{"release", micRecord, 0, micRecord},
+		{"one of two released", micRecord | micStop, micStop, micRecord},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := fallingEdge(c.prev, c.cur); got != c.want {
+				t.Fatalf("fallingEdge(%v, %v) = %v, want %v", c.prev, c.cur, got, c.want)
+			}
+		})
+	}
+}

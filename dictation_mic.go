@@ -165,7 +165,13 @@ func (a *App) scanDictationMicsWithTracker(worker *dictationMicWorker, tracker *
 // Fehler liefert (z.B. Gerät abgezogen). Löst bei jeder steigenden Flanke einer verdrahteten Taste
 // (nach Debounce) das zugehörige Hotkey-Event aus.
 func (a *App) readDictationMicLoop(info hid.DeviceInfo, device *hid.Device, profile *micProfile, tracker *dictationMicTracker) {
+	var lastMask micButtonMask
+	holdMode := a.policy.MicHoldMode()
 	defer func() {
+		// Gerät weg, während die Record-Taste gehalten wurde: sonst läuft die Aufnahme ewig.
+		if holdMode && lastMask&micRecord != 0 {
+			a.emitMicRelease()
+		}
 		_ = device.Close()
 		tracker.markClosed(info.Path)
 		log.Printf("[opendox] dictation mic: getrennt - %s (pfad=%s)", profile.name, info.Path)
@@ -173,7 +179,6 @@ func (a *App) readDictationMicLoop(info hid.DeviceInfo, device *hid.Device, prof
 
 	debug := os.Getenv("ODX_DICTATION_MIC_DEBUG") == "1"
 	buf := make([]byte, 64)
-	var lastMask micButtonMask
 	var lastEmit time.Time
 
 	for {
@@ -192,7 +197,19 @@ func (a *App) readDictationMicLoop(info hid.DeviceInfo, device *hid.Device, prof
 			continue
 		}
 		rising := risingEdge(lastMask, mask)
+		falling := fallingEdge(lastMask, mask)
 		lastMask = mask
+		if holdMode {
+			// Loslassen nie durch den Debounce verwerfen, sonst hängt die Aufnahme.
+			if falling&micRecord != 0 {
+				a.emitMicRelease()
+			}
+			if rising&micRecord != 0 {
+				a.emitHotkeyEvent(eventMicRecordDown)
+				lastEmit = time.Now()
+				rising &^= micRecord
+			}
+		}
 		if rising == 0 {
 			continue
 		}
@@ -200,15 +217,21 @@ func (a *App) readDictationMicLoop(info hid.DeviceInfo, device *hid.Device, prof
 			continue
 		}
 		lastEmit = time.Now()
-		a.emitDictationMicButtons(rising)
+		a.emitDictationMicButtons(rising, holdMode)
 	}
 }
 
 // emitDictationMicButtons setzt physische Tasten auf dieselben Hotkey-Events um wie die
 // Tastatur-Hotkeys - siehe docs/superpowers/specs/2026-08-06-dictation-mic-design.md,
 // Abschnitt "Mapping auf bestehende Hotkey-Events".
-func (a *App) emitDictationMicButtons(rising micButtonMask) {
-	if rising&(micRecord|micStop) != 0 {
+func (a *App) emitDictationMicButtons(rising micButtonMask, holdMode bool) {
+	toggleMask := micRecord | micStop
+	if holdMode {
+		// Record ist im Hold-Modus schon über down/up behandelt; Stop bleibt ein Toggle (bricht
+		// eine laufende Aufnahme ab bzw. beendet sie).
+		toggleMask = micStop
+	}
+	if rising&toggleMask != 0 {
 		a.emitHotkeyEvent(eventToggleRecord)
 	}
 	if rising&micRewind != 0 {

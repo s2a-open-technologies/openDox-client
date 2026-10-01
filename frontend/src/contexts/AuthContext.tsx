@@ -43,7 +43,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({children}: { children: ReactNode }) => {
-    const {settings} = useSettings();
+    const {settings, isLoading: settingsLoading} = useSettings();
     const restURL = settings?.server_url || "http://localhost:10000";
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -189,12 +189,17 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
     };
 
     useEffect(() => {
+        // Wichtig: erst starten, wenn die Server-URL feststeht (Settings geladen).
+        // Sonst läuft der Token-Restore gegen den localhost-Fallback und scheitert,
+        // wenn die App auf einem anderen Server konfiguriert ist — der Nutzer müsste
+        // sich dann bei jedem App-Start neu einloggen, obwohl Tokens gespeichert sind.
+        if (settingsLoading) return;
         if (getToken()) {
             fetchUser();
         } else {
             setIsLoading(false);
         }
-    }, []);
+    }, [settingsLoading]);
 
     const value = {user, isLoading, isAuthenticated, login, loginWithTokens, logout, authFetch, getToken, acceptDisclaimer};
 

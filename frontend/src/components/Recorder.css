@@ -96,6 +96,100 @@
     border-color: #52525b;
 }
 
+/* Mikrofon-Button (öffnet Geräte-Popup) — im Stil des Logout-Buttons */
+.recorder-mic-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.recorder-mic-select-btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background-color: transparent;
+    color: #71717a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    -webkit-app-region: no-drag;
+}
+
+.recorder-mic-select-btn:hover,
+.recorder-mic-select-btn.open {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #e4e4e7;
+}
+
+/* Popup-Menü: öffnet fixiert unten links am Fensterrand (14px eingezogen,
+    fluchtet mit dem Header-Padding), unabhängig von der Button-Position */
+.recorder-mic-menu {
+    position: fixed;
+    top: 52px;
+    left: 14px;
+    z-index: 100;
+    min-width: 180px;
+    max-width: 300px;
+    padding: 6px;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    background-color: #09090b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    -webkit-app-region: no-drag;
+}
+
+.recorder-mic-menu-title {
+    padding: 4px 8px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #71717a;
+    pointer-events: none;
+}
+
+.recorder-mic-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    color: #d4d4d8;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.recorder-mic-item:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.recorder-mic-item.active {
+    color: #60a5fa;
+}
+
+.recorder-mic-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Unsichtbare Fläche für "Klick außerhalb schließt" — liegt unter dem Menü
+   (z-index 90 < 100), aber über dem restlichen Overlay-Inhalt */
+.recorder-mic-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+}
+
 /* Logout-Button: eigenes Element neben dem Kategorie-Dropdown, kein Overlay */
 .recorder-logout-btn {
     flex-shrink: 0;
@@ -357,6 +451,20 @@
     transform: scale(0.97);
 }
 
+/* Sekundäre Variante (Neue Aufnahme): gedämpft, damit "Akzeptieren und
+   einfügen" als Primäraktion hervorgehoben bleibt */
+.recorder-insert-btn.secondary {
+    border-color: #3f3f46;
+    background-color: transparent;
+    color: #a1a1aa;
+}
+
+.recorder-insert-btn.secondary:hover {
+    border-color: #71717a;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #e4e4e7;
+}
+
 .icon-inline {
     width: 14px;
     height: 14px;
@@ -466,4 +574,123 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Einfügeziel: zeigt, in welches Programm "Akzeptieren und einfügen" schreibt.
+   .warn = Ziel steht nicht auf der per settings.json konfigurierten Allow-Liste. */
+.recorder-target {
+    text-align: center;
+    font-size: 12px;
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recorder-target strong {
+    color: #e4e4e7;
+    font-weight: 600;
+}
+
+.recorder-target.warn {
+    color: #fbbf24;
+}
+
+.recorder-target.warn strong {
+    color: #fcd34d;
+}
+
+/* Aktionen als reine Icon-Buttons in einer Reihe */
+.recorder-action-icons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.recorder-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #3f3f46;
+    background-color: transparent;
+    color: #a1a1aa;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    -webkit-app-region: no-drag;
+}
+
+.recorder-icon-btn:hover {
+    border-color: #71717a;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #e4e4e7;
+}
+
+.recorder-icon-btn.primary {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+}
+
+.recorder-icon-btn.primary:hover {
+    border-color: #60a5fa;
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.recorder-icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* Hilfe-Overlay: Tastenkürzel */
+.recorder-help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    -webkit-app-region: no-drag;
+}
+
+.recorder-help {
+    width: calc(100% - 28px);
+    max-width: 320px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #3f3f46;
+    background-color: #18181b;
+    color: #d4d4d8;
+    font-size: 12px;
+}
+
+.recorder-help-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #e4e4e7;
+}
+
+.recorder-help ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.recorder-help kbd {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 1px 5px;
+    margin-right: 6px;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+    background-color: #09090b;
+    color: #a1a1aa;
 }

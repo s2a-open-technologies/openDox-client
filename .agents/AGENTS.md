@@ -90,21 +90,27 @@ an OS capability → new bound method on `App`.
 ### Server URL configuration
 
 The backend URL is **not** hardcoded on the Go side and is **not** compiled in — it's read at runtime
-from a per-machine config file at a platform-standard location (`os.UserConfigDir()`, resolved in
-`runtimeSettingsPath()` in `app.go`):
+from a `settings.json`. `loadSettings()` in `app.go` checks, first match wins:
 
-- macOS: `~/Library/Application Support/opendox-client/settings.json`
-- Windows: `%AppData%\opendox-client\settings.json`
-- Linux: `~/.config/opendox-client/settings.json` (or `$XDG_CONFIG_HOME`)
+1. The same folder as the executable (`exeDirSettingsPath()` in `settings_path.go`), e.g.
+   `C:\Program Files\openDox\settings.json` or `build/bin/settings.json`. For a macOS bundle this is the
+   folder containing the `.app`, never inside it (a file in the bundle would break its codesign signature).
+   Note `go run` builds into a temp dir, so there this lookup never hits.
+2. The per-user config dir (`os.UserConfigDir()`, `runtimeSettingsPath()`):
 
-`loadSettings()` reads `{"server_url": "..."}` from that path at startup into `App.opendoxURL`/`wsURL`,
+   - macOS: `~/Library/Application Support/opendox-client/settings.json`
+   - Windows: `%AppData%\opendox-client\settings.json`
+   - Linux: `~/.config/opendox-client/settings.json` (or `$XDG_CONFIG_HOME`)
+
+A file only counts if it parses and has a non-empty `server_url`; otherwise the next location is tried.
+`loadSettings()` reads `{"server_url": "..."}` at startup into `App.opendoxURL`/`wsURL`,
 falling back to `http://localhost:10000` if the file is missing or unparsable — so local dev needs no
 setup. The bound `GetSettings()` method exposes it to the frontend, where `SettingsContext.tsx` fetches
 it once on mount; `AuthContext.tsx`, `Recorder.tsx`, and `LoginScreen.tsx` all read `settings?.server_url`
 (same `http://localhost:10000` fallback) for their REST/WS calls — a single source, no separately
 hardcoded frontend constant. This is deliberately runtime-only, not `//go:embed`-based: the same build
 gets shipped to every customer, and the server address is set per-install by dropping a `settings.json`
-at the path above — no rebuild per customer.
+next to the executable — no rebuild per customer.
 
 ### Auth flow
 
@@ -129,6 +135,11 @@ System-wide hotkeys are registered in Go (`registerGlobalHotkeys` in `app.go`) u
 - `Ctrl+Alt+R` → `hotkey:toggle-record` (start/stop)
 - `Ctrl+Alt+P` → `hotkey:toggle-pause` (pause/resume)
 - `Ctrl+Alt+V` → `hotkey:accept-insert` (accept transcript + paste)
+- `Ctrl+Alt+D` (hold) → push-to-talk: Keydown emits `hotkey:mic-record-down`, Keyup `hotkey:mic-record-up`
+  (`registerHoldHotkeyTimeout`, `holdTracker` swallows auto-repeat) — the same events and frontend path as
+  the dictation mic's Record button in hold mode (see below), so it doubles as a hardware-free test. Always
+  on, independent of `dictation_mic_mode`. Note: Ctrl+Alt+D is "show desktop" on e.g. Xfce; registration
+  then fails (logged, counted in `hotkeyFailures`).
 - `Ctrl+Alt+H` → toggles the overlay window's visibility (`registerWindowHotkey` in `app.go`); no
   frontend event, handled entirely in Go via `runtime.WindowHide`/`WindowShow`. While hidden, the
   three hotkeys above (and the dictation-mic buttons below) are suppressed via `a.emitHotkeyEvent`.
@@ -156,10 +167,34 @@ through the shared `a.emitHotkeyEvent` helper — no frontend changes needed to 
 Device VID/PID table and report-parsing byte offsets are ported from
 `GoogleChromeLabs/dictation_support` (Apache-2.0); see
 `docs/superpowers/specs/2026-08-06-dictation-mic-design.md` for the full protocol reference and
-known risks. **These offsets are unverified against real hardware.** Set
+known risks. **Hold mode (default).** With `dictation_mic_mode` `"hold"` (settings.json, `"toggle"` = old behavior;
+`clientpolicy.Settings.MicHoldMode`), the Record button is push-to-talk: `readDictationMicLoop` emits
+`hotkey:mic-record-down` on the rising edge and `hotkey:mic-record-up` on the falling edge (`emitMicRelease`
+deliberately ignores overlay visibility and the debounce, and also fires when the device disconnects while
+held, so a recording can never get stuck). `Recorder.tsx` starts with `startRecording({autoInsert: true})`;
+`pollTaskStatus` then calls `acceptAndInsert(true, text)` directly with the fresh server text (allow-list
+prompt still applies). A release before the async start finished is handled via `micReleasedEarlyRef`. The
+Stop/Rewind/Ins-Ovr buttons and keyboard hotkeys are unchanged.
+
+**These offsets are unverified against real hardware.** Set
 `ODX_DICTATION_MIC_DEBUG=1` to log every raw input report's hex bytes for any matched device —
 use this to confirm the offsets once a physical device is available, before trusting button
 behavior in production.
+
+### Live view off / compact overlay (`live_view`)
+
+`live_view` in settings.json (`clientpolicy.Settings.LiveViewDefault`, exposed via the bound
+`GetLiveViewDefault()` — deliberately **not** in the frontend-bound `Settings` struct, the same JSON key in
+two embedded structs would make Go drop both) is only the *default*; the user's eye-icon toggle in the
+overlay is stored in `localStorage` (`live_view`) and wins. `Recorder.tsx` derives
+`liveEnabled = serverLive && liveView` (`serverLive` = the server-wide `live_backend !== "disabled"`, which
+already had an orb-only UI). When off: orb instead of text, `GoGetWSURL(..., live=false)` appends `live=0`
+so the server skips live ASR (Parakeet) for that session (audio is still written, final transcription after
+stop is unchanged). The window size deliberately stays the same (a compact mode was tried and was disruptive).
+The minimize button was removed again: while minimized, the task polling (and thus
+auto-insert) stalled until the window was restored — presumably WebView2 background throttling; an attempt to
+turn that off via WebView2 browser flags was reverted. Use Ctrl+Alt+H (hide) instead. Ctrl+Alt+H still calls
+`WindowUnminimise` before `WindowShow`, in case the window was minimized via the taskbar.
 
 ### Recording flow (`Recorder.tsx`)
 
@@ -209,6 +244,36 @@ focuses the clicked window), so `InsertTranscript` briefly hides the overlay to 
 target window, sleeps, types/pastes, then re-shows and repositions it. The hotkey/dictation-mic path never
 focused the overlay in the first place, so it skips hide/show entirely — see commits `d8cc475`/`524c706`
 for why (hiding unconditionally caused mispositioning and unnecessary flicker on that path).
+
+**Clipboard hardening and insert target (Windows).** (The Linux/Windows bullet above is historical: on Windows the
+text is now pasted with Ctrl+V and only typed in Citrix clients, see `insert_windows.go`; Linux uses simulated Ctrl+V.)
+The clipboard used to be set with Wails'
+`runtime.ClipboardSetText` (plain text, never cleaned up), so dictated patient text stayed in Windows'
+clipboard history (Win+V) / cloud clipboard. Now, on Windows only:
+
+- `InsertTranscript`/`CopyToClipboard` call `setClipboardText` (`clipboard_windows.go` →
+  `internal/winclip`), which additionally sets the registered formats
+  `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory` (DWORD 0) and
+  `CanUploadToCloudClipboard` (DWORD 0) (Microsoft Learn → "Clipboard Formats"). If marking fails the
+  clipboard is emptied and the insert aborts (fail closed); if setting fails the insert aborts too, since
+  Ctrl+V would otherwise paste stale foreign content.
+- After the paste, `clientpolicy.Cleaner` empties the clipboard after `clipboard_clear_after_seconds`
+  (default 30) **only if `GetClipboardSequenceNumber` is unchanged**, and again on shutdown
+  (`OnShutdown` → `App.shutdown`). A typed insert (Citrix, `usesClipboardPath() == false`) doesn't touch the
+  clipboard at all and must not cancel an earlier insert's pending clear (`Schedule` is only called when
+  this insert set the clipboard).
+- macOS/Linux keep the old behaviour (`clipboard_other.go`); no marking, no auto-clear.
+- `GetInsertTarget()` (`insert_target.go`) reports the foreground program (`internal/winfocus`: exe name +
+  window title); the overlay shows "Einfügen in: …". **Never log or persist the window title** — clinical
+  software puts patient names in it. An optional allow-list (`insert_allowlist`, default empty = off) makes
+  the frontend ask before inserting into an unlisted program (`acceptAndInsert` in `Recorder.tsx`, also for the
+  hotkey/dictation-mic path). The client is a general-purpose dictation tool (e.g. private e-mails), so
+  never make a list the default, and don't tie it to openDox categories — users can create their own.
+- All three settings live in `settings.json` (see README); the logic that needs no OS/Wails is in
+  `internal/clientpolicy` (unit-tested). Package `main` imports `hotkey`, which panics without an X11 display,
+  so run main-package tests as `xvfb-run -a go test ./...`; the Windows-only `internal/` packages are checked
+  with `GOOS=windows go vet ./internal/...` (the rest of Windows `main` can't be cross-compiled here because
+  of robotgo/cgo). Behavior on real Windows (Win+V, cloud clipboard) still has to be checked by hand.
 
 The transcript is non-selectable (`select-none` + `onContextMenu` suppressed) so it can't leave the app
 any other way. Don't re-introduce an automatic clipboard copy after processing.
