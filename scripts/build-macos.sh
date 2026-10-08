@@ -31,7 +31,7 @@
 #   ./build-macos.sh --debug  # Debug-Build
 set -euo pipefail
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 echo "==> wails build"
 wails build "$@"

@@ -47,7 +47,7 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 PACKAGE_JSON = FRONTEND_DIR / "package.json"
 PACKAGE_LOCK = FRONTEND_DIR / "package-lock.json"
 CHANGELOG = PROJECT_ROOT / "CHANGELOG.md"
-REPO_URL = "https://github.com/daemolition/opendox-client"
+REPO_URL = "https://github.com/daemolition/openDox-client"
 
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 WAILS_VERSION_RE = re.compile(r'^(\s*"productVersion":\s*)"(.*)"(,?)$', re.MULTILINE)

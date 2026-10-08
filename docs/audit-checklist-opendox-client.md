@@ -16,9 +16,9 @@
 | Native SSO nach RFC 8252 | ✅ | `oidc.go`: Loopback-Listener auf `127.0.0.1`, Zufallsport, zufälliger Callback-Pfad (`randomToken`), 5 Min. Timeout, Einzelversuch (`oidcLoginInFlight`) | Der Server muss `native_redirect` auf eine Loopback-Adresse beschränken (Server-Seite) |
 | Token-Speicherung | ⚠️ | Access-/Refresh-Token in `localStorage` des WebView-Profils (`AuthContext.tsx` `applyTokens`), nicht im OS-Schlüsselbund | Schutz nur über Benutzerprofil-Rechte + Festplattenverschlüsselung; Abmelden löscht sie |
 | Tokens in URLs | ⚠️ | WebSocket-Token (`GetWSURL` in `app.go`), Refresh-Token (`/auth/refresh?refresh_token=`, `AuthContext.tsx`), SSO-Callback (`oidc.go`) | Können in Server-/Proxy-Zugriffsprotokollen landen; Query-Logging dort einschränken. Ablösung bräuchte Serveränderungen |
-| Verschlüsselung in Transit erzwungen | ❌ | `settings.json` `server_url`, `deriveWSURL` in `app.go`: `http://` → `ws://` ohne Warnung; Default `http://localhost:10000` | Betreiberverantwortung — `https://` verwenden |
+| Verschlüsselung in Transit erzwungen | ⚠️ | `settings.json` `server_url`, `deriveWSURL` in `app.go`: `http://` → `ws://` ohne Warnung; Default `http://localhost:10000` | Der Client erzwingt TLS nicht, ein Produktivbetrieb mit `http://` funktioniert aber faktisch nicht: der Server verlangt `https://`, ohne funktioniert das Mikrofon nicht (Angabe des Maintainers, serverseitig festgelegt). Nur lokale Entwicklung läuft über `http://localhost`; Warnung im Client fehlt |
 | TLS-Zertifikatsprüfung | ✅ | Keine `InsecureSkipVerify`/eigene `TLSClientConfig` im Code (`grep`), Go-Standardverhalten mit System-Truststore | Kein Pinning |
-| Client-Richtlinie vom Server integritätsgeschützt | ⚠️ | `internal/clientpolicy/remote.go`: Abruf ohne Login; Schutz nur durch TLS | Bei `http://` manipulierbar; Cache an Server-URL gebunden (`LoadCache`) |
+| Client-Richtlinie vom Server integritätsgeschützt | ⚠️ | `internal/clientpolicy/remote.go`: Abruf ohne Login; Schutz nur durch TLS | Bei `http://` (nur Entwicklung) manipulierbar; Cache an Server-URL gebunden (`LoadCache`) |
 | Zwischenablage nach dem Einfügen geschützt | ✅ (Windows) / ❌ (sonst) | `clipboard_windows.go` → `internal/winclip` (Verlauf-/Cloud-Ausschluss, fail closed), `internal/clientpolicy/cleaner.go` (Leeren nur bei unveränderter Sequenznummer) | macOS/Linux: `clipboard_other.go` ohne Markierung und ohne Auto-Leeren |
 | Einfügeziel-Kontrolle | ✅ (optional, Windows) | `insert_target*.go`, `internal/clientpolicy/policy.go` (`Allows`), Rückfrage in `acceptAndInsert` | Standardmäßig aus — der Client ist ein allgemeines Diktierwerkzeug |
 | Explizite Bestätigung vor dem Einfügen | ✅ | `acceptAndInsert` in `Recorder.tsx`; Text kopiert sich nicht automatisch (`AGENTS.md` „Clipboard / accept-and-insert“) | Im Hold-Modus des Diktiermikros bewusst automatisch beim Loslassen, mit Allow-Listen-Prüfung |
@@ -32,7 +32,7 @@
 | Update-Mechanismus | ➖ (bewusst keiner) | kein Code für Updates | Verteilung per Intune/SCCM/GPO, siehe `DEPLOYMENT.md`; verhindert unbeaufsichtigten Code-Nachzug, verlangt aber aktives Patchen |
 | Secrets nie im Repo | ✅ | `git grep` auf Schlüssel-/Passwort-Zuweisungen ohne Treffer; `settings.json` enthält nur die Server-Adresse | Keine Zugangsdaten im Client konfigurierbar |
 | Security-relevante Tests | ⚠️ | `internal/clientpolicy/*_test.go` (Allow-Liste, Cleaner, Merge/Cache), `settings_test.go`, `hold_tracker_test.go`, `dictation_mic_protocol_test.go` (28 Tests) | Kein Test für OIDC-Loopback und Einfügen; Windows-Pakete nur per `GOOS=windows go vet` geprüft |
-| Vulnerability-Disclosure-Prozess | ✅ | [`SECURITY.md`](../SECURITY.md) — E-Mail-Kontakt, 48-h-Antwort, 90-Tage-Policy | Dedizierte `security@`-Adresse offen |
+| Vulnerability-Disclosure-Prozess | ✅ | [`SECURITY.md`](../.github/SECURITY.md) — E-Mail-Kontakt, 48-h-Antwort, 90-Tage-Policy | Dedizierte `security@`-Adresse offen |
 
 ## Datenschutz / DSGVO
 
@@ -42,7 +42,7 @@
 | Datenminimierung | ✅ | Keine lokale Speicherung von Audio und Texten (`data-mapping.md` „Lokale Speicherung“; im Code nur `SaveCache` schreibt eine Datei — Richtlinie, keine personenbezogenen Daten) | Zwischenablage und Zielprogramm sind die einzigen Orte, an denen der Text den Client verlässt |
 | Zwischenablage / Verlauf | ✅ (Windows) / ⚠️ | siehe Security | macOS/Linux: Systemrichtlinien/Zwischenablage-Manager beachten |
 | Lokale Tokens und UI-Daten dokumentiert | ✅ | `data-mapping.md` Tabelle „Lokale Speicherung“ | Unverschlüsselt (siehe oben) |
-| Verschlüsselung in Transit | ❌ (nicht erzwungen) | siehe Security | Betreiberverantwortung |
+| Verschlüsselung in Transit | ⚠️ (im Client nicht erzwungen, im Betrieb durch den Server) | siehe Security | Server verlangt `https://`; Client warnt bei `http://` nicht |
 | Externe Auftragsverarbeiter | ✅ | Client hat keine; nur der konfigurierte Server | Server-Dokument beschreibt LLM/Sanitizer/Objektspeicher |
 | Einwilligung/Hinweis zur Nutzung | ✅ | Pflicht-Bestätigung beim ersten Login (`DisclaimerGate.tsx`, `/auth/accept-disclaimer`); [`DISCLAIMER.md`](../DISCLAIMER.md) | Serverseitig protokolliert (`disclaimer_accepted_at`) |
 | Betroffenenrechte (Auskunft, Löschung, Übertragbarkeit, Widerspruch) | ➖ | Daten liegen auf dem Server | siehe Server-Checkliste |
@@ -63,6 +63,7 @@
 | Keine proprietären Binärdateien im Repo | ✅ | Microsoft-WebView2-Bootstrapper (`build/windows/installer/tmp/`) aus Git entfernt und ignoriert; Wails lädt ihn beim NSIS-Build | |
 | Schrift-/Logo-Rechte | ⚠️ | Nunito: OFL-1.1 (`frontend/src/assets/fonts/OFL.txt`); Logo/Icons als Projekt-Artwork annotiert | Rechte am Logo vom Maintainer zu bestätigen |
 | `AUTHORS` | ✅ | `AUTHORS` | |
+| Zweckbestimmung / MDR-Abgrenzung | ⚠️ | [`zweckbestimmung.md`](zweckbestimmung.md), [`DISCLAIMER.md`](../DISCLAIMER.md) | Hold-Modus des Diktiermikros fügt ohne Klick ein (siehe Abschnitt 5); rechtliche Prüfung durch Regulatory-Berater steht aus |
 
 ## Projekt-Health / Governance
 
@@ -70,9 +71,9 @@
 |---|---|---|---|
 | CI/CD-Pipeline | ✅ | `.github/workflows/ci.yml`: Go (gofmt, vet, Tests unter xvfb), Frontend (Typecheck, Build), REUSE | Neu eingerichtet; erster Lauf auf GitHub steht aus |
 | Dependency-Scanning (Dependabot) | ✅ | `.github/dependabot.yml`: wöchentlich `gomod`, `npm` (`frontend/`), GitHub Actions | Kein `govulncheck`/CVE-Gate |
-| `CONTRIBUTING.md` | ✅ | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | |
-| `CODE_OF_CONDUCT.md` | ✅ | [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) (Contributor Covenant 2.1, adaptiert) | |
-| `SECURITY.md` | ✅ | [`SECURITY.md`](../SECURITY.md) | |
+| `CONTRIBUTING.md` | ✅ | [`CONTRIBUTING.md`](../.github/CONTRIBUTING.md) | |
+| `CODE_OF_CONDUCT.md` | ✅ | [`CODE_OF_CONDUCT.md`](../.github/CODE_OF_CONDUCT.md) (Contributor Covenant 2.1, adaptiert) | |
+| `SECURITY.md` | ✅ | [`SECURITY.md`](../.github/SECURITY.md) | |
 | `CHANGELOG.md` | ✅ | [`CHANGELOG.md`](../CHANGELOG.md), Keep-a-Changelog | |
 | Issue-/PR-Templates | ✅ | `.github/ISSUE_TEMPLATE/*.yaml`, `.github/PULL_REQUEST_TEMPLATE.md` (inkl. Hinweis „keine Patientendaten“) | |
 | Versionierungs-Tooling | ✅ | `scripts/bump_version.py` (Quelle: `wails.json`, synct `frontend/package.json` + Lockfile, verschiebt `[Unreleased]`) | |
@@ -95,8 +96,8 @@ Abhängigkeitsliste; ehrlich dokumentierte Lücken.
 **Offene Punkte (in Reihenfolge der Relevanz für einen Rollout):**
 
 1. Code-Signierung der Windows-Builds (Smart App Control) und Notarisierung für macOS.
-2. TLS-Zwang bzw. Warnung bei `http://`; Tokens aus URLs herausnehmen (Server-Änderung nötig).
+2. Warnung bzw. Ablehnung von `http://` im Client (Produktivbetrieb setzt `https://` ohnehin voraus); Tokens aus URLs herausnehmen (Server-Änderung nötig).
 3. Tokens im Schlüsselbund des Betriebssystems statt `localStorage`.
 4. Zwischenablage-Schutz und Einfügeziel-Prüfung für macOS/Linux.
-5. Erster Release-Tag, Prüfsummen/SBOM für Release-Dateien, CI-Build der Installer.
+5. Erster Release-Tag mit SBOM (Job `sbom` in `.github/workflows/release.yml`, noch nicht auf GitHub gelaufen), Prüfsummen für Release-Dateien, CI-Build der Installer.
 6. Zweiter Maintainer (Bus-Faktor 1) und Tests für OIDC-Loopback und Einfügen.

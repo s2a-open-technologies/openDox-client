@@ -36,8 +36,18 @@ afterwards with `scripts/release.sh`.
 - **Dokumentation** — `docs/opendox-client.md` (Überblick), `docs/data-mapping.md`
   (Datenfluss, Grundlage für ein Verzeichnis von Verarbeitungstätigkeiten) und
   `docs/audit-checklist-opendox-client.md` (Selbstauskunft für Audits).
+- **Zweckbestimmung und Rahmenwerke** — `docs/zweckbestimmung.md` (Abgrenzung zum
+  Medizinprodukt) und `docs/rahmenwerke.md` (Einordnung in ISO 27001, NIS2, CRA, MDR, DSGVO).
+- **SBOM** — der Release-Workflow hängt CycloneDX-SBOMs (Go-Module, produktive npm-Pakete)
+  an jedes Release an.
 
 ### Changed
+
+- Build-Skripte (`compile.sh`, `build-macos.sh`, `build-windows-msi.sh`) liegen jetzt in
+  `scripts/`; `SECURITY.md`, `CONTRIBUTING.md` und `CODE_OF_CONDUCT.md` in `.github/`.
+- `DISCLAIMER.md`, Audit-Checkliste und Data-Mapping: Hold-Modus des Diktiermikros fügt ohne
+  weiteren Klick ein (Ausnahme vom Bestätigungsschritt); TLS-Hinweise präzisiert (der Server
+  verlangt `https://`).
 
 - `settings.json.template` enthält nur noch `server_url`; die übrigen Schlüssel
   (`clipboard_*`, `insert_allowlist`, `dictation_mic_mode`, `live_view`) sind optionale
@@ -89,5 +99,5 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/opendox-client/compare/v0.8.0...HEAD
-[0.8.0]: https://github.com/daemolition/opendox-client/releases/tag/v0.8.0
+[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/daemolition/openDox-client/releases/tag/v0.8.0

@@ -134,10 +134,12 @@ LUKS) wird vorausgesetzt. Die Server-Seite (Datenbank, Audio) ist im Server-Doku
 
 Ob die Verbindung zum Server TLS nutzt, hängt allein von `server_url` ab (`https://` →
 `wss://`, `http://` → `ws://`). Der Client **erzwingt TLS nicht** und warnt nicht bei `http://`
-(Standardwert für die lokale Entwicklung ist `http://localhost:10000`). Zertifikate werden gegen
+(Standardwert für die lokale Entwicklung ist `http://localhost:10000`). Im Produktivbetrieb
+ist `https://` trotzdem Voraussetzung: der Server verlangt es, und ohne funktioniert das
+Mikrofon nicht (Angabe des Maintainers). Zertifikate werden gegen
 den Truststore des Betriebssystems geprüft; es gibt kein Pinning und keine Option, die Prüfung zu
-umgehen. Für produktive Umgebungen gilt: `https://` verwenden — sonst gehen Audio, Text und
-Tokens unverschlüsselt über das Netz.
+umgehen. Wer den Server abweichend konfiguriert, muss `https://` selbst sicherstellen — sonst gehen
+Audio, Text und Tokens unverschlüsselt über das Netz.
 
 ## Externe Stellen / mögliche Auftragsverarbeiter
 
@@ -158,7 +160,7 @@ beteiligt, sieht aber keine Gesundheitsdaten.
 
 ## Bekannte Lücken (Stand: siehe Git-Historie)
 
-- **Kein TLS-Zwang** und keine Warnung bei `http://` — Betreiberverantwortung (siehe oben).
+- **Kein TLS-Zwang und keine Warnung** bei `http://` im Client; im Produktivbetrieb entfällt das Risiko weitgehend, weil der Server `https://` verlangt (siehe oben).
   Betrifft auch die Client-Richtlinie, die ohne Login abgerufen wird: Wer die Verbindung
   manipulieren kann, könnte Richtlinienwerte ändern (z. B. Allow-Liste leeren).
 - **Tokens im Klartext im WebView-Profil** (`localStorage`), nicht im Schlüsselbund des
@@ -182,7 +184,7 @@ beteiligt, sieht aber keine Gesundheitsdaten.
 
 - [`opendox-client.md`](opendox-client.md) — Überblick über den Client
 - [`audit-checklist-opendox-client.md`](audit-checklist-opendox-client.md) — Selbstauskunft für Audits
-- [`../SECURITY.md`](../SECURITY.md) — Sicherheitsrichtlinie und Schutzmaßnahmen
+- [`../SECURITY.md`](../.github/SECURITY.md) — Sicherheitsrichtlinie und Schutzmaßnahmen
 - [`../DISCLAIMER.md`](../DISCLAIMER.md) — „Kein Medizinprodukt“-Hinweis
 - [`../build/windows/installer/DEPLOYMENT.md`](../build/windows/installer/DEPLOYMENT.md) — Verteilung und Absicherung unter Windows
 - `docs/data-mapping.md` im openDox-Server-Repository — der serverseitige Teil des Datenflusses

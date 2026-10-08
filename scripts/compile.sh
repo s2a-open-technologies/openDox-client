@@ -6,7 +6,7 @@
 # support for macOS targets from a non-Mac host. Build it natively on a Mac with:
 #   wails build -platform darwin/arm64
 set -eu
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 # Über SSH ist DISPLAY nicht gesetzt; manche cgo-Schritte (X11-gebundene Deps wie
 # hotkey/webkit) brauchen die Variable beim Bauen. Fallback auf das lokale Display.

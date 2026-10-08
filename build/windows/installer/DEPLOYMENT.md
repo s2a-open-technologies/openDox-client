@@ -1,6 +1,6 @@
 # openDox unter Windows verteilen (SCCM/Intune/GPO)
 
-Die MSI (`opendox-client-installer.msi`, gebaut über `../../../build-windows-msi.sh`)
+Die MSI (`opendox-client-installer.msi`, gebaut über `../../../scripts/build-windows-msi.sh`)
 installiert die App maschinenweit nach `%ProgramFiles%\openDox\openDox\` und legt dort
 eine `settings.json` mit der zum Build-Zeitpunkt eingebetteten Server-URL ab
 (`settings.json.template` in diesem Verzeichnis). Für einen einzelnen Rechner reicht

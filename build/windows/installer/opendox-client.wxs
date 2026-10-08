@@ -5,7 +5,7 @@
   (project.nsi in diesem Verzeichnis, bleibt unverändert bestehen). Gedacht für
   GPO-/SCCM-/Intune-artige Enterprise-Verteilung, wo .msi das native Format ist.
 
-  Aufruf über ./build-windows-msi.sh (Repo-Root), das die Preprocessor-Variablen
+  Aufruf über ./scripts/build-windows-msi.sh (Repo-Root), das die Preprocessor-Variablen
   ProductName, Manufacturer, Version, ExePath, SettingsTemplatePath und IconPath
   per `wixl -D ...` befüllt.
 

@@ -18,7 +18,7 @@ Run from the repo root unless noted.
   for browser debugging with access to bound Go methods.
 - `wails build` — production build (runs `npm run build`, embeds `frontend/dist` via `//go:embed` in
   `main.go`).
-- `./build-macos.sh` — macOS production build wrapper: runs `wails build`, then signs the .app bundle
+- `./scripts/build-macos.sh` — macOS production build wrapper: runs `wails build`, then signs the .app bundle
   with a local "Apple Development" identity if one exists in the keychain (falls back to ad-hoc `-`
   otherwise). Use this instead of `wails build` on macOS. Empirically (macOS 26.4/arm64), pure ad-hoc or
   self-signed signatures do **not** reliably persist Accessibility/Input-Monitoring TCC grants across
@@ -66,7 +66,7 @@ call (needs Accessibility) both require the process to be trusted on macOS. `App
 `ensureAccessibility()` once at launch and just logs if untrusted — it deliberately does **not** trigger
 the system prompt dialog, to avoid nagging on every rebuild. `CheckAccessibility()`/`CheckHotkeys()` are
 bound to the frontend so it can show an in-app toast pointing the user at System Settings instead. See
-Commands above for why `./build-macos.sh` (a real Apple-issued signing identity, not just a stable ad-hoc
+Commands above for why `./scripts/build-macos.sh` (a real Apple-issued signing identity, not just a stable ad-hoc
 bundle ID) is required for these grants to actually be honored at runtime.
 
 ## Architecture

@@ -3,7 +3,7 @@
 Thank you for considering a contribution! The openDox Client is the desktop part of
 [openDox](https://github.com/daemolition/openDox): a small always-on-top overlay for dictating
 and inserting medical text. For an overview of what it does and how it is built, start with
-[`docs/opendox-client.md`](docs/opendox-client.md).
+[`docs/opendox-client.md`](../docs/opendox-client.md).
 
 ## Code of Conduct
 
@@ -45,7 +45,7 @@ considered. For larger changes please discuss before writing code.
 ### Prerequisites
 
 Go (see `go` in `go.mod`), Node.js 22+, the [Wails v2 CLI](https://wails.io) matching the version
-in `go.mod`, and the platform libraries listed in the [README](README.md#voraussetzungen)
+in `go.mod`, and the platform libraries listed in the [README](../README.md#voraussetzungen)
 (Linux: `webkit2gtk-4.1`, GTK 3, `libusb-1.0` and X11 headers for the dictation-mic and hotkey code).
 
 ### Run it
@@ -56,14 +56,14 @@ wails dev
 ```
 
 More ways to start it (including `go run -tags dev,webkit2_41 .`) are in the
-[README](README.md#entwicklung). The client needs an openDox server; without a `settings.json` it
+[README](../README.md#entwicklung). The client needs an openDox server; without a `settings.json` it
 uses `http://localhost:10000`.
 
 ## Project conventions
 
 - **Go does OS work, React does the rest.** `App` (`app.go`) is the only object bound to the
   frontend; new OS-level or token-attaching backend calls become methods on it, pure browser REST
-  stays in the frontend. See [`.agents/AGENTS.md`](.agents/AGENTS.md) for the architecture and the
+  stays in the frontend. See [`.agents/AGENTS.md`](../.agents/AGENTS.md) for the architecture and the
   gotchas (closure refs for hotkey handlers, why `robotgo.KeyTap` is not used on macOS, ...).
 - **OS-specific code:** use `//go:build` files with a real implementation plus no-op stubs
   (`foo_windows.go` / `foo_darwin.go` / `foo_other.go`), not `runtime.GOOS` checks.
@@ -73,7 +73,7 @@ uses `http://localhost:10000`.
   an automatic clipboard copy after processing — text reaches the target only via the explicit
   accept step.
 - **No new outbound connections** besides the configured server. If you need one, it needs an
-  entry in [`docs/data-mapping.md`](docs/data-mapping.md) and a discussion first.
+  entry in [`docs/data-mapping.md`](../docs/data-mapping.md) and a discussion first.
 - Keep the **"Kein Medizinprodukt" disclaimer** and the accept-and-insert step intact.
 - UI strings and comments are largely German (German-market product) — match the surrounding language.
 
@@ -121,10 +121,10 @@ compliant.
 
 ## Documentation
 
-- Update [`docs/data-mapping.md`](docs/data-mapping.md) and [`SECURITY.md`](SECURITY.md) when
+- Update [`docs/data-mapping.md`](../docs/data-mapping.md) and [`SECURITY.md`](SECURITY.md) when
   data handling, network traffic, logging, clipboard behavior or local storage changes.
-- Update [`.agents/AGENTS.md`](.agents/AGENTS.md) when commands, architecture or gotchas change.
-- Add an entry under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md) for user-visible changes.
+- Update [`.agents/AGENTS.md`](../.agents/AGENTS.md) when commands, architecture or gotchas change.
+- Add an entry under `## [Unreleased]` in [`CHANGELOG.md`](../CHANGELOG.md) for user-visible changes.
 
 ## Commit Messages
 
@@ -165,8 +165,8 @@ Releases are cut by a maintainer. The single canonical version is `info.productV
 3. Build the **signed** installers locally and attach them under their fixed names:
 
    ```bash
-   ./build-windows-msi.sh && ./compile.sh     # Linux: MSI + NSIS setup
-   ./build-macos.sh                           # on a Mac
+   ./scripts/build-windows-msi.sh && ./scripts/compile.sh     # Linux: MSI + NSIS setup
+   ./scripts/build-macos.sh                           # on a Mac
    scripts/release.sh X.Y.Z                   # needs the gh CLI
    ```
 

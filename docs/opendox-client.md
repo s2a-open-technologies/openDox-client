@@ -108,9 +108,11 @@ Datei; der letzte Stand wird zwischengespeichert, falls der Server mal nicht err
 
 ## Mitmachen, Releases, Sicherheit
 
-- Entwicklung, Builds, Tests: [`../README.md`](../README.md) und [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
-- Release-Ablauf: [`../CONTRIBUTING.md`](../CONTRIBUTING.md#releases) · Änderungen: [`../CHANGELOG.md`](../CHANGELOG.md)
-- Sicherheitsmeldungen und Schutzmaßnahmen: [`../SECURITY.md`](../SECURITY.md)
+- Entwicklung, Builds, Tests: [`../README.md`](../README.md) und [`../CONTRIBUTING.md`](../.github/CONTRIBUTING.md)
+- Release-Ablauf: [`../CONTRIBUTING.md`](../.github/CONTRIBUTING.md#releases) · Änderungen: [`../CHANGELOG.md`](../CHANGELOG.md)
+- Sicherheitsmeldungen und Schutzmaßnahmen: [`../SECURITY.md`](../.github/SECURITY.md)
+- Zweckbestimmung und Abgrenzung zum Medizinprodukt: [`zweckbestimmung.md`](zweckbestimmung.md)
+- Einordnung in Rahmenwerke (ISO 27001, NIS2, CRA, MDR, DSGVO): [`rahmenwerke.md`](rahmenwerke.md)
 - Datenfluss (Grundlage für ein Verzeichnis von Verarbeitungstätigkeiten):
   [`data-mapping.md`](data-mapping.md)
 - Selbstauskunft für Audits: [`audit-checklist-opendox-client.md`](audit-checklist-opendox-client.md)

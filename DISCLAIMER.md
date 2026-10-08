@@ -25,9 +25,12 @@ Inhalte, fehlerhafte Zuordnung von Aussagen. **Jeder mit openDox erstellte Text 
 qualifiziertem Fachpersonal geprüft werden**, bevor er verwendet, weitergegeben oder in
 eine Patientenakte oder ein vergleichbares Dokumentationssystem übernommen wird.
 
-openDox fügt Text nur nach einem expliziten Bestätigungsschritt durch die Nutzerin oder
-den Nutzer ein (siehe „Akzeptieren und einfügen" im Client) — dieser Schritt ist als
-Prüfgelegenheit gedacht, nicht als reine Formalität.
+openDox fügt Text nur auf ausdrückliche Handlung der Nutzerin oder des Nutzers ein
+(„Akzeptieren und einfügen" bzw. `Strg+Alt+V` im Client) — dieser Schritt ist als
+Prüfgelegenheit gedacht, nicht als reine Formalität. **Ausnahme:** Im Hold-Modus eines
+Diktiermikros (Taste halten = aufnehmen, loslassen = einfügen) wird der Text beim
+Loslassen ohne weiteren Klick eingefügt; die Prüfung muss dann unmittelbar danach im
+Zielprogramm erfolgen. Näheres in der [Zweckbestimmung](docs/zweckbestimmung.md).
 
 ## Verantwortung der Betreiber
 

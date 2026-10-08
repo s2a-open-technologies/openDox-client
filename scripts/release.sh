@@ -2,13 +2,13 @@
 # scripts/release.sh — vorhandene Builds als GitHub-Release hochladen
 #
 # Der openDox-Server (Admin → Clients) verlinkt auf
-#   https://github.com/daemolition/opendox-client/releases/latest/download/<Dateiname>
+#   https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>
 # Die Dateinamen hier sind deshalb FEST — ändern nur zusammen mit
 # _CLIENT_DOWNLOAD_FILES in backend/views/settings_api/settings_routes.py (Server-Repo).
 #
 # Ablauf:
-#   Linux:  ./build-windows-msi.sh && ./compile.sh && scripts/release.sh 0.8.0
-#   macOS:  ./build-macos.sh && scripts/release.sh 0.8.0   (lädt ins selbe Release nach)
+#   Linux:  ./scripts/build-windows-msi.sh && ./scripts/compile.sh && scripts/release.sh 0.8.0
+#   macOS:  ./scripts/build-macos.sh && scripts/release.sh 0.8.0   (lädt ins selbe Release nach)
 #
 # Lädt nur hoch, was unter build/bin/ liegt; bestehende Dateien im Release werden ersetzt.
 # Normalerweise legt .github/workflows/release.yml das Release beim Tag-Push an (mit den

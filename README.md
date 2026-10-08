@@ -69,11 +69,11 @@ Um das dauerhaft zu setzen, in `~/.zshrc`:
 export CGO_LDFLAGS="-framework UniformTypeIdentifiers"
 ```
 
-#### Produktions-Build: `./build-macos.sh` statt `wails build`
+#### Produktions-Build: `./scripts/build-macos.sh` statt `wails build`
 
 ```bash
-./build-macos.sh          # Standard (arm64)
-./build-macos.sh --debug  # Debug-Build
+./scripts/build-macos.sh          # Standard (arm64)
+./scripts/build-macos.sh --debug  # Debug-Build
 ```
 
 Baut wie `wails build`, signiert das `.app`-Bundle danach aber zusätzlich. Das ist auf
@@ -107,7 +107,7 @@ das zuverlässig.
 
 ### Windows
 
-Cross-Build von Linux aus über `./compile.sh` (siehe [Build](#build-produktion)), oder
+Cross-Build von Linux aus über `./scripts/compile.sh` (siehe [Build](#build-produktion)), oder
 nativ auf Windows mit `wails build`. `CGO_ENABLED=1` muss gesetzt sein, da `robotgo`
 (Tastatur-Injektion) cgo braucht.
 
@@ -239,7 +239,7 @@ Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches
 ### Release (Installer für die Server-Downloads)
 
 Der Server speichert keine Installer, sondern verlinkt auf
-`https://github.com/daemolition/opendox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
+`https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
 sind deshalb fest: `opendox-client-installer.msi`, `opendox-client-amd64-installer.exe`,
 `opendox-client-macos.zip`. `scripts/release.sh <version>` lädt die vorhandenen Builds unter genau
 diesen Namen in ein GitHub-Release hoch (braucht die `gh` CLI). Solange das Repository privat ist,
@@ -261,13 +261,13 @@ wails build
 ```
 
 Bündelt das Frontend (`npm run build`) und bettet `frontend/dist` über
-`//go:embed` in das Go-Binary ein. Auf macOS stattdessen `./build-macos.sh` verwenden
+`//go:embed` in das Go-Binary ein. Auf macOS stattdessen `./scripts/build-macos.sh` verwenden
 (siehe [macOS](#macos)).
 
 ### Alle Plattformen in einem Schritt
 
 ```bash
-./compile.sh
+./scripts/compile.sh
 ```
 
 Baut Linux (nativ) und Windows (Cross-Build via `mingw-w64`, inkl. NSIS-Installer über das
@@ -374,12 +374,11 @@ Gerätetabelle und Protokoll sind aus
 ├── policy_sync.go               # Client-Richtlinie vom Server holen, cachen, anwenden
 ├── internal/                    # OS-unabhängig testbare Logik (clientpolicy) und Windows-Pakete
 ├── third_party/                 # gepatchte Abhängigkeiten (hid, hotkey), per replace in go.mod
-├── build-macos.sh               # macOS-Produktionsbuild inkl. Signierung
-├── scripts/                     # bump_version.py, check_licenses.py, add_spdx_headers.py, release.sh
+├── scripts/                     # Build- (compile, build-macos, build-windows-msi), Release- und Versions-Skripte
 ├── docs/                        # Überblick, Data-Mapping, Audit-Checkliste
-├── .github/                     # CI, Release-Workflow, Dependabot, Issue-/PR-Templates
+├── .github/                     # CI, Release-Workflow, Dependabot, Templates, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
 ├── LICENSE, LICENSES/           # AGPLv3, vollständiger Text (REUSE-konform, REUSE.toml)
-├── CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, THIRD_PARTY_NOTICES.md
+├── CHANGELOG.md, THIRD_PARTY_NOTICES.md
 ├── DISCLAIMER.md                # Kein-Medizinprodukt-Hinweis (Langfassung)
 ├── wails.json                   # Wails-Projekt-Konfiguration; productVersion = Programmversion
 ├── frontend/
@@ -411,13 +410,15 @@ AI-Coding-Agents geschrieben, aber auch für Menschen lesbar.
 Issues und Pull Requests sind willkommen. Vor größeren Änderungen gerne erst ein Issue
 aufmachen, um Richtung und Umfang abzustimmen. Details zu Entwicklung, Tests, Lizenzköpfen
 (SPDX/REUSE), Commit-Nachrichten und dem Release-Ablauf stehen in
-[`CONTRIBUTING.md`](./CONTRIBUTING.md); der Verhaltenskodex in
-[`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Sicherheitslücken bitte **nicht** als öffentliches
-Issue melden, sondern wie in [`SECURITY.md`](./SECURITY.md) beschrieben.
+[`CONTRIBUTING.md`](./.github/CONTRIBUTING.md); der Verhaltenskodex in
+[`CODE_OF_CONDUCT.md`](./.github/CODE_OF_CONDUCT.md). Sicherheitslücken bitte **nicht** als öffentliches
+Issue melden, sondern wie in [`SECURITY.md`](./.github/SECURITY.md) beschrieben.
 
 ## Dokumentation
 
 - [`docs/opendox-client.md`](docs/opendox-client.md) — was der Client ist und wie er aufgebaut ist
+- [`docs/zweckbestimmung.md`](docs/zweckbestimmung.md) — Zweckbestimmung, Abgrenzung zum Medizinprodukt
+- [`docs/rahmenwerke.md`](docs/rahmenwerke.md) — Einordnung in ISO 27001, NIS2, CRA, MDR, DSGVO
 - [`docs/data-mapping.md`](docs/data-mapping.md) — Datenfluss und lokale Speicherung (Grundlage für
   ein Verzeichnis von Verarbeitungstätigkeiten)
 - [`docs/audit-checklist-opendox-client.md`](docs/audit-checklist-opendox-client.md) — Selbstauskunft

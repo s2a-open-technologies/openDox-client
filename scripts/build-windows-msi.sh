@@ -12,7 +12,7 @@
 #   sudo apt install msitools
 export DISPLAY="${DISPLAY:-:0}"
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
     echo "Fehler: x86_64-w64-mingw32-gcc nicht gefunden." >&2

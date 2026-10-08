@@ -43,8 +43,8 @@ SSO flow, the installers and the build/release tooling.
 
 The client is a thin proxy between the user's microphone, the openDox server and the program the
 user is working in. It deliberately keeps almost nothing: no audio, no transcripts, no passwords on
-disk. For the complete data flow see [`docs/data-mapping.md`](docs/data-mapping.md); for an
-audit-style self-assessment see [`docs/audit-checklist-opendox-client.md`](docs/audit-checklist-opendox-client.md).
+disk. For the complete data flow see [`docs/data-mapping.md`](../docs/data-mapping.md); for an
+audit-style self-assessment see [`docs/audit-checklist-opendox-client.md`](../docs/audit-checklist-opendox-client.md).
 
 ## Authentication & Authorization
 
@@ -84,8 +84,9 @@ Authentication and roles are handled by the server; the client only presents the
 
 The client talks only to the configured `server_url` (REST, WebSocket, the public
 `/api/v1/settings/client-config/` policy endpoint) and, during SSO, to the loopback listener. No
-telemetry, no update checks, no external resources. TLS is **not enforced**: use `https://` for the
-server address, otherwise audio, text and tokens travel unencrypted. Certificates are validated
+telemetry, no update checks, no external resources. TLS is **not enforced by the client**, but production use requires `https://`
+(the server demands it, and microphone capture does not work without it); with any other setup
+audio, text and tokens would travel unencrypted. Certificates are validated
 against the OS trust store; there is no option to skip validation.
 
 ## OS integration
@@ -102,10 +103,10 @@ against the OS trust store; there is no option to skip validation.
 ## Known limitations
 
 These are documented rather than hidden — see "Bekannte Lücken" in
-[`docs/data-mapping.md`](docs/data-mapping.md):
+[`docs/data-mapping.md`](../docs/data-mapping.md):
 
-- no TLS enforcement or warning for `http://` server addresses (also affects the unauthenticated
-  policy endpoint);
+- no client-side TLS enforcement or warning for `http://` server addresses (also affects the
+  unauthenticated policy endpoint); in production the server requires `https://`;
 - tokens in `localStorage` instead of the OS keychain;
 - tokens appear in URLs (WebSocket, token refresh, SSO callback) and can end up in server/proxy
   access logs;
@@ -120,7 +121,7 @@ These are documented rather than hidden — see "Bekannte Lücken" in
 # Deployment Security
 
 For managed Windows environments see
-[`build/windows/installer/DEPLOYMENT.md`](build/windows/installer/DEPLOYMENT.md): disable the
+[`build/windows/installer/DEPLOYMENT.md`](../build/windows/installer/DEPLOYMENT.md): disable the
 clipboard history and cloud clipboard via GPO/Intune (the client's marking only works if the OS and
 clipboard managers honor it), place `settings.json` next to the executable so only administrators
 can change it, and manage the client policy centrally in the server (Admin → Clients).
@@ -150,7 +151,7 @@ can change it, and manage the client policy centrally in the server (Admin → C
 | Measure | Implementation | Status |
 |---------|---------------|--------|
 | Data minimization | No local storage of audio/transcripts; only tokens and UI selections persist | ✅ |
-| Encryption in transit | Depends entirely on `server_url` (`https://`) — not enforced | ⚠️ |
+| Encryption in transit | Depends on `server_url`; server requires `https://`, client does not enforce | ⚠️ |
 | Encryption at rest | Not applicable to audio/text (not stored); tokens rely on OS profile permissions and disk encryption | ⚠️ |
 | Access control | Server-side (JWT, optional LDAP/OIDC, roles); client holds only the user's own tokens | ✅ |
 | Clipboard exposure | Windows hardening (history/cloud exclusion, auto-clear, optional target allow-list) | ✅ Windows / ❌ macOS, Linux |
@@ -160,7 +161,7 @@ can change it, and manage the client policy centrally in the server (Admin → C
 
 Outside this repository's scope — operator responsibility: privacy policy, data processing
 agreements (for the server and any external LLM/sanitizer endpoint), records of processing
-activities (start with [`docs/data-mapping.md`](docs/data-mapping.md)), works-council involvement,
+activities (start with [`docs/data-mapping.md`](../docs/data-mapping.md)), works-council involvement,
 device management (disk encryption, clipboard policies), breach notification procedure.
 
 Data subject rights (access, erasure, portability, objection) concern data held on the server; the
@@ -173,7 +174,7 @@ client keeps no patient data to which they could apply.
 Report suspected vulnerabilities as described above. For a compromised workstation: log out of the
 client (removes the tokens from the WebView profile), have the operator invalidate that user's
 tokens on the server (e.g. by resetting the password) and delete the WebView profile folder listed in
-[`docs/data-mapping.md`](docs/data-mapping.md).
+[`docs/data-mapping.md`](../docs/data-mapping.md).
 
 # Contact
 
@@ -190,9 +191,9 @@ We follow a 90-day disclosure policy. After fix confirmation, we will:
 
 # References
 
-- [`docs/data-mapping.md`](docs/data-mapping.md) — full data-flow mapping
-- [`docs/audit-checklist-opendox-client.md`](docs/audit-checklist-opendox-client.md) — self-assessment
-- [`DISCLAIMER.md`](DISCLAIMER.md) — "Kein Medizinprodukt" notice
+- [`docs/data-mapping.md`](../docs/data-mapping.md) — full data-flow mapping
+- [`docs/audit-checklist-opendox-client.md`](../docs/audit-checklist-opendox-client.md) — self-assessment
+- [`DISCLAIMER.md`](../DISCLAIMER.md) — "Kein Medizinprodukt" notice
 - [RFC 8252 — OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [GDPR Guidelines](https://gdpr.eu/)
