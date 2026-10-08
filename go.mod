@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3
-	github.com/go-vgo/robotgo v1.3.2
+	github.com/go-vgo/robotgo v1.3.3
 	github.com/ricknicius99/hid v0.0.0-20231128165240-e77f6da9e619
 	github.com/wailsapp/wails/v2 v2.16.0
 	golang.design/x/hotkey v0.6.1
