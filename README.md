@@ -98,7 +98,7 @@ gleichnamige Build-Artefakte im Projekt liegen) und der Schalter muss aktiviert 
 **Nach jeder Änderung die App komplett beenden (Cmd+Q) und neu starten**, damit macOS die
 Freigabe übernimmt.
 
-Wichtig: Ohne echtes, von Apple ausgestelltes Signierzertifikat (siehe `build-macos.sh`)
+Wichtig: Ohne echtes, von Apple ausgestelltes Signierzertifikat (siehe `scripts/build-macos.sh`)
 hält macOS auf aktuellen Versionen diese Freigaben nicht zuverlässig über Rebuilds hinweg
 — rein Ad-hoc-signierte Builds können den Schalter in den Einstellungen zwar anzeigen,
 ohne dass die App das intern tatsächlich als erteilt erkennt. Das kostenlose
@@ -274,7 +274,7 @@ Baut Linux (nativ) und Windows (Cross-Build via `mingw-w64`, inkl. NSIS-Installe
 Template in `build/windows/installer/`) hintereinander und startet die Apps **nicht**
 automatisch. Voraussetzung für den Windows-Build: `sudo apt install gcc-mingw-w64-x86-64 nsis`.
 
-macOS wird von `compile.sh` bewusst ausgelassen — Wails v2 unterstützt kein Cross-Compiling für
+macOS wird von `scripts/compile.sh` bewusst ausgelassen — Wails v2 unterstützt kein Cross-Compiling für
 macOS-Targets von einem Nicht-Mac-Host. Auf einem Mac nativ bauen, siehe
 [Produktions-Build](#produktions-build-build-macossh-statt-wails-build) oben.
 

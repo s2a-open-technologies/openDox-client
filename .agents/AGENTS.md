@@ -25,7 +25,7 @@ Run from the repo root unless noted.
   rebuilds even with a stable bundle ID — `AXIsProcessTrusted()` kept returning false at runtime despite
   the toggle showing enabled in System Settings. A real Apple-issued certificate fixed it. The free
   "Apple Development" certificate (Xcode → Settings → Accounts → sign in → Manage Certificates → +) works
-  fine, no paid Developer Program membership needed — see comment header in `build-macos.sh` for full
+  fine, no paid Developer Program membership needed — see comment header in `scripts/build-macos.sh` for full
   setup steps, including recovering from a missing/expired WWDR intermediate cert
   (`security find-identity -v -p codesigning` reporting 0 valid identities despite the cert being present
   is the symptom).

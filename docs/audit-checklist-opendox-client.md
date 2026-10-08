@@ -28,7 +28,7 @@
 | Globale Eingabe | ✅ | Nur registrierte Hotkeys (`golang.design/x/hotkey`), kein Tastatur-Mitschnitt; HID nur für bekannte VID/PID (`dictation_mic_protocol.go`) | Mic-Tastenbelegung noch nicht an echter Hardware verifiziert (`.agents/AGENTS.md` „Dictation mic buttons“, `docs/superpowers/specs/2026-08-06-dictation-mic-design.md`) |
 | Fremdprozess-Aufrufe | ✅ | `notify-send` (Linux), `osascript` (macOS), eigener Scan-Helper (`dictation_mic_scan_helper.go`) | Feste Argumente, keine Nutzereingaben in Kommandozeilen |
 | Content-Security-Policy | ❌ | `frontend/index.html`: keine CSP | Oberfläche lädt nur eingebettete Dateien (Wails-Asset-Server) |
-| Code-Signierung / Integrität der Builds | ❌ | Windows: nicht signiert (Smart App Control blockiert); macOS: `build-macos.sh` signiert mit lokalem Apple-Development-Zertifikat, keine Notarisierung | Vor Kunden-Rollout nötig; Prüfsummen/Signaturen der Release-Dateien noch nicht vorhanden |
+| Code-Signierung / Integrität der Builds | ❌ | Windows: nicht signiert (Smart App Control blockiert); macOS: `scripts/build-macos.sh` signiert mit lokalem Apple-Development-Zertifikat, keine Notarisierung | Vor Kunden-Rollout nötig; Prüfsummen/Signaturen der Release-Dateien noch nicht vorhanden |
 | Update-Mechanismus | ➖ (bewusst keiner) | kein Code für Updates | Verteilung per Intune/SCCM/GPO, siehe `DEPLOYMENT.md`; verhindert unbeaufsichtigten Code-Nachzug, verlangt aber aktives Patchen |
 | Secrets nie im Repo | ✅ | `git grep` auf Schlüssel-/Passwort-Zuweisungen ohne Treffer; `settings.json` enthält nur die Server-Adresse | Keine Zugangsdaten im Client konfigurierbar |
 | Security-relevante Tests | ⚠️ | `internal/clientpolicy/*_test.go` (Allow-Liste, Cleaner, Merge/Cache), `settings_test.go`, `hold_tracker_test.go`, `dictation_mic_protocol_test.go` (28 Tests) | Kein Test für OIDC-Loopback und Einfügen; Windows-Pakete nur per `GOOS=windows go vet` geprüft |
@@ -82,7 +82,7 @@
 | Testabdeckung | ⚠️ | 28 Go-Tests (`internal/clientpolicy`, Einstellungen, Hold-Tracker, HID-Protokoll); Frontend: kein Test-Setup | OS-nahe Teile (Einfügen, Hotkeys, WebView-Berechtigungen) nur manuell prüfbar |
 | Commit-/Maintainer-Aktivität | ✅ | 28 Commits seit 2026-08, laufende Entwicklung | |
 | Bus-Faktor | ❌ (=1) | Alle Commits stammen von einer Person (unter zwei Git-Identitäten) | Kein zweiter Maintainer, kein Nachfolgeprozess |
-| Build-Reproduzierbarkeit | ⚠️ | `go.sum` und `package-lock.json` vorhanden; Toolchain-Versionen (Wails-CLI, mingw, wixl) nur per Prüfwarnung in `build-windows-msi.sh` | Keine bit-identischen Builds, kein CI-Build |
+| Build-Reproduzierbarkeit | ⚠️ | `go.sum` und `package-lock.json` vorhanden; Toolchain-Versionen (Wails-CLI, mingw, wixl) nur per Prüfwarnung in `scripts/build-windows-msi.sh` | Keine bit-identischen Builds, kein CI-Build |
 | Dokumentation | ✅ | [`README.md`](../README.md), [`opendox-client.md`](opendox-client.md), `.agents/AGENTS.md`, `build/windows/installer/DEPLOYMENT.md` | |
 
 ## Zusammenfassung
