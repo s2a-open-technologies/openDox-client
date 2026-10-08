@@ -5,6 +5,7 @@ build/windows/installer/tmp/
 frontend/dist
 /opendox-client
 /opendox-client.exe
+settings.json
 
 # Dependencies
 node_modules
