@@ -12,7 +12,7 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
-## [0.8.3] — 2026-10-08
+## [0.8.1] — 2026-10-08
 
 ### Added
 
@@ -101,6 +101,6 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.3...HEAD
-[0.8.3]: https://github.com/daemolition/openDox-client/compare/v0.8.0...v0.8.3
+[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/daemolition/openDox-client/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/daemolition/openDox-client/releases/tag/v0.8.0
