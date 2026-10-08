@@ -75,6 +75,6 @@ else
     else
         NOTES_ARGS=(--generate-notes)
     fi
-    gh release create "$TAG" "${ASSETS[@]}" --title "openDox Client $VERSION" "${NOTES_ARGS[@]}"
+    gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" "${NOTES_ARGS[@]}"
 fi
 echo "==> Fertig: $(gh release view "$TAG" --json url -q .url)"

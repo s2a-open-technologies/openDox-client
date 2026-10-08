@@ -52,7 +52,7 @@ jobs:
             gh release edit "${GITHUB_REF_NAME}" --notes-file release_notes.md
           else
             gh release create "${GITHUB_REF_NAME}" \
-              --title "openDox Client ${GITHUB_REF_NAME#v}" \
+              --title "${GITHUB_REF_NAME}" \
               --notes-file release_notes.md
           fi
 
