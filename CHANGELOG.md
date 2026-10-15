@@ -17,6 +17,13 @@ afterwards with `scripts/release.sh`.
 - **Rechteinhaber** — In allen Quelldateien, `REUSE.toml` und README steht jetzt **S2A Open Technologies
   gGmbH** als Rechteinhaber (Rechte übertragen); Christopher Abanilla bleibt Urheber (`AUTHORS`). Die
   Lizenz (AGPL-3.0-or-later) ist unverändert.
+- **Firmenname** — `companyName` in `wails.json` ist jetzt "S2A Open Technologies gGmbH" (Herausgeber in den
+  Windows-Installern, Hersteller im MSI, Dateieigenschaften der `.exe`). Der **NSIS-Installer** legt den
+  Firmennamen auch in den Installationsordner und den Deinstallations-Eintrag; eine bestehende `.exe`-Installation
+  wird deshalb nicht aktualisiert, sondern daneben neu installiert. Das **MSI** installiert nach
+  `Program Files\openDox` und aktualisiert wie bisher.
+- Kontaktadresse für Sicherheitsmeldungen, Verhaltenskodex und Autoreintrag ist jetzt
+  `christopher.abanilla@s2a-ot.digital`.
 
 - **Installer aus der CI** — Beim Tag-Push baut der Release-Workflow jetzt den Windows-Installer
   (`opendox-client-amd64-installer.exe`), das MSI (`opendox-client-installer.msi`) und ein
