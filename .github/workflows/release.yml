@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Attach the installers to an already published release without tagging again:
+  #   gh workflow run release.yml -f tag=v0.8.2
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and attach the installers for (e.g. v0.8.2)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,6 +19,7 @@ permissions:
 jobs:
   release:
     name: Create GitHub Release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -40,6 +49,15 @@ jobs:
               "(expected a '## [$version]' heading — see scripts/bump_version.py)"
             exit 1
           fi
+          cat >> release_notes.md <<'NOTE'
+
+          ---
+          Die Windows-Installer und das Linux-Binary werden in der CI gebaut und sind
+          **nicht signiert**. Auf Windows 11 mit Smart App Control oder SmartScreen kann
+          die Installation deshalb blockiert oder gewarnt werden. Signierte Builds
+          ersetzen die Dateien gleichen Namens, sobald sie mit `scripts/release.sh`
+          hochgeladen werden.
+          NOTE
 
       # The signed installers are built locally (Windows MSI/NSIS, macOS) and attached
       # afterwards with scripts/release.sh — the server's download buttons link to them.
@@ -61,6 +79,7 @@ jobs:
   sbom:
     name: Attach SBOMs
     needs: release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -90,3 +109,70 @@ jobs:
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             opendox-client-go.cdx.json opendox-client-npm.cdx.json --clobber
+
+  # Windows-Installer (NSIS .exe + MSI) und Linux-Binary. Alles wird unter Linux gebaut
+  # (Windows per mingw-w64-Cross-Compile, MSI mit wixl), siehe scripts/compile.sh und
+  # scripts/build-windows-msi.sh. macOS lässt sich so nicht bauen und bleibt lokal
+  # (scripts/build-macos.sh + scripts/release.sh). Die Dateinamen sind FEST: der openDox-Server
+  # (Admin → Clients) verlinkt auf releases/latest/download/<Name>, siehe
+  # _CLIENT_DOWNLOAD_FILES im Server-Repo und scripts/release.sh.
+  # Die Builds sind NICHT signiert. Ein später lokal mit scripts/release.sh hochgeladener,
+  # signierter Build ersetzt die Datei gleichen Namens.
+  installers:
+    name: Build and attach installers (unsigned)
+    needs: release
+    # `release` is skipped on a manual run; run anyway then, but not after a failed release.
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Same native packages as ci.yml for the Linux build, plus the Windows cross toolchain:
+      # mingw-w64 (compiler), nsis (makensis, .exe installer), msitools (wixl, .msi).
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libusb-1.0-0-dev \
+            libx11-dev xorg-dev libxtst-dev libpng-dev xclip xsel xvfb \
+            libxcb-xkb-dev x11-xkb-utils libx11-xcb-dev libxkbcommon-x11-dev libxkbcommon-dev \
+            gcc-mingw-w64-x86-64 nsis msitools
+
+      - name: Install the Wails CLI (version from go.mod)
+        run: |
+          go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # xvfb: cgo steps of the X11-bound dependencies (hotkey) want a display while building.
+      - name: Build Linux binary and Windows NSIS installer
+        run: xvfb-run -a ./scripts/compile.sh
+
+      - name: Build Windows MSI
+        run: xvfb-run -a ./scripts/build-windows-msi.sh
+
+      - name: Stage assets with the fixed names
+        run: |
+          mkdir stage
+          cp build/bin/opendox-client-installer.msi stage/opendox-client-installer.msi
+          cp build/bin/opendox-client-amd64-installer.exe stage/opendox-client-amd64-installer.exe
+          # tar keeps the executable bit, which a plain download would lose
+          tar -C build/bin -czf stage/opendox-client-linux-amd64.tar.gz opendox-client
+          ls -l stage
+
+      - name: Upload to the release
+        run: gh release upload "${TAG}" stage/* --clobber
