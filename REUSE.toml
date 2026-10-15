@@ -1,7 +1,7 @@
 version = 1
 
 # openDox - Medical transcription platform
-# Copyright (C) 2026  Christopher Abanilla <christopher.abanilla@gmx.de>
+# Copyright (C) 2026  S2A Open Technologies gGmbH
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Bulk (REUSE.software) licensing declarations for everything that does NOT carry a
@@ -25,7 +25,7 @@ path = [
   ".github/**",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-FileCopyrightText = "2026 S2A Open Technologies gGmbH"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 [[annotations]]
@@ -44,7 +44,7 @@ path = [
   "build/windows/info.json",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-FileCopyrightText = "2026 S2A Open Technologies gGmbH"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 # Frontend: config, lockfile, generated Wails bindings of our own App type, and the
@@ -73,7 +73,7 @@ path = [
   "frontend/src/components/ui/ui.css",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-FileCopyrightText = "2026 S2A Open Technologies gGmbH"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 # Logo / icons (project artwork).
@@ -85,7 +85,7 @@ path = [
   "frontend/src/assets/favicon.png",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Christopher Abanilla <christopher.abanilla@gmx.de>"
+SPDX-FileCopyrightText = "2026 S2A Open Technologies gGmbH"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 # --- Wails project template (MIT) + our modifications (AGPL) ---------------------
@@ -102,7 +102,7 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = [
   "2018-Present Lea Anthony (Wails project template)",
-  "2026 Christopher Abanilla <christopher.abanilla@gmx.de>",
+  "2026 S2A Open Technologies gGmbH",
 ]
 SPDX-License-Identifier = "MIT AND AGPL-3.0-or-later"
 

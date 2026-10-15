@@ -14,6 +14,10 @@ afterwards with `scripts/release.sh`.
 
 ### Changed
 
+- **Rechteinhaber** — In allen Quelldateien, `REUSE.toml` und README steht jetzt **S2A Open Technologies
+  gGmbH** als Rechteinhaber (Rechte übertragen); Christopher Abanilla bleibt Urheber (`AUTHORS`). Die
+  Lizenz (AGPL-3.0-or-later) ist unverändert.
+
 - **Installer aus der CI** — Beim Tag-Push baut der Release-Workflow jetzt den Windows-Installer
   (`opendox-client-amd64-installer.exe`), das MSI (`opendox-client-installer.msi`) und ein
   Linux-Binary (`opendox-client-linux-amd64.tar.gz`) und hängt sie unter den festen Namen an das Release,

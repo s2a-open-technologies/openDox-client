@@ -431,7 +431,7 @@ Issue melden, sondern wie in [`SECURITY.md`](./.github/SECURITY.md) beschrieben.
 
 ## Lizenz
 
-Copyright (C) 2026 Christopher Abanilla <christopher.abanilla@gmx.de>
+Copyright (C) 2026 S2A Open Technologies gGmbH
 
 Dieses Programm ist Freie Software: Sie können es unter den Bedingungen der
 **GNU Affero General Public License v3** (oder, nach Ihrer Wahl, einer späteren Version)
