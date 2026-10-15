@@ -12,6 +12,8 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.2] — 2026-10-15
+
 ### Fixed
 
 - **Fortsetzen einer Aufnahme auf der falschen Server-Instanz** — Läuft der Server in
@@ -110,6 +112,7 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/daemolition/openDox-client/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/daemolition/openDox-client/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/daemolition/openDox-client/releases/tag/v0.8.0
