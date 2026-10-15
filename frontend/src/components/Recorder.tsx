@@ -51,6 +51,13 @@ export interface RecorderHandle {
     waitForUploads: () => Promise<void>;
 }
 
+// Meldungen für Fehlercodes, mit denen der Server den WebSocket ablehnt und schließt.
+// Unbekannte Codes zeigen den (englischen) Fehlertext des Servers.
+const SERVER_ERROR_MESSAGES: Record<string, string> = {
+    recording_audio_unavailable:
+        "Diese Aufnahme kann hier nicht fortgesetzt werden: Ihr bisheriges Audio liegt auf einer anderen Server-Instanz. Bitte die Aufnahme neu starten.",
+};
+
 const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, categoryId, onFinalTranscription, onRecordingStart, autoStart, resumeSessionId, onLogout}, ref) => {
     const {getToken} = useAuth();
     const {settings} = useSettings();
@@ -87,6 +94,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const workletRef = useRef<AudioWorkletNode | null>(null);
     const isPausedRef = useRef(false);
     const wsFinishedRef = useRef(false);
+    // Gesetzt, wenn der Server den Abbruch mit einem Fehlercode erklärt hat -
+    // dann zeigt onclose nicht zusätzlich "Verbindung unterbrochen".
+    const serverErrorShownRef = useRef(false);
     const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Für den globalen Hotkey-Listener (unten): der spiegelt isRecording/isProcessing,
@@ -309,6 +319,14 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
+            if (data.error && data.code) {
+                // Der Server lehnt ab und schließt den Socket direkt danach (z.B. wenn das
+                // bisherige Audio einer fortgesetzten Aufnahme auf einer anderen Instanz liegt).
+                serverErrorShownRef.current = true;
+                toast.error(SERVER_ERROR_MESSAGES[data.code] ?? data.error);
+                return;
+            }
+
             if (data.partial && liveEnabledRef.current) {
                 setLiveTranscript(data.partial);
             }
@@ -369,9 +387,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     clearTimeout(processingTimeoutRef.current);
                     processingTimeoutRef.current = null;
                 }
-                toast.error("Verbindung unterbrochen – bitte Aufnahme neu starten");
+                if (!serverErrorShownRef.current) {
+                    toast.error("Verbindung unterbrochen – bitte Aufnahme neu starten");
+                }
             }
             wsFinishedRef.current = false;
+            serverErrorShownRef.current = false;
         };
     };
 

@@ -12,6 +12,15 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Fortsetzen einer Aufnahme auf der falschen Server-Instanz** — Läuft der Server in
+  mehreren Instanzen und landet die Wiederverbindung auf einer, die das bisherige Audio
+  der Aufnahme nicht hat, lehnt der Server sie jetzt mit dem Fehlercode
+  `recording_audio_unavailable` ab (statt in einer neuen, leeren Datei weiterzuschreiben).
+  Der Client zeigt dazu eine eigene Meldung statt „Verbindung unterbrochen“. Ältere
+  Server senden den Code nicht, dann bleibt das Verhalten wie bisher.
+
 ## [0.8.1] — 2026-10-08
 
 ### Added
