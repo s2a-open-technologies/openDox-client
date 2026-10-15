@@ -12,6 +12,16 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Installer aus der CI** — Beim Tag-Push baut der Release-Workflow jetzt den Windows-Installer
+  (`opendox-client-amd64-installer.exe`), das MSI (`opendox-client-installer.msi`) und ein
+  Linux-Binary (`opendox-client-linux-amd64.tar.gz`) und hängt sie unter den festen Namen an das Release,
+  sodass die Download-Links der Server-GUI ohne manuellen Upload funktionieren. Die CI-Builds sind
+  **nicht signiert** (Hinweis in den Release-Notizen); signierte Builds ersetzen sie über
+  `scripts/release.sh`. Für ein bestehendes Release: `gh workflow run release.yml -f tag=vX.Y.Z`.
+  macOS bleibt lokal.
+
 ## [0.8.2] — 2026-10-15
 
 ### Fixed

@@ -78,7 +78,7 @@
 | Issue-/PR-Templates | ✅ | `.github/ISSUE_TEMPLATE/*.yaml`, `.github/PULL_REQUEST_TEMPLATE.md` (inkl. Hinweis „keine Patientendaten“) | |
 | Versionierungs-Tooling | ✅ | `scripts/bump_version.py` (Quelle: `wails.json`, synct `frontend/package.json` + Lockfile, verschiebt `[Unreleased]`) | |
 | Versionierung tatsächlich genutzt (Git-Tags) | ❌ | noch kein Tag; `.github/workflows/release.yml` prüft Tag = `wails.json`-Version und veröffentlicht die Changelog-Notizen | Erster Tag ausstehend |
-| Release-Artefakte | ⚠️ | `scripts/release.sh` lädt lokal gebaute MSI/EXE/ZIP unter festen Namen hoch (der Server verlinkt `releases/latest/download/…`) | Manuell, unsigniert (siehe Security); keine Prüfsummen, keine SBOM, kein CI-Build |
+| Release-Artefakte | ⚠️ | Der Release-Workflow baut MSI und `.exe` (sowie ein Linux-Binary) in der CI und hängt sie zusammen mit den SBOMs (CycloneDX) unter festen Namen an das Release (der Server verlinkt `releases/latest/download/…`); `scripts/release.sh` ersetzt sie durch lokal gebaute, signierte Builds und lädt das macOS-ZIP hoch | CI-Builds sind unsigniert (siehe Security); macOS bleibt manuell; keine Prüfsummen |
 | Testabdeckung | ⚠️ | 28 Go-Tests (`internal/clientpolicy`, Einstellungen, Hold-Tracker, HID-Protokoll); Frontend: kein Test-Setup | OS-nahe Teile (Einfügen, Hotkeys, WebView-Berechtigungen) nur manuell prüfbar |
 | Commit-/Maintainer-Aktivität | ✅ | 28 Commits seit 2026-08, laufende Entwicklung | |
 | Bus-Faktor | ❌ (=1) | Alle Commits stammen von einer Person (unter zwei Git-Identitäten) | Kein zweiter Maintainer, kein Nachfolgeprozess |

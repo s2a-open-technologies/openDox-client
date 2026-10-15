@@ -241,8 +241,10 @@ Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches
 Der Server speichert keine Installer, sondern verlinkt auf
 `https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
 sind deshalb fest: `opendox-client-installer.msi`, `opendox-client-amd64-installer.exe`,
-`opendox-client-macos.zip`. `scripts/release.sh <version>` lädt die vorhandenen Builds unter genau
-diesen Namen in ein GitHub-Release hoch (braucht die `gh` CLI). Solange das Repository privat ist,
+`opendox-client-macos.zip`. Beim Tag-Push baut der Release-Workflow MSI und `.exe` (sowie ein
+Linux-Binary `opendox-client-linux-amd64.tar.gz`) in der CI und hängt sie **unsigniert** an das Release.
+`scripts/release.sh <version>` lädt lokal gebaute, signierte Builds (und das macOS-ZIP) unter genau
+diesen Namen in das Release hoch und ersetzt dabei Dateien gleichen Namens (braucht die `gh` CLI). Solange das Repository privat ist,
 funktionieren die Links nur für eingeloggte GitHub-Nutzer mit Zugriff.
 
 ### Frontend eigenständig

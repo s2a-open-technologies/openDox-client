@@ -12,7 +12,9 @@
 #
 # Lädt nur hoch, was unter build/bin/ liegt; bestehende Dateien im Release werden ersetzt.
 # Normalerweise legt .github/workflows/release.yml das Release beim Tag-Push an (mit den
-# CHANGELOG-Notizen) und dieses Skript hängt nur die Installer an.
+# CHANGELOG-Notizen) und baut Windows-MSI/-EXE und das Linux-Binary UNSIGNIERT in der CI.
+# Dieses Skript ersetzt sie durch lokal gebaute, signierte Builds (gleiche Dateinamen) und
+# lädt das macOS-ZIP hoch, das sich in der CI nicht bauen lässt.
 # Builds vorher signieren (Smart App Control, siehe build-macos.sh / DEPLOYMENT.md).
 #
 # Voraussetzung: gh CLI (sudo apt install gh / brew install gh), einmalig `gh auth login`.

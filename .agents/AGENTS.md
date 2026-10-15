@@ -339,8 +339,12 @@ The repo mirrors the server repo's governance setup (same shape as `~/python/pro
   `frontend/package.json`; run `python3 scripts/bump_version.py patch|minor|major [--commit]`, which also
   syncs the lockfile, moves `[Unreleased]` in the changelog and (with `--commit`) commits and tags `vX.Y.Z`.
   Pushing the tag runs `.github/workflows/release.yml` (checks tag == `wails.json`, publishes the changelog
-  section as release notes). Installers are built locally (signed) and attached with `scripts/release.sh`
-  under **fixed file names** — the server's admin UI links to `releases/latest/download/<name>`.
+  section as release notes). The same workflow's `installers` job builds the Windows MSI + NSIS `.exe` and a
+  Linux binary (`opendox-client-linux-amd64.tar.gz`) **unsigned**, cross-compiled on ubuntu
+  (`scripts/compile.sh`, `scripts/build-windows-msi.sh`), and attaches them under **fixed file names** — the
+  server's admin UI links to `releases/latest/download/<name>`. Signed local builds uploaded with
+  `scripts/release.sh` replace the files of the same name; macOS is only built locally (Wails cannot
+  cross-compile it). `gh workflow run release.yml -f tag=vX.Y.Z` re-runs the job for an existing release.
 - **CI** (`.github/workflows/ci.yml`): gofmt (excl. `third_party/`), `go vet`, `xvfb-run go test`
   (with `-tags webkit2_41`; `frontend/dist` must be built first because of `//go:embed`),
   `GOOS=windows go vet ./internal/...`, frontend typecheck + build, REUSE lint. Dependabot covers

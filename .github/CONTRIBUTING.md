@@ -162,7 +162,10 @@ Releases are cut by a maintainer. The single canonical version is `info.productV
 
    `.github/workflows/release.yml` checks that the tag matches `wails.json`, and publishes the
    changelog section as the GitHub Release notes.
-3. Build the **signed** installers locally and attach them under their fixed names:
+3. The workflow also builds the Windows installers and a Linux binary in CI and attaches them
+   **unsigned** (`gh workflow run release.yml -f tag=vX.Y.Z` repeats that for an existing release).
+   To ship **signed** ones, and for macOS, build locally and attach them under their fixed names;
+   files of the same name are replaced:
 
    ```bash
    ./scripts/build-windows-msi.sh && ./scripts/compile.sh     # Linux: MSI + NSIS setup
