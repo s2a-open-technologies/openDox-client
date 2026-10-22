@@ -75,16 +75,12 @@ static const CGKeyCode modifierKeycodes[] = {
 // der Nutzer Cmd+Opt+V (unseren Hotkey) noch nicht ganz losgelassen hat. Ohne diese
 // Prüfung würde ein sofortiges Cmd+V-Paste danach zu Cmd+Opt+V werden.
 int modifiersHeld() {
-    CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-    int held = 0;
     for (size_t i = 0; i < sizeof(modifierKeycodes) / sizeof(modifierKeycodes[0]); i++) {
-        if (CGEventSourceKeyState(source, modifierKeycodes[i])) {
-            held = 1;
-            break;
+        if (CGEventSourceKeyState(kCGEventSourceStateHIDSystemState, modifierKeycodes[i])) {
+            return 1;
         }
     }
-    CFRelease(source);
-    return held;
+    return 0;
 }
 */
 import "C"

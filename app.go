@@ -845,11 +845,15 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// focus_windows.go): der Klick hat den Fokus gar nicht erst genommen, der
 	// Button verhält sich damit wie der Hotkey. Hide-and-hope war dort nicht
 	// zuverlässig — der Text kam nach WindowHide() in keinem Zielprogramm an.
+	// Unter macOS ebenfalls kein Hide: orderOut gibt den Fokus dort nicht an die
+	// vorherige App zurück; stattdessen wird sie gezielt reaktiviert (focus_darwin.go).
 	hideForFocus := wasVisible && !viaHotkey && !noActivate
 	log.Printf("[opendox] InsertTranscript: start viaHotkey=%v wasVisible=%v noActivate=%v hideForFocus=%v len=%d", viaHotkey, wasVisible, noActivate, hideForFocus, len(text))
 	if hideForFocus {
 		runtime.WindowHide(a.ctx)
 		log.Printf("[opendox] InsertTranscript: WindowHide done")
+	} else if !viaHotkey && noActivate {
+		restoreInsertFocus()
 	}
 
 	// Kurze Pause: gibt dem Fenstermanager Zeit, den Fokuswechsel nach dem

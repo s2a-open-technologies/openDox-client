@@ -96,3 +96,7 @@ func setOverlayNoActivate(enabled bool) bool {
 	log.Printf("[opendox] setOverlayNoActivate(%v) ok", enabled)
 	return true
 }
+
+// restoreInsertFocus: unter Windows nicht nötig — WS_EX_NOACTIVATE verhindert,
+// dass der Klick den Fokus überhaupt aus dem Zielprogramm nimmt.
+func restoreInsertFocus() {}
