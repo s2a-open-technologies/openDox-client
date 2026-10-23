@@ -1,5 +1,6 @@
 import {FormEvent, useEffect, useState} from 'react';
-import {Loader2, Lock, LogIn, User} from 'lucide-react';
+import {Loader2, Lock, LogIn, Moon, Sun, User} from 'lucide-react';
+import {toggleTheme, useTheme} from '@/lib/preferences';
 import {useAuth} from '@/contexts/AuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
 import {Button} from '@/components/ui/Button';
@@ -17,6 +18,7 @@ export const LoginScreen = () => {
     const [submitting, setSubmitting] = useState(false);
     const [oidcEnabled, setOidcEnabled] = useState(false);
     const [ssoWaiting, setSsoWaiting] = useState(false);
+    const theme = useTheme();
 
     useEffect(() => {
         // Erst abfragen, wenn die Server-URL feststeht — sonst geht der Request
@@ -70,6 +72,15 @@ export const LoginScreen = () => {
         <div className="login">
             {/* Drag-Region am oberen Rand */}
             <div className="login-dragbar"/>
+            <button
+                type="button"
+                className="login-theme-btn"
+                onClick={toggleTheme}
+                title={theme === "dark" ? "Helles Design" : "Dunkles Design"}
+                aria-label={theme === "dark" ? "Helles Design einschalten" : "Dunkles Design einschalten"}
+            >
+                {theme === "dark" ? <Sun size={14}/> : <Moon size={14}/>}
+            </button>
 
             <div className="login-inner">
                 <div className="login-header">

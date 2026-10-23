@@ -187,15 +187,14 @@ und eine fertige `settings.json` mit seiner eigenen Adresse.
 
 ### Zwischenablage und Einfügeziel (Client-Richtlinie)
 
-Die folgenden Einstellungen verwaltet der Admin **zentral im openDox-Server** (Admin → Clients). Der
-Client holt sie beim Start und danach alle 10 Minuten (`GET /api/v1/settings/client-config/`, ohne
-Login), speichert den letzten Stand im Cache-Ordner des Benutzers (`client-policy-cache.json` unter
-`~/.cache/opendox-client`, `~/Library/Caches/opendox-client` bzw. `%LocalAppData%\opendox-client`)
-und nutzt ihn, wenn der Server beim Start nicht erreichbar ist. **Werte vom Server haben Vorrang.**
+Die folgenden Einstellungen kann der Admin **zentral im openDox-Server** vorgeben (Admin → Clients). Der
+Client holt sie **einmal beim Start** (`GET /api/v1/settings/client-config/`, ohne Login), speichert den
+letzten Stand im Cache-Ordner des Benutzers (`client-policy-cache.json` unter `~/.cache/opendox-client`,
+`~/Library/Caches/opendox-client` bzw. `%LocalAppData%\opendox-client`) und nutzt ihn, wenn der Server
+beim Start nicht erreichbar ist.
 
-Dieselben Schlüssel können zusätzlich in der `settings.json` stehen. Sie gelten nur, solange der
-Client noch nie einen Stand vom Server bekommen hat, oder bei einem älteren Server ohne diesen Endpunkt.
-Fehlt ein Schlüssel überall, gilt der Default:
+Dieselben Schlüssel können in der `settings.json` stehen; **was dort steht, gewinnt gegenüber dem Server**
+(so kann die IT einzelne Rechner abweichend festlegen). Fehlt ein Schlüssel überall, gilt der Default:
 
 ```json
 {
@@ -204,9 +203,17 @@ Fehlt ein Schlüssel überall, gilt der Default:
     "clipboard_clear_after_seconds": 30,
     "insert_allowlist": [],
     "dictation_mic_mode": "hold",
-    "live_view": true
+    "live_view": true,
+    "theme": "dark"
 }
 ```
+
+**Nutzer-Einstellungen.** `theme`, `live_view` und `dictation_mic_mode` sind nur Vorgaben: Der Nutzer
+stellt sie im Overlay um (Zahnrad → Einstellungen; Design auch auf dem Anmeldebildschirm, Live-Ansicht auch
+über das Auge). Die Wahl landet in `preferences.json` im Benutzer-Konfigordner
+(`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`)
+und gewinnt gegenüber `settings.json` und Server. „Auf Standard zurücksetzen“ löscht die Datei. Die
+Zwischenablage- und Allow-Listen-Schlüssel kann der Nutzer bewusst nicht ändern.
 
 - `clipboard_exclude_from_history` (Default `true`, nur Windows) — der eingefügte Text wird als
   vertraulich markiert und taucht nicht im Windows-Zwischenablage-Verlauf (Win+V) und nicht in der
@@ -225,10 +232,12 @@ Fehlt ein Schlüssel überall, gilt der Default:
   Dragon/Orpheus). `"toggle"`: bisheriges Verhalten (Druck startet, nächster Druck stoppt, Einfügen per
   Taste/Button). Bei unerwartetem Verhalten am Gerät auf `"toggle"` zurückstellen.
 
+- `theme` (Default `"dark"`) — Design des Overlays, `"dark"` oder `"light"`.
+
 - `live_view` (Default `true`) — Live-Ansicht (Text erscheint während des Sprechens). Auf `false` zeigt das
   Overlay nur einen Orb (Fenstergröße unverändert), und der Server startet für die Aufnahme keine Live-
   Transkription (WebSocket-Parameter `live=0`; spart Rechenlast, das Endergebnis nach dem Stop bleibt gleich).
-  Der Nutzer kann das im Overlay (Auge-Symbol) pro Rechner überschreiben. Ältere Server ignorieren den
+  Der Nutzer kann das im Overlay (Auge-Symbol) überschreiben. Ältere Server ignorieren den
   Parameter, dann ist es nur eine Anzeige-Frage.
 
 Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches Programm** eingefügt wird
@@ -373,7 +382,8 @@ Gerätetabelle und Protokoll sind aus
 ├── accessibility_darwin.go      # macOS: prüft Bedienhilfen-Berechtigung (AXIsProcessTrusted)
 ├── paste_darwin.go              # macOS: simuliert Cmd+V direkt über CGEventPost
 ├── hotkey_mod_*.go              # Plattformspezifische Hotkey-Modifier (Ctrl+Alt vs. Cmd+Option)
-├── policy_sync.go               # Client-Richtlinie vom Server holen, cachen, anwenden
+├── policy_sync.go               # Client-Richtlinie vom Server einmal holen, cachen, anwenden
+├── preferences.go               # Nutzer-Einstellungen (preferences.json) fürs Frontend
 ├── internal/                    # OS-unabhängig testbare Logik (clientpolicy) und Windows-Pakete
 ├── third_party/                 # gepatchte Abhängigkeiten (hid, hotkey), per replace in go.mod
 ├── scripts/                     # Build- (compile, build-macos, build-windows-msi), Release- und Versions-Skripte

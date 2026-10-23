@@ -28,35 +28,37 @@ import (
 	"time"
 )
 
-func TestMergeRemoteWinsPerField(t *testing.T) {
+func TestMergeLocalWinsPerField(t *testing.T) {
 	local := Settings{
 		ClipboardExcludeFromHistory: ptrBool(false),
-		ClipboardClearAfterSeconds:  ptrInt(5),
-		InsertAllowlist:             []string{"notepad.exe"},
+		InsertAllowlist:             []string{}, // ausdrücklich leer = Liste aus
 		DictationMicMode:            "toggle",
 	}
+	// Der Server schickt immer alle Felder mit seinen Defaults.
 	remote := Settings{
-		ClipboardClearAfterSeconds: ptrInt(60),
-		InsertAllowlist:            []string{}, // ausdrücklich leer = Liste aus
-		LiveView:                   ptrBool(false),
+		ClipboardExcludeFromHistory: ptrBool(true),
+		ClipboardClearAfterSeconds:  ptrInt(60),
+		InsertAllowlist:             []string{"medistar.exe"},
+		DictationMicMode:            "hold",
+		LiveView:                    ptrBool(false),
 	}
 
 	got := Merge(remote, local)
 
 	if got.ClipboardExclude() {
-		t.Error("ClipboardExclude: nicht vom Server gesetzt, lokaler Wert false muss bleiben")
+		t.Error("ClipboardExclude: lokaler Wert false muss den Server überstimmen")
 	}
 	if got.ClipboardClearAfter() != 60*time.Second {
-		t.Errorf("ClipboardClearAfter = %v, want 60s vom Server", got.ClipboardClearAfter())
+		t.Errorf("ClipboardClearAfter = %v, want 60s vom Server (lokal nicht gesetzt)", got.ClipboardClearAfter())
 	}
 	if got.AllowlistActive() {
-		t.Error("leere Server-Liste muss die lokale Liste überschreiben")
+		t.Error("leere lokale Liste muss die Server-Liste überschreiben")
 	}
 	if got.MicHoldMode() {
-		t.Error("DictationMicMode: nicht vom Server gesetzt, lokales toggle muss bleiben")
+		t.Error("DictationMicMode: lokales toggle muss gelten")
 	}
 	if got.LiveViewDefault() {
-		t.Error("LiveView vom Server (false) muss gelten")
+		t.Error("LiveView: lokal nicht gesetzt, Server-Wert false muss gelten")
 	}
 }
 

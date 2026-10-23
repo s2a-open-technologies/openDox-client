@@ -3,8 +3,8 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    background-color: #18181b;
-    color: #e4e4e7;
+    background-color: var(--bg);
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -16,8 +16,8 @@
     /* Rechts Platz für den global fixierten Close-Button (App.css .app-close)
        reservieren, damit Kategorie-Dropdown/Logout nicht darunter kollidieren. */
     padding: 10px 40px 10px 14px;
-    border-bottom: 1px solid #27272a;
-    background-color: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--surface);
+    background-color: var(--bar-bg);
     /* Drag-Region: Header lässt sich zum Verschieben des Fensters ziehen */
     -webkit-app-region: drag;
 }
@@ -51,7 +51,7 @@
 .recorder-status-text {
     font-size: 12px;
     font-weight: 500;
-    color: #a1a1aa;
+    color: var(--text-muted);
     letter-spacing: 0.01em;
 }
 
@@ -70,9 +70,9 @@
 .recorder-category-select {
     padding: 4px 8px;
     border-radius: 6px;
-    border: 1px solid #3f3f46;
-    background-color: #09090b;
-    color: #d4d4d8;
+    border: 1px solid var(--border);
+    background-color: var(--bg-deep);
+    color: var(--text-soft);
     font-size: 12px;
     font-family: inherit;
     outline: none;
@@ -84,8 +84,8 @@
 }
 
 .recorder-category-select option {
-    background-color: #09090b;
-    color: #d4d4d8;
+    background-color: var(--bg-deep);
+    color: var(--text-soft);
 }
 
 .recorder-category-select:focus {
@@ -93,7 +93,7 @@
 }
 
 .recorder-category-select:hover {
-    border-color: #52525b;
+    border-color: var(--border-strong);
 }
 
 /* Mikrofon-Button (öffnet Geräte-Popup) — im Stil des Logout-Buttons */
@@ -110,7 +110,7 @@
     justify-content: center;
     border: none;
     background-color: transparent;
-    color: #71717a;
+    color: var(--text-faint);
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;
@@ -119,8 +119,8 @@
 
 .recorder-mic-select-btn:hover,
 .recorder-mic-select-btn.open {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #e4e4e7;
+    background-color: var(--tint-2);
+    color: var(--text);
 }
 
 /* Popup-Menü: öffnet fixiert unten links am Fensterrand (14px eingezogen,
@@ -133,10 +133,10 @@
     min-width: 180px;
     max-width: 300px;
     padding: 6px;
-    border: 1px solid #3f3f46;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    background-color: #09090b;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    background-color: var(--bg-deep);
+    box-shadow: 0 8px 24px var(--shadow-color);
     -webkit-app-region: no-drag;
 }
 
@@ -146,7 +146,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #71717a;
+    color: var(--text-faint);
     pointer-events: none;
 }
 
@@ -160,7 +160,7 @@
     border: none;
     border-radius: 6px;
     background-color: transparent;
-    color: #d4d4d8;
+    color: var(--text-soft);
     font-size: 12px;
     font-family: inherit;
     text-align: left;
@@ -169,11 +169,11 @@
 }
 
 .recorder-mic-item:hover {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--tint-2);
 }
 
 .recorder-mic-item.active {
-    color: #60a5fa;
+    color: var(--accent-text);
 }
 
 .recorder-mic-item-label {
@@ -200,7 +200,7 @@
     justify-content: center;
     border: none;
     background-color: transparent;
-    color: #71717a;
+    color: var(--text-faint);
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;
@@ -208,8 +208,8 @@
 }
 
 .recorder-logout-btn:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #e4e4e7;
+    background-color: var(--tint-2);
+    color: var(--text);
 }
 
 /* Transkriptions-Bereich */
@@ -249,7 +249,7 @@
     font-size: 14px;
     line-height: 1.6;
     font-weight: 300;
-    color: #d4d4d8;
+    color: var(--text-soft);
     letter-spacing: 0.01em;
 }
 
@@ -259,7 +259,7 @@
 }
 
 .recorder-text-live {
-    color: #60a5fa;
+    color: var(--accent-text);
     margin-left: 4px;
     border-bottom: 1px solid rgba(96, 165, 250, 0.3);
     padding-bottom: 1px;
@@ -271,7 +271,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #52525b;
+    color: var(--border-strong);
 }
 
 .recorder-placeholder p {
@@ -295,8 +295,8 @@
     align-items: center;
     gap: 16px;
     padding: 14px;
-    border-top: 1px solid #27272a;
-    background-color: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--surface);
+    background-color: var(--bar-bg);
     /* Controls dürfen nicht als Drag-Region gelten */
     -webkit-app-region: no-drag;
 }
@@ -416,8 +416,8 @@
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
-    border-top: 1px solid #27272a;
-    background-color: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--surface);
+    background-color: var(--bar-bg);
     -webkit-app-region: no-drag;
 }
 
@@ -432,7 +432,7 @@
     border-radius: 8px;
     border: 1px solid #3b82f6;
     background-color: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
+    color: var(--accent-text);
     font-size: 13px;
     font-weight: 500;
     font-family: inherit;
@@ -444,7 +444,7 @@
 
 .recorder-insert-btn:hover {
     background-color: rgba(59, 130, 246, 0.2);
-    border-color: #60a5fa;
+    border-color: var(--accent-text);
 }
 
 .recorder-insert-btn:active {
@@ -454,15 +454,15 @@
 /* Sekundäre Variante (Neue Aufnahme): gedämpft, damit "Akzeptieren und
    einfügen" als Primäraktion hervorgehoben bleibt */
 .recorder-insert-btn.secondary {
-    border-color: #3f3f46;
+    border-color: var(--border);
     background-color: transparent;
-    color: #a1a1aa;
+    color: var(--text-muted);
 }
 
 .recorder-insert-btn.secondary:hover {
-    border-color: #71717a;
-    background-color: rgba(255, 255, 255, 0.04);
-    color: #e4e4e7;
+    border-color: var(--text-faint);
+    background-color: var(--tint-1);
+    color: var(--text);
 }
 
 .icon-inline {
@@ -484,7 +484,7 @@
 .recorder-processing span {
     font-size: 12px;
     font-weight: 500;
-    color: #a1a1aa;
+    color: var(--text-muted);
 }
 
 /* Shortcuts */
@@ -494,8 +494,8 @@
     flex-wrap: wrap;
     gap: 12px;
     padding: 6px 14px 10px;
-    border-top: 1px solid #27272a;
-    background-color: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--surface);
+    background-color: var(--bar-bg);
 }
 
 .shortcut {
@@ -503,7 +503,7 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #71717a;
+    color: var(--text-faint);
 }
 
 .shortcut kbd {
@@ -511,9 +511,9 @@
     font-size: 10px;
     padding: 1px 5px;
     border-radius: 4px;
-    border: 1px solid #3f3f46;
-    background-color: #09090b;
-    color: #a1a1aa;
+    border: 1px solid var(--border);
+    background-color: var(--bg-deep);
+    color: var(--text-muted);
 }
 
 .icon-spin {
@@ -533,7 +533,7 @@
 }
 
 .recorder-transcript::-webkit-scrollbar-thumb {
-    background-color: #3f3f46;
+    background-color: var(--border);
     border-radius: 3px;
 }
 
@@ -581,23 +581,23 @@
 .recorder-target {
     text-align: center;
     font-size: 12px;
-    color: #a1a1aa;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .recorder-target strong {
-    color: #e4e4e7;
+    color: var(--text);
     font-weight: 600;
 }
 
 .recorder-target.warn {
-    color: #fbbf24;
+    color: var(--warn-text);
 }
 
 .recorder-target.warn strong {
-    color: #fcd34d;
+    color: var(--warn-text-strong);
 }
 
 /* Aktionen als reine Icon-Buttons in einer Reihe */
@@ -614,28 +614,28 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    border: 1px solid #3f3f46;
+    border: 1px solid var(--border);
     background-color: transparent;
-    color: #a1a1aa;
+    color: var(--text-muted);
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     -webkit-app-region: no-drag;
 }
 
 .recorder-icon-btn:hover {
-    border-color: #71717a;
-    background-color: rgba(255, 255, 255, 0.04);
-    color: #e4e4e7;
+    border-color: var(--text-faint);
+    background-color: var(--tint-1);
+    color: var(--text);
 }
 
 .recorder-icon-btn.primary {
     border-color: #3b82f6;
     background-color: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
+    color: var(--accent-text);
 }
 
 .recorder-icon-btn.primary:hover {
-    border-color: #60a5fa;
+    border-color: var(--accent-text);
     background-color: rgba(59, 130, 246, 0.2);
 }
 
@@ -651,7 +651,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: var(--scrim);
     -webkit-app-region: no-drag;
 }
 
@@ -660,9 +660,9 @@
     max-width: 320px;
     padding: 12px 14px;
     border-radius: 10px;
-    border: 1px solid #3f3f46;
-    background-color: #18181b;
-    color: #d4d4d8;
+    border: 1px solid var(--border);
+    background-color: var(--bg);
+    color: var(--text-soft);
     font-size: 12px;
 }
 
@@ -672,7 +672,7 @@
     justify-content: space-between;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #e4e4e7;
+    color: var(--text);
 }
 
 .recorder-help ul {
@@ -690,7 +690,69 @@
     padding: 1px 5px;
     margin-right: 6px;
     border-radius: 4px;
-    border: 1px solid #3f3f46;
-    background-color: #09090b;
-    color: #a1a1aa;
+    border: 1px solid var(--border);
+    background-color: var(--bg-deep);
+    color: var(--text-muted);
+}
+
+/* Einstellungen-Dialog (gleiche Hülle wie das Hilfe-Overlay) */
+.recorder-prefs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.recorder-prefs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.recorder-seg {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.recorder-seg button {
+    border: none;
+    background-color: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.recorder-seg button + button {
+    border-left: 1px solid var(--border);
+}
+
+.recorder-seg button:hover {
+    background-color: var(--tint-2);
+    color: var(--text);
+}
+
+.recorder-seg button.active {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-text);
+}
+
+.recorder-prefs-reset {
+    align-self: flex-start;
+    margin-top: 2px;
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--text-faint);
+    font-family: inherit;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.recorder-prefs-reset:hover {
+    color: var(--text);
 }

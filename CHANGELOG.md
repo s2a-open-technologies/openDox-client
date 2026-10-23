@@ -12,7 +12,21 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Added
+
+- **Hell/Dunkel-Design** — Das Overlay gibt es jetzt auch hell. Umschalten über das Zahnrad in der Statusleiste
+  oder das Sonnen-/Mond-Symbol auf dem Anmeldebildschirm. Standard ist weiterhin dunkel.
+- **Einstellungen im Overlay** — Über das Zahnrad stellt jeder Nutzer Design, Live-Ansicht und das Verhalten der
+  Mikrofontaste (Halten/Umschalten) selbst ein. Die Wahl wird in `preferences.json` im Benutzer-Konfigordner
+  gespeichert und gewinnt gegenüber `settings.json` und Server-Vorgabe; „Auf Standard zurücksetzen“ stellt die
+  Vorgaben wieder her. Eine frühere Wahl der Live-Ansicht wird übernommen.
+
 ### Changed
+
+- **`settings.json` gewinnt wieder über den Server** — Bisher hat die Server-Richtlinie die lokalen Schlüssel
+  praktisch immer überschrieben (der Server schickt jedes Feld mit). Jetzt liefert der Server nur die Vorgabe für
+  das, was die lokale `settings.json` nicht festlegt.
+- **Server-Richtlinie nur beim Start** — Der Client holt sie einmal beim Start statt alle 10 Minuten.
 
 - **Orb wie im Web-Frontend** — Ist die Live-Ansicht aus, zeigt der Client jetzt denselben cyanfarbenen,
   weich leuchtenden Orb wie die openDox-Weboberfläche statt des roten, zackigen.

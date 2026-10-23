@@ -41,10 +41,6 @@ type micProfile struct {
 	parse func(report []byte) (micButtonMask, bool)
 }
 
-// dictationMicVendorIDs sind alle USB-Hersteller-IDs, die matchDictationMicProfile kennt (Philips,
-// Nuance). Der Scan fragt nur diese ab, siehe runDictationMicScanHelper.
-var dictationMicVendorIDs = []uint16{0x0911, 0x0554}
-
 // matchDictationMicProfile ordnet eine USB-VID/PID-Kombination einem bekannten Diktiermikro-Profil
 // zu. VID/PID-Tabelle 1:1 aus GoogleChromeLabs/dictation_support (dictation_device_manager.ts,
 // DEVICE_FILTERS) übernommen — siehe docs/superpowers/specs/2026-08-06-dictation-mic-design.md.

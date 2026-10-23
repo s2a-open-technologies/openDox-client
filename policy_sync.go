@@ -24,26 +24,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"time"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"opendox-client/internal/clientpolicy"
 )
 
-// Die Client-Richtlinie (Zwischenablage, Allow-Liste, Mic-Modus, Live-Ansicht) verwaltet der
-// Admin im openDox-Server (Admin → Clients). Der Client holt sie beim Start und danach
-// regelmäßig; Server-Werte gewinnen gegenüber settings.json (clientpolicy.Merge). Der letzte
-// Stand wird zwischengespeichert, damit er auch gilt, wenn der Server beim Start fehlt.
+// Die Vorgaben für den Client (Zwischenablage, Allow-Liste, Mic-Modus, Live-Ansicht) kann der
+// Admin im openDox-Server pflegen (Admin → Clients). Der Client holt sie einmal beim Start;
+// was settings.json am Rechner festlegt, gewinnt (clientpolicy.Merge), und darüber liegen die
+// Nutzer-Einstellungen aus preferences.json. Der letzte Server-Stand wird zwischengespeichert,
+// damit er auch gilt, wenn der Server beim Start fehlt.
 const (
-	policyRefreshInterval = 10 * time.Minute
-	policyFetchTimeout    = 10 * time.Second
-	policyCacheFileName   = "client-policy-cache.json"
-
-	// eventPolicyChanged: die Richtlinie hat sich zur Laufzeit geändert — das Frontend
-	// holt dann z.B. den Live-View-Default neu (GetLiveViewDefault).
-	eventPolicyChanged = "policy:changed"
+	policyFetchTimeout  = 10 * time.Second
+	policyCacheFileName = "client-policy-cache.json"
 )
 
 // policyCachePath liegt im plattformüblichen Cache-Ordner des Benutzers
@@ -70,29 +63,14 @@ func initialPolicy(serverURL string, local clientpolicy.Settings) clientpolicy.S
 	return clientpolicy.Merge(cached, local)
 }
 
-// currentPolicy liefert die gerade gültige Richtlinie.
+// currentPolicy liefert die gerade gültige Richtlinie, mit den Nutzer-Einstellungen darüber.
 func (a *App) currentPolicy() clientpolicy.Settings {
 	a.policyMu.RLock()
 	defer a.policyMu.RUnlock()
-	return a.policy
+	return a.prefs.Apply(a.policy)
 }
 
-// syncPolicyLoop holt die Richtlinie sofort und danach alle policyRefreshInterval.
-func (a *App) syncPolicyLoop() {
-	a.refreshPolicy()
-	ticker := time.NewTicker(policyRefreshInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-a.ctx.Done():
-			return
-		case <-ticker.C:
-			a.refreshPolicy()
-		}
-	}
-}
-
-// refreshPolicy holt die Richtlinie vom Server. Bei einem Fehler (Server weg, ältere
+// refreshPolicy holt die Richtlinie einmal beim Start vom Server. Bei einem Fehler (Server weg, ältere
 // Server-Version ohne Endpunkt) bleibt der bisherige Stand unverändert.
 func (a *App) refreshPolicy() {
 	ctx, cancel := context.WithTimeout(a.ctx, policyFetchTimeout)
@@ -110,11 +88,7 @@ func (a *App) refreshPolicy() {
 
 	merged := clientpolicy.Merge(remote, a.localPolicy)
 	a.policyMu.Lock()
-	changed := !reflect.DeepEqual(a.policy, merged)
 	a.policy = merged
 	a.policyMu.Unlock()
-	if changed {
-		log.Printf("[opendox] Client-Richtlinie vom Server übernommen")
-		runtime.EventsEmit(a.ctx, eventPolicyChanged)
-	}
+	log.Printf("[opendox] Client-Richtlinie vom Server übernommen")
 }

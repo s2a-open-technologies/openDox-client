@@ -1,13 +1,67 @@
+/* Farb-Tokens. :root = dunkles Design (Standard), data-theme="light" = helles (lib/theme.ts).
+   color-scheme wechselt mit — tragend für native Controls (<select>-Popup, Scrollbars) auf
+   WebKitGTK, ohne es wird das Dropdown weiß-auf-weiß. */
+:root {
+    color-scheme: dark;
+    --bg: #18181b;
+    --bg-deep: #09090b;
+    --surface: #27272a;
+    --border: #3f3f46;
+    --border-strong: #52525b;
+    --text-faint: #71717a;
+    --text-muted: #a1a1aa;
+    --text-soft: #d4d4d8;
+    --text: #e4e4e7;
+    --text-strong: #f4f4f5;
+    --modal-bg: #1f2937;
+    --modal-border: #374151;
+    --accent-text: #60a5fa;
+    --danger-text: #f87171;
+    --warn-text: #fbbf24;
+    --warn-text-strong: #fcd34d;
+    --tint-1: rgba(255, 255, 255, 0.04);
+    --tint-2: rgba(255, 255, 255, 0.06);
+    --tint-3: rgba(255, 255, 255, 0.08);
+    --bar-bg: rgba(0, 0, 0, 0.2);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --scrim: rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #fafafa;
+    --bg-deep: #ffffff;
+    --surface: #e4e4e7;
+    --border: #d4d4d8;
+    --border-strong: #a1a1aa;
+    --text-faint: #71717a;
+    --text-muted: #52525b;
+    --text-soft: #3f3f46;
+    --text: #27272a;
+    --text-strong: #18181b;
+    --modal-bg: #ffffff;
+    --modal-border: #d4d4d8;
+    --accent-text: #2563eb;
+    --danger-text: #dc2626;
+    --warn-text: #b45309;
+    --warn-text-strong: #92400e;
+    --tint-1: rgba(0, 0, 0, 0.03);
+    --tint-2: rgba(0, 0, 0, 0.05);
+    --tint-3: rgba(0, 0, 0, 0.07);
+    --bar-bg: rgba(0, 0, 0, 0.03);
+    --shadow-color: rgba(0, 0, 0, 0.15);
+    --scrim: rgba(0, 0, 0, 0.3);
+}
+
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    color-scheme: dark;
-    color: #e4e4e7;
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #18181b;
+    background-color: var(--bg);
 }
 
 #root {

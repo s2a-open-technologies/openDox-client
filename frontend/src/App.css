@@ -11,13 +11,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #18181b;
+    background-color: var(--bg);
 }
 
 .app-loading-spinner {
     width: 28px;
     height: 28px;
-    border: 2px solid #3f3f46;
+    border: 2px solid var(--border);
     border-top-color: #3b82f6;
     border-radius: 50%;
     animation: od-app-spin 0.8s linear infinite;
@@ -35,7 +35,7 @@
     justify-content: center;
     border: none;
     background-color: transparent;
-    color: #71717a;
+    color: var(--text-faint);
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;

@@ -1,3 +1,24 @@
+export namespace clientpolicy {
+	
+	export class Preferences {
+	    theme?: string;
+	    live_view?: boolean;
+	    dictation_mic_mode?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Preferences(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.live_view = source["live_view"];
+	        this.dictation_mic_mode = source["dictation_mic_mode"];
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class ActiveSession {
@@ -44,6 +65,22 @@ export namespace main {
 	        this.title = source["title"];
 	        this.list_active = source["list_active"];
 	        this.allowed = source["allowed"];
+	    }
+	}
+	export class Preferences {
+	    theme: string;
+	    live_view: boolean;
+	    dictation_mic_mode: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Preferences(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.live_view = source["live_view"];
+	        this.dictation_mic_mode = source["dictation_mic_mode"];
 	    }
 	}
 	export class Record {

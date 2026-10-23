@@ -19,9 +19,10 @@
 */
 
 import {useState, useRef, useEffect, forwardRef, useImperativeHandle} from "react";
-import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut, Check, Eye, EyeOff, HelpCircle} from "lucide-react";
+import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut, Check, Eye, EyeOff, HelpCircle, Settings as SettingsIcon} from "lucide-react";
+import {resetPreferences, savePreferences, usePreferences} from "@/lib/preferences";
 import {toast} from "sonner";
-import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetLiveViewDefault as GoGetLiveViewDefault, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
+import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
 import {InsertTranscript as GoInsertTranscript, SetOverlayNoActivate as GoSetOverlayNoActivate} from "../../wailsjs/go/main/App";
 import {GetInsertTarget as GoGetInsertTarget} from "../../wailsjs/go/main/App";
 import type {main} from "../../wailsjs/go/models";
@@ -120,25 +121,18 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const micReleasedEarlyRef = useRef(false);
 
     // Live-Ansicht: der Server kann sie global abschalten (live_backend "disabled", serverLive);
-    // zusätzlich der Nutzer (Umschalter im Overlay, localStorage) bzw. settings.json (live_view,
-    // Default). liveEnabled ist das Ergebnis aus beidem — bei false zeigt das Overlay nur den
-    // Orb und der Server startet keine Live-ASR (live=0 am WebSocket).
+    // zusätzlich der Nutzer (Umschalter im Overlay, preferences.json) mit settings.json bzw.
+    // Server-Richtlinie als Vorgabe. liveEnabled ist das Ergebnis aus beidem — bei false zeigt
+    // das Overlay nur den Orb und der Server startet keine Live-ASR (live=0 am WebSocket).
     const [serverLive, setServerLive] = useState(true);
-    const [liveView, setLiveView] = useState<boolean>(() => {
-        try {
-            const v = localStorage.getItem("live_view");
-            if (v === "1") return true;
-            if (v === "0") return false;
-        } catch (_) { /* localStorage nicht verfügbar */ }
-        return true;
-    });
+    const prefs = usePreferences();
+    const liveView = prefs.live_view;
     const liveEnabled = serverLive && liveView;
+    const [prefsOpen, setPrefsOpen] = useState(false);
     const liveEnabledRef = useRef(true);
     liveEnabledRef.current = liveEnabled;
     const toggleLiveView = () => {
-        const next = !liveView;
-        setLiveView(next);
-        try {localStorage.setItem("live_view", next ? "1" : "0");} catch (_) { /* egal */ }
+        void savePreferences({live_view: !liveView});
     };
     const [categories, setCategories] = useState<{id: number; name: string}[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number>(() => {
@@ -742,18 +736,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }, []);
 
     useEffect(() => {
-        // Default der Live-Ansicht (live_view aus Server-Richtlinie bzw. settings.json), sofern
-        // der Nutzer nichts gewählt hat. Ändert der Admin ihn am Server, kommt policy:changed.
-        const applyLiveViewDefault = () => {
-            try {
-                if (localStorage.getItem("live_view") === null) {
-                    GoGetLiveViewDefault().then(setLiveView).catch(() => { /* Default true */ });
-                }
-            } catch (_) { /* localStorage nicht verfügbar */ }
-        };
-        applyLiveViewDefault();
-        const offPolicy = EventsOn("policy:changed", applyLiveViewDefault);
-
         // Load settings to determine if live transcription is enabled
         GoGetWhisperSettings()
             .then((data) => {
@@ -773,8 +755,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 }
             })
             .catch(() => setCategories([]));
-
-        return () => offPolicy();
     }, []);
 
     useEffect(() => {
@@ -950,6 +930,16 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             aria-pressed={liveView}
                         >
                             {liveView ? <Eye size={14}/> : <EyeOff size={14}/>}
+                        </button>
+                    )}
+                    {!isRecording && !isProcessing && (
+                        <button
+                            className="recorder-logout-btn"
+                            onClick={() => setPrefsOpen(true)}
+                            title="Einstellungen"
+                            aria-label="Einstellungen"
+                        >
+                            <SettingsIcon size={14}/>
                         </button>
                     )}
                     <button
@@ -1201,6 +1191,48 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 </div>
             )}
 
+            {prefsOpen && (
+                <div className="recorder-help-overlay" onClick={() => setPrefsOpen(false)}>
+                    <div className="recorder-help" onClick={(e) => e.stopPropagation()}>
+                        <div className="recorder-help-head">
+                            <span>Einstellungen</span>
+                            <button
+                                className="recorder-logout-btn"
+                                onClick={() => setPrefsOpen(false)}
+                                aria-label="Schließen"
+                            >
+                                <X size={14}/>
+                            </button>
+                        </div>
+                        <div className="recorder-prefs">
+                            <PrefRow
+                                label="Design"
+                                value={prefs.theme}
+                                options={[["dark", "Dunkel"], ["light", "Hell"]]}
+                                onChange={(theme) => savePreferences({theme})}
+                            />
+                            {serverLive && (
+                                <PrefRow
+                                    label="Live-Ansicht"
+                                    value={prefs.live_view ? "on" : "off"}
+                                    options={[["on", "An"], ["off", "Aus"]]}
+                                    onChange={(v) => savePreferences({live_view: v === "on"})}
+                                />
+                            )}
+                            <PrefRow
+                                label="Mikrofontaste"
+                                value={prefs.dictation_mic_mode}
+                                options={[["hold", "Halten"], ["toggle", "Umschalten"]]}
+                                onChange={(dictation_mic_mode) => savePreferences({dictation_mic_mode})}
+                            />
+                            <button className="recorder-prefs-reset" onClick={() => resetPreferences()}>
+                                Auf Standard zurücksetzen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 open={isStopDialogOpen}
                 title="Aufnahme beenden"
@@ -1235,3 +1267,30 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 });
 
 export default Recorder;
+
+// Eine Zeile im Einstellungen-Dialog: Beschriftung + Segment-Umschalter.
+function PrefRow<T extends string>({label, value, options, onChange}: {
+    label: string;
+    value: T;
+    options: [T, string][];
+    onChange: (v: T) => void;
+}) {
+    return (
+        <div className="recorder-prefs-row">
+            <span>{label}</span>
+            <div className="recorder-seg" role="radiogroup" aria-label={label}>
+                {options.map(([v, text]) => (
+                    <button
+                        key={v}
+                        role="radio"
+                        aria-checked={value === v}
+                        className={value === v ? "active" : ""}
+                        onClick={() => value !== v && onChange(v)}
+                    >
+                        {text}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}

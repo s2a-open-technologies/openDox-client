@@ -7,6 +7,7 @@ import {DisclaimerGate} from '@/components/DisclaimerGate';
 import Recorder from '@/components/Recorder';
 import {GetActiveSession as GoGetActiveSession, Quit as GoQuit} from '../wailsjs/go/main/App';
 import {Toaster} from 'sonner';
+import {useTheme} from '@/lib/preferences';
 import './App.css';
 
 function Overlay() {
@@ -60,6 +61,7 @@ function Overlay() {
 }
 
 function App() {
+    const theme = useTheme();
     return (
         <SettingsProvider>
             <AuthProvider>
@@ -81,7 +83,7 @@ function App() {
                     // schmaler als 600px, dort gilt bei sonner mobileOffset statt offset.
                     offset={{top: 60}}
                     mobileOffset={{top: 60}}
-                    theme="dark"
+                    theme={theme}
                     toastOptions={{
                         style: {
                             fontSize: '12px',

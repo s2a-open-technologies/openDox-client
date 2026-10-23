@@ -51,6 +51,17 @@ type Settings struct {
 	// LiveView: Default für die Live-Ansicht (Text erscheint während des Sprechens). Kann der
 	// Nutzer im Overlay pro Rechner überschreiben. Default true.
 	LiveView *bool `json:"live_view"`
+	// Theme: Default des Designs ("dark" oder "light"). Kann der Nutzer im Overlay
+	// überschreiben (preferences.json). Default "dark".
+	Theme string `json:"theme"`
+}
+
+// ThemeDefault liefert das Design; alles außer "light" (auch leer/unbekannt) ergibt "dark".
+func (s Settings) ThemeDefault() string {
+	if normalize(s.Theme) == "light" {
+		return "light"
+	}
+	return "dark"
 }
 
 // LiveViewDefault liefert den Default der Live-Ansicht; nicht gesetzt = an.

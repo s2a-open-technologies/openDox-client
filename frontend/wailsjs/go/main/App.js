@@ -34,8 +34,8 @@ export function GetInsertTarget() {
   return window['go']['main']['App']['GetInsertTarget']();
 }
 
-export function GetLiveViewDefault() {
-  return window['go']['main']['App']['GetLiveViewDefault']();
+export function GetPreferences() {
+  return window['go']['main']['App']['GetPreferences']();
 }
 
 export function GetRecordBySession(arg1, arg2) {
@@ -76,6 +76,14 @@ export function Quit() {
 
 export function ReprocessWithCategory(arg1, arg2, arg3) {
   return window['go']['main']['App']['ReprocessWithCategory'](arg1, arg2, arg3);
+}
+
+export function ResetPreferences() {
+  return window['go']['main']['App']['ResetPreferences']();
+}
+
+export function SavePreferences(arg1) {
+  return window['go']['main']['App']['SavePreferences'](arg1);
 }
 
 export function SetOverlayNoActivate(arg1) {

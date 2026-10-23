@@ -26,6 +26,7 @@ flowchart TB
         Prof[("WebView-Profil<br>Tokens, UI-Einstellungen")]
         Cfg[("settings.json<br>Server-Adresse")]
         Cache[("client-policy-cache.json<br>Richtlinie")]
+        Prefs[("preferences.json<br>Nutzer-Einstellungen")]
   end
  subgraph Srv["Betreiber-Infrastruktur"]
         Server["openDox-Server"]
@@ -56,9 +57,9 @@ Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 |---|---|---|
 | Gesundheitsdaten (besondere Kategorie, Art. 9 DSGVO) | Gesprochener Inhalt, Live-Text, fertiges Transkript/Zusammenfassung | nur im Arbeitsspeicher der WebView; Endtext zusätzlich kurz in der Zwischenablage und im Zielprogramm |
 | Zugangsdaten | Passwort (nur während der Eingabe), Access- und Refresh-Token | Passwort im Komponenten-State bis zum Absenden; Tokens im WebView-Profil (`localStorage`) |
-| Nutzerbezogene UI-Daten | gewählte Kategorie und gewähltes Mikrofon (je Nutzer-ID im Schlüsselnamen), offene Sitzungs-ID, Live-Ansicht | WebView-Profil (`localStorage`) |
+| Nutzerbezogene UI-Daten | gewählte Kategorie und gewähltes Mikrofon (je Nutzer-ID im Schlüsselnamen), offene Sitzungs-ID | WebView-Profil (`localStorage`) |
 | Betriebsdaten des Rechners | Name/Titel des Vordergrundprogramms (Windows) | nur Anzeige im Overlay und Allow-Listen-Prüfung, nie gespeichert oder geloggt |
-| Konfiguration | Server-Adresse, Client-Richtlinie | `settings.json`, `client-policy-cache.json` (keine personenbezogenen Daten) |
+| Konfiguration | Server-Adresse, Client-Richtlinie, Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste) | `settings.json`, `client-policy-cache.json`, `preferences.json` (keine personenbezogenen Daten) |
 | Geräteinformationen | USB-IDs und Tastenzustände von Diktiermikros | nur im Arbeitsspeicher |
 
 ## Verarbeitungsschritte im Detail
@@ -71,7 +72,7 @@ Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 | 4 | REST-Aufrufe | Login-Daten, Kategorien, Aufnahme-/Sitzungs-IDs, Status | Server; Go-seitig mit Bearer-Token | `AuthContext.tsx`, `app.go` (`doRequest` + gebundene Methoden) |
 | 5 | Bestätigung und Einfügen | fertiger Text | Zwischenablage, dann Zielprogramm; **nur** nach „Akzeptieren und einfügen“ bzw. `Strg+Alt+V`/Mic-Taste (im Hold-Modus: beim Loslassen, mit Allow-Listen-Prüfung) | `acceptAndInsert` in `Recorder.tsx`, `InsertTranscript` in `app.go` |
 | 6 | Einfügen | Text | `Strg/Cmd+V` in das Zielprogramm; in Citrix-Clients getippt statt über die Zwischenablage | `insert_windows.go`, `insert_darwin.go`, `insert_linux.go` |
-| 7 | Richtlinie holen | Server-Adresse (Anfrage), Richtlinienwerte (Antwort) | Server, `GET /api/v1/settings/client-config/`, ohne Login; beim Start und alle 10 Min. | `policy_sync.go`, `internal/clientpolicy/remote.go` |
+| 7 | Richtlinie holen | Server-Adresse (Anfrage), Richtlinienwerte (Antwort) | Server, `GET /api/v1/settings/client-config/`, ohne Login; einmal beim Start | `policy_sync.go`, `internal/clientpolicy/remote.go` |
 | 8 | SSO-Login | Authorization-Code-Flow über den Server, Tokens per Loopback-Redirect | System-Browser, lokaler Listener `127.0.0.1:<Zufallsport>/callback/<Zufallstoken>`, 5 Min. Timeout | `oidc.go` |
 | 9 | Diktiermikro-Tasten | Tastenzustände (Bitmasken) | nur Arbeitsspeicher; löst Hotkey-Events aus | `dictation_mic*.go` |
 
@@ -79,8 +80,9 @@ Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 
 | Was | Wo | Inhalt | Verschlüsselt? | Löschung |
 |---|---|---|---|---|
-| Access-/Refresh-Token, gewählte Kategorie/Mikrofon je Nutzer-ID, Sitzungs-ID, Live-Ansicht | WebView-Profil (`localStorage`), vom jeweiligen WebView verwaltet: Windows `%AppData%\opendox-client.exe\` (WebView2), Linux `~/.local/share/opendox-client` und `~/.cache/opendox-client`, macOS unter `~/Library/WebKit/` bzw. `~/Library/Caches/` | siehe links | ❌ nicht durch den Client; Schutz nur über die Zugriffsrechte des Benutzerprofils | Abmelden entfernt Tokens und Sitzungs-ID (`logout`); die übrigen Werte bis zur Deinstallation/Löschung des Profils |
+| Access-/Refresh-Token, gewählte Kategorie/Mikrofon je Nutzer-ID, Sitzungs-ID | WebView-Profil (`localStorage`), vom jeweiligen WebView verwaltet: Windows `%AppData%\opendox-client.exe\` (WebView2), Linux `~/.local/share/opendox-client` und `~/.cache/opendox-client`, macOS unter `~/Library/WebKit/` bzw. `~/Library/Caches/` | siehe links | ❌ nicht durch den Client; Schutz nur über die Zugriffsrechte des Benutzerprofils | Abmelden entfernt Tokens und Sitzungs-ID (`logout`); die übrigen Werte bis zur Deinstallation/Löschung des Profils |
 | `settings.json` | neben der Programmdatei (Windows: `%ProgramFiles%\openDox\`) oder im Benutzer-Konfigordner (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`) | Server-Adresse, optionale Richtlinien-Schlüssel | — (keine personenbezogenen Daten) | manuell |
+| `preferences.json` | Benutzer-Konfigordner (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`) | im Overlay gewählte Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste); Rechte `0600` | — (keine personenbezogenen Daten) | „Auf Standard zurücksetzen“ im Overlay oder manuell |
 | `client-policy-cache.json` | Benutzer-Cache-Ordner (`%LocalAppData%\opendox-client\`, `~/Library/Caches/opendox-client/`, `~/.cache/opendox-client/`) | letzter Richtlinienstand vom Server, gebunden an die Server-Adresse; Rechte `0600` | — (keine personenbezogenen Daten) | manuell |
 | Zwischenablage | Betriebssystem | der zuletzt eingefügte Text | siehe unten | Windows: nach 30 s (Standard), wenn unverändert, und beim Beenden; macOS/Linux: nicht automatisch |
 | Audio, Transkripte, Zusammenfassungen | **nirgends** | — | — | — |

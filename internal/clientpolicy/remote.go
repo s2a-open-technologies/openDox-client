@@ -59,25 +59,29 @@ func Fetch(ctx context.Context, client *http.Client, serverURL string) (Settings
 	return s, nil
 }
 
-// Merge legt die Server-Richtlinie (remote) über die lokale settings.json: Jedes Feld,
-// das der Server setzt, gewinnt — auch eine ausdrücklich leere Allow-Liste. Nur was der
-// Server nicht kennt (nil/leer), kommt aus der lokalen Datei.
+// Merge legt die lokale settings.json (local) über die Server-Richtlinie (remote): Jedes Feld,
+// das die lokale Datei setzt, gewinnt — auch eine ausdrücklich leere Allow-Liste. Der Server
+// schickt immer alle Felder (mit seinen Defaults), er liefert also nur die Vorgabe für alles,
+// was die IT am Rechner nicht selbst festgelegt hat.
 func Merge(remote, local Settings) Settings {
-	merged := local
-	if remote.ClipboardExcludeFromHistory != nil {
-		merged.ClipboardExcludeFromHistory = remote.ClipboardExcludeFromHistory
+	merged := remote
+	if local.ClipboardExcludeFromHistory != nil {
+		merged.ClipboardExcludeFromHistory = local.ClipboardExcludeFromHistory
 	}
-	if remote.ClipboardClearAfterSeconds != nil {
-		merged.ClipboardClearAfterSeconds = remote.ClipboardClearAfterSeconds
+	if local.ClipboardClearAfterSeconds != nil {
+		merged.ClipboardClearAfterSeconds = local.ClipboardClearAfterSeconds
 	}
-	if remote.InsertAllowlist != nil {
-		merged.InsertAllowlist = remote.InsertAllowlist
+	if local.InsertAllowlist != nil {
+		merged.InsertAllowlist = local.InsertAllowlist
 	}
-	if normalize(remote.DictationMicMode) != "" {
-		merged.DictationMicMode = remote.DictationMicMode
+	if normalize(local.DictationMicMode) != "" {
+		merged.DictationMicMode = local.DictationMicMode
 	}
-	if remote.LiveView != nil {
-		merged.LiveView = remote.LiveView
+	if local.LiveView != nil {
+		merged.LiveView = local.LiveView
+	}
+	if normalize(local.Theme) != "" {
+		merged.Theme = local.Theme
 	}
 	return merged
 }

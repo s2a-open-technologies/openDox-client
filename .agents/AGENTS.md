@@ -188,26 +188,38 @@ EXC_GUARD crash); Windows/Linux scan in-process on the pinned worker thread (`di
 use this to confirm the offsets once a physical device is available, before trusting button
 behavior in production.
 
-### Server-managed client policy (`policy_sync.go`)
+### Client policy and user preferences (`policy_sync.go`, `preferences.go`)
 
-The policy keys of settings.json (`clipboard_*`, `insert_allowlist`, `dictation_mic_mode`, `live_view`) are
-managed centrally on the openDox server (admin UI → Clients, server repo `~/python/project_red`,
-`GET /api/v1/settings/client-config/`, unauthenticated). `syncPolicyLoop` fetches it at startup and every
-10 min; `clientpolicy.Merge` lets every field the server sets win over the local file (an explicitly empty
-server allowlist turns a local one off). The last server state is cached per server URL
-(`os.UserCacheDir()/opendox-client/client-policy-cache.json`) and applied in `NewApp` without network. The
-policy can change at runtime: read it only via `a.currentPolicy()` (never cache it in a long-lived variable
-— `readDictationMicLoop` reads `MicHoldMode()` per key press), and the frontend re-reads
-`GetLiveViewDefault()` on the `policy:changed` event. Installers are not stored on the server: it links to
+Precedence, first set value wins:
+
+- user preferences `theme`, `live_view`, `dictation_mic_mode`: `preferences.json` → settings.json → server → default
+- security keys `clipboard_*`, `insert_allowlist`: settings.json → server → default (no user toggle, on purpose)
+
+The server (admin UI → Clients, server repo `~/python/project_red`, `GET /api/v1/settings/client-config/`,
+unauthenticated) only provides *defaults*: `refreshPolicy` fetches it **once** at startup, and
+`clientpolicy.Merge(remote, local)` lets every key the local settings.json sets win (an explicitly empty local
+allowlist turns a server one off). This matters because the server always sends every field with its defaults —
+a "server wins" merge silently made all local keys dead. The last server state is cached per server URL
+(`os.UserCacheDir()/opendox-client/client-policy-cache.json`) and applied in `NewApp` without network.
+
+User preferences are what the user toggles in the overlay (gear → settings dialog in `Recorder.tsx`, theme
+button on `LoginScreen.tsx`, eye icon). They live in `os.UserConfigDir()/opendox-client/preferences.json`
+(`preferencesPath()`, never next to the exe — not user-writable, and that file belongs to the admin), logic in
+`internal/clientpolicy/prefs.go`. Bound methods: `GetPreferences()` (effective values), `SavePreferences(partial)`
+(only set fields change), `ResetPreferences()` (deletes the file). Frontend store: `frontend/src/lib/preferences.ts`
+(`usePreferences`/`savePreferences`; `main.tsx` awaits `initPreferences()` before the first render so the theme
+doesn't flash). Policy and preferences change at runtime: read them only via `a.currentPolicy()`, which applies
+the preferences on top (never cache it in a long-lived variable — `readDictationMicLoop` reads `MicHoldMode()`
+per key press). Installers are not stored on the server: it links to
 `releases/latest/download/<fixed name>` of this repo, uploaded by `scripts/release.sh` — keep those
 names in sync with `_CLIENT_DOWNLOAD_FILES` in the server's `settings_routes.py`.
 
 ### Live view off / compact overlay (`live_view`)
 
-`live_view` in settings.json (`clientpolicy.Settings.LiveViewDefault`, exposed via the bound
-`GetLiveViewDefault()` — deliberately **not** in the frontend-bound `Settings` struct, the same JSON key in
-two embedded structs would make Go drop both) is only the *default*; the user's eye-icon toggle in the
-overlay is stored in `localStorage` (`live_view`) and wins. `Recorder.tsx` derives
+`live_view` in settings.json/server is only the *default*; the user's eye-icon toggle (or the settings dialog)
+is stored in `preferences.json` and wins (see above; the former `localStorage` key `live_view` is migrated once
+by `initPreferences`). It is exposed via `GetPreferences()` — deliberately **not** in the frontend-bound
+`Settings` struct, the same JSON key in two embedded structs would make Go drop both. `Recorder.tsx` derives
 `liveEnabled = serverLive && liveView` (`serverLive` = the server-wide `live_backend !== "disabled"`, which
 already had an orb-only UI). When off: orb instead of text, `GoGetWSURL(..., live=false)` appends `live=0`
 so the server skips live ASR (Parakeet) for that session (audio is still written, final transcription after
@@ -336,7 +348,10 @@ from `domReady` (`setupWebviewPermissions()`), but for different reasons and via
 - UI strings and comments are largely German (German-market medical product) — match the existing language
   when editing nearby copy/comments.
 - No CSS framework — plain per-component `.css` imported directly into its `.tsx`.
-- `color-scheme: dark` in `style.css` is load-bearing for native form controls (`<select>` + its option
+- Colors are CSS variables in `style.css` (`:root` = dark, `:root[data-theme="light"]` = light, set from the
+  `theme` preference). Use the tokens in new CSS instead of hardcoded grays; accent colors (blue/red/amber/green)
+  are shared by both themes.
+- `color-scheme` (switched per theme in `style.css`) is load-bearing for native form controls (`<select>` + its option
   popup, scrollbars) on WebKitGTK — removing it reintroduces a white-on-white dropdown. Don't drop it.
 ## Open-source hygiene and releases
 

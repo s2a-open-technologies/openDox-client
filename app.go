@@ -110,6 +110,17 @@ func runtimeSettingsPath() (string, error) {
 	return filepath.Join(dir, appConfigDirName, "settings.json"), nil
 }
 
+// preferencesPath ist die Datei mit den Nutzer-Einstellungen aus dem Overlay (siehe
+// preferences.go). Liegt immer im Benutzer-Konfigordner, nie neben der Exe: dort hat der
+// Nutzer meist keine Schreibrechte, und die Datei dort gehört dem Admin.
+func preferencesPath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, appConfigDirName, "preferences.json"), nil
+}
+
 // loadSettings liest die Laufzeit-Konfig in dieser Reihenfolge:
 //  1. exeDirSettingsPath() — die settings.json im selben Ordner wie das Programm
 //     (Windows z.B. C:\Program Files\openDox\settings.json, die der Installer aus
@@ -188,14 +199,16 @@ type App struct {
 	// Text ("Ja, wo ist denn ??????" statt des vollständigen Satzes).
 	insertMu sync.Mutex
 
-	// policy: Zwischenablage-/Einfügeziel-Einstellungen — die Richtlinie vom Server
-	// (bzw. ihr Cache) über localPolicy aus settings.json gelegt, siehe policy_sync.go.
-	// Ändert sich zur Laufzeit, daher nur über currentPolicy() lesen. clipCleaner
+	// policy: Zwischenablage-/Einfügeziel-Einstellungen — localPolicy aus settings.json über
+	// die Richtlinie vom Server (bzw. ihren Cache) gelegt, siehe policy_sync.go. prefs sind die
+	// Nutzer-Einstellungen aus preferences.json, die darüber liegen (Design, Live-Ansicht,
+	// Mic-Modus). Beides ändert sich zur Laufzeit, daher nur über currentPolicy() lesen. clipCleaner
 	// leert die Zwischenablage zeitverzögert nach dem Einfügen, solange sie
 	// unverändert ist (nur Windows, siehe clipboard_*.go).
 	policyMu    sync.RWMutex
 	policy      clientpolicy.Settings
 	localPolicy clientpolicy.Settings
+	prefs       clientpolicy.Preferences
 	clipCleaner *clientpolicy.Cleaner
 }
 
@@ -208,6 +221,7 @@ func NewApp() *App {
 
 		policy:      initialPolicy(s.ServerURL, s.policySettings),
 		localPolicy: s.policySettings,
+		prefs:       loadPreferences(),
 		clipCleaner: clientpolicy.NewCleaner(clearClipboardIfUnchanged),
 	}
 }
@@ -237,7 +251,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.registerGlobalHotkeys()
 	a.startDictationMic()
-	go a.syncPolicyLoop()
+	go a.refreshPolicy()
 }
 
 // shutdown wird beim Beenden aufgerufen: Text, den der Client selbst in die
@@ -661,12 +675,6 @@ func (a *App) GetWSURL(sessionID, userID, token string, live bool) string {
 		u += "&live=0"
 	}
 	return u
-}
-
-// GetLiveViewDefault liefert den Default der Live-Ansicht (live_view, Server-Richtlinie
-// bzw. settings.json). Bei Änderung durch den Server kommt das Event policy:changed.
-func (a *App) GetLiveViewDefault() bool {
-	return a.currentPolicy().LiveViewDefault()
 }
 
 // Fenstergröße des Overlays (main.go).

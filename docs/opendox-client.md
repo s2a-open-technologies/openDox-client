@@ -26,7 +26,7 @@ und der Text landet dort, wo der Cursor steht.
 | Anmeldung (Passwort, SSO/OIDC), Rollen, Kategorien | Server (der Client zeigt nur die Anmeldung an) |
 | Globale Hotkeys, Diktiermikro-Tasten, Einfügen in das Zielprogramm | **Client** (Betriebssystem-Anbindung) |
 | Zwischenablage absichern, Einfügeziel prüfen | Client |
-| Client-Richtlinie (Zwischenablage, Allow-Liste, Mic-Modus, Live-Ansicht) | Admin stellt sie im Server ein, der Client holt sie ab |
+| Client-Richtlinie (Zwischenablage, Allow-Liste, Mic-Modus, Live-Ansicht, Design) | Admin gibt sie im Server vor, der Client holt sie beim Start ab; `settings.json` und (bei Mic-Modus, Live-Ansicht, Design) die Wahl des Nutzers gewinnen |
 
 ## Überblick
 
@@ -84,10 +84,12 @@ beendet ist; erst dann ist der Text final. Details für Entwickler: [`../.agents
 ## Konfiguration
 
 Der Client braucht **nur die Server-Adresse** (`settings.json` neben dem Programm oder im
-Benutzer-Konfigordner). Alles Weitere stellt der Admin zentral im Server unter
-*Admin → Clients* ein; der Client holt es beim Start und danach alle 10 Minuten
-(`GET /api/v1/settings/client-config/`). Werte vom Server haben Vorrang vor der lokalen
-Datei; der letzte Stand wird zwischengespeichert, falls der Server mal nicht erreichbar ist.
+Benutzer-Konfigordner). Vorgaben für alles Weitere kann der Admin zentral im Server unter
+*Admin → Clients* einstellen; der Client holt sie einmal beim Start
+(`GET /api/v1/settings/client-config/`). Was in der lokalen `settings.json` steht, gewinnt
+gegenüber dem Server; der letzte Stand wird zwischengespeichert, falls der Server mal nicht
+erreichbar ist. Design, Live-Ansicht und Mikrofontaste stellt der Nutzer selbst im Overlay um
+(`preferences.json`, gewinnt gegenüber beidem).
 
 - Schlüssel und Defaults: [`../README.md`](../README.md#konfiguration)
 - Verteilung per Intune/SCCM/GPO: [`../build/windows/installer/DEPLOYMENT.md`](../build/windows/installer/DEPLOYMENT.md)
@@ -99,7 +101,7 @@ Datei; der letzte Stand wird zwischengespeichert, falls der Server mal nicht err
 | `app.go`, `main.go`, `oidc.go` | Wails-Anbindung: das einzige ans Frontend gebundene Objekt `App`, Start, nativer OIDC-Login |
 | `insert_*.go`, `paste_*.go`, `clipboard_*.go`, `focus_*.go` | Einfügen je Betriebssystem (Build-Tags + Stubs) |
 | `dictation_mic*.go`, `hold_tracker.go` | USB-HID-Tasten der Diktiermikros |
-| `policy_sync.go`, `internal/clientpolicy/` | Client-Richtlinie vom Server: Abruf, Cache, Zusammenführen (ohne OS-Abhängigkeit testbar) |
+| `policy_sync.go`, `internal/clientpolicy/` | Client-Richtlinie vom Server und Nutzer-Einstellungen (`preferences.json`): Abruf, Cache, Zusammenführen (ohne OS-Abhängigkeit testbar) |
 | `internal/winclip/`, `internal/winfocus/` | Windows: Zwischenablage-Markierung, Vordergrundprogramm |
 | `frontend/` | React/TypeScript-Overlay (`Recorder.tsx` ist das Herzstück) |
 | `build/` | Installer (MSI/NSIS), Plist, Manifest; `DEPLOYMENT.md` für IT |
