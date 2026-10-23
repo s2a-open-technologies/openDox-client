@@ -8,13 +8,13 @@
     !define INFO_PROJECTNAME "opendox-client"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "openDox"
+    !define INFO_COMPANYNAME "S2A Open Technologies gGmbH"
 !endif
 !ifndef INFO_PRODUCTNAME
     !define INFO_PRODUCTNAME "openDox"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.7.0"
+    !define INFO_PRODUCTVERSION "0.8.4"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright........."

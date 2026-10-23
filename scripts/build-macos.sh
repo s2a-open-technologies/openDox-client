@@ -42,6 +42,11 @@ if [[ ! -d "$APP" ]]; then
   exit 1
 fi
 
+# Lizenztexte ins Bundle (Contents/Resources), VOR dem Signieren — nachträglich
+# hinzugefügte Dateien würden die Signatur brechen.
+cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
+cp THIRD_PARTY_LICENSES.txt "$APP/Contents/Resources/THIRD_PARTY_LICENSES.txt"
+
 IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Apple Development[^"]*"' | head -1 | tr -d '"' || true)
 
 if [[ -n "$IDENTITY" ]]; then

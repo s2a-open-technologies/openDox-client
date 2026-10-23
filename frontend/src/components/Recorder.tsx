@@ -30,7 +30,7 @@ import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySes
 import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
 import {CheckAccessibility as GoCheckAccessibility, CheckHotkeys as GoCheckHotkeys} from "../../wailsjs/go/main/App";
-import {EventsOn, Environment} from "../../wailsjs/runtime/runtime";
+import {BrowserOpenURL, EventsOn, Environment} from "../../wailsjs/runtime/runtime";
 import {useAuth} from "@/contexts/AuthContext";
 import {useSettings} from "@/contexts/SettingsContext";
 import {ConfirmModal} from "@/components/ui/ConfirmModal";
@@ -1228,6 +1228,14 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             <button className="recorder-prefs-reset" onClick={() => resetPreferences()}>
                                 Auf Standard zurücksetzen
                             </button>
+                            {/* AGPL: Hinweis auf Lizenz und Quellcode. Die Lizenztexte aller
+                                Komponenten liegen auch neben dem Programm (THIRD_PARTY_LICENSES.txt). */}
+                            <div className="recorder-prefs-about">
+                                openDox Client {__APP_VERSION__} · AGPL-3.0 ·{" "}
+                                <button onClick={() => BrowserOpenURL(SOURCE_URL)}>
+                                    Quellcode und Lizenzen
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1267,6 +1275,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 });
 
 export default Recorder;
+
+// Quellcode des Clients (AGPL), dort liegen auch LICENSE und THIRD_PARTY_LICENSES.txt.
+const SOURCE_URL = "https://github.com/daemolition/openDox-client";
 
 // Eine Zeile im Einstellungen-Dialog: Beschriftung + Segment-Umschalter.
 function PrefRow<T extends string>({label, value, options, onChange}: {

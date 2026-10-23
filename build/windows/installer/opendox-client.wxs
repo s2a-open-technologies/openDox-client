@@ -109,6 +109,12 @@
                Entfernen der alten Version nicht auf 0). Die Guid darf sich deshalb
                weiterhin über KEINE Version ändern. -->
 
+          <!-- Lizenztexte (AGPL + Fremdkomponenten), siehe scripts/check_licenses.py -->
+          <Component Id="LicenseFiles" Guid="A2997310-3DF1-4325-BDAD-32522D925A0B">
+            <File Id="licenseTxt" Name="LICENSE.txt" Source="$(var.LicensePath)" KeyPath="yes" />
+            <File Id="thirdPartyLicensesTxt" Name="THIRD_PARTY_LICENSES.txt" Source="$(var.ThirdPartyLicensesPath)" />
+          </Component>
+
           <Component Id="SettingsJson" Guid="C2840E38-3FA1-42DD-AC6E-A63CCEF0ABCC">
             <File Id="settingsJson" Name="settings.json" Source="$(var.SettingsTemplatePath)" KeyPath="yes" />
           </Component>
@@ -143,6 +149,7 @@
     <Feature Id="MainFeature" Title="$(var.ProductName)" Level="1">
       <ComponentRef Id="MainExecutable" />
       <ComponentRef Id="SettingsJson" />
+      <ComponentRef Id="LicenseFiles" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>

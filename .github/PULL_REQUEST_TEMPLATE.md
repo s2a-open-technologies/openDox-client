@@ -32,3 +32,12 @@ Brief description of the change. Reference related issues with
 - [ ] `.agents/AGENTS.md` updated if dev commands, architecture, or gotchas changed
 - [ ] "Kein Medizinprodukt" disclaimer and the explicit accept-and-insert step
       preserved (only relevant if the login or insert flow was touched)
+
+## Contributor License Agreement
+
+Ohne Haken kann der Pull Request nicht übernommen werden. /
+*The pull request cannot be merged without this box ticked.*
+
+- [ ] Ich habe die [CLA](https://github.com/daemolition/openDox-client/blob/master/CLA.md) gelesen und stimme ihr für diesen und alle
+      künftigen Beiträge zu. / I have read the [CLA](https://github.com/daemolition/openDox-client/blob/master/CLA.md) and agree to it
+      for this and all future contributions.

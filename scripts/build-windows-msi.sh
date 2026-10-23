@@ -49,6 +49,8 @@ wixl \
     -D Version="$VERSION" \
     -D ExePath="build/bin/opendox-client.exe" \
     -D SettingsTemplatePath="build/windows/installer/settings.json.template" \
+    -D LicensePath="LICENSE" \
+    -D ThirdPartyLicensesPath="THIRD_PARTY_LICENSES.txt" \
     -D IconPath="build/windows/icon.ico" \
     --arch x64 \
     -o build/bin/opendox-client-installer.msi \

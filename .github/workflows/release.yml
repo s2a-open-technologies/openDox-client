@@ -59,6 +59,16 @@ jobs:
           hochgeladen werden.
           NOTE
 
+      # The manuals ship with every release (same as in the server repo). A failing
+      # build fails the release on purpose, so no version goes out without its manual.
+      # Pandoc and Typst run as Docker images; ImageMagick draws placeholders for
+      # screenshots that don't exist yet.
+      - name: Build user manuals (PDF)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+          OPENDOX_VERSION="${GITHUB_REF_NAME#v}" FORMATS=pdf scripts/build_handbuch.sh
+
       # The signed installers are built locally (Windows MSI/NSIS, macOS) and attached
       # afterwards with scripts/release.sh — the server's download buttons link to them.
       - name: Create GitHub Release
@@ -73,6 +83,7 @@ jobs:
               --title "${GITHUB_REF_NAME}" \
               --notes-file release_notes.md
           fi
+          gh release upload "${GITHUB_REF_NAME}" build/handbuch/*.pdf --clobber
 
   # CycloneDX-SBOMs (Go-Module + produktive npm-Pakete) als Release-Assets. `mod` listet alle
   # Module aus go.mod unabhängig von der Plattform und braucht daher keine nativen Pakete.
@@ -170,8 +181,12 @@ jobs:
           mkdir stage
           cp build/bin/opendox-client-installer.msi stage/opendox-client-installer.msi
           cp build/bin/opendox-client-amd64-installer.exe stage/opendox-client-amd64-installer.exe
-          # tar keeps the executable bit, which a plain download would lose
-          tar -C build/bin -czf stage/opendox-client-linux-amd64.tar.gz opendox-client
+          # tar keeps the executable bit, which a plain download would lose; the license
+          # texts have to travel with every binary copy
+          cp LICENSE build/bin/LICENSE.txt
+          cp THIRD_PARTY_LICENSES.txt build/bin/THIRD_PARTY_LICENSES.txt
+          tar -C build/bin -czf stage/opendox-client-linux-amd64.tar.gz \
+            opendox-client LICENSE.txt THIRD_PARTY_LICENSES.txt
           ls -l stage
 
       - name: Upload to the release

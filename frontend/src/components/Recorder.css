@@ -229,12 +229,19 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-image: url("../assets/openDox.svg");
+    /* Logo-Variante passend zum App-Design (data-theme), nicht zum System-Design:
+       openDox.svg färbt per prefers-color-scheme und war im hellen Design auf einem
+       dunkel eingestellten System weiß auf weiß. */
+    background-image: url("../assets/openDox-dark.svg");
     background-repeat: no-repeat;
     background-position: center;
     background-size: 220px auto;
     opacity: 0.06;
     pointer-events: none;
+}
+
+:root[data-theme="light"] .recorder-transcript::before {
+    background-image: url("../assets/openDox-light.svg");
 }
 
 .recorder-transcript-inner {
@@ -755,4 +762,26 @@
 
 .recorder-prefs-reset:hover {
     color: var(--text);
+}
+
+.recorder-prefs-about {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 10px;
+}
+
+.recorder-prefs-about button {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--accent-text);
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+.recorder-prefs-about button:hover {
+    text-decoration: underline;
 }

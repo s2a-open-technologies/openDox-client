@@ -59,6 +59,12 @@ jobs:
       - name: go vet (Windows internal packages)
         run: GOOS=windows go vet ./internal/...
 
+      # Licenses of all shipped dependencies AGPL-compatible, and THIRD_PARTY_NOTICES.md /
+      # THIRD_PARTY_LICENSES.txt (shipped with the installers) up to date. After a
+      # dependency update: python3 scripts/check_licenses.py --write-notices
+      - name: Third-party licenses
+        run: python3 scripts/check_licenses.py --check
+
   reuse:
     name: REUSE compliance
     runs-on: ubuntu-latest

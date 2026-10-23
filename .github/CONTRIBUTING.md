@@ -183,6 +183,7 @@ changelog entry.
 
 ## Pull Request Process
 
+0. **Accept the [CLA](../CLA.md)** by ticking the box in the pull request template
 1. **Update documentation** for any changed functionality
 2. **Add tests** where the logic is testable without OS/Wails
 3. **Ensure formatting, vet and tests pass** (see above) — CI runs them on every push and PR
@@ -205,6 +206,12 @@ Maintainers review for:
 - **General questions and bug reports:** open an issue on GitHub
 - **Security concerns:** see [SECURITY.md](SECURITY.md) — do not open a public issue
 
-## License
+## License and Contributor License Agreement
 
-By contributing, you agree that your contributions will be licensed under the AGPL-3.0-or-later.
+The project is licensed under the AGPL-3.0-or-later. Before a contribution can be
+merged, you have to accept the [Contributor License Agreement](../CLA.md) (CLA) by
+ticking the box in the pull request template; it applies to all your future
+contributions as well. In short: you grant S2A Open Technologies gGmbH exclusive
+rights of use in your contribution, get a license back to keep using it yourself,
+and the gGmbH commits to keep it available under an open-source license. The
+German version of the CLA is authoritative.

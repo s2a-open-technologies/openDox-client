@@ -1,5 +1,6 @@
 # Build output
 build/bin
+build/handbuch
 # Von Wails beim NSIS-Build geladen (Microsoft-Binary, nicht Teil des Quelltexts)
 build/windows/installer/tmp/
 frontend/dist
@@ -22,3 +23,6 @@ opendox.code-workspace
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# Dev
+docs/release-anleitung.md

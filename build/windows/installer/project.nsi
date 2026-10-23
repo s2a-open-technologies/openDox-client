@@ -96,6 +96,11 @@ Section
 
     !insertmacro wails.files
 
+    # Lizenztexte gehören zu jeder weitergegebenen Kopie (AGPL + Fremdkomponenten),
+    # erzeugt von scripts/check_licenses.py --write-notices.
+    File "/oname=LICENSE.txt" "..\..\..\LICENSE"
+    File "..\..\..\THIRD_PARTY_LICENSES.txt"
+
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 

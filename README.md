@@ -247,6 +247,10 @@ Unabhängig von diesen Schlüsseln zeigt das Overlay unter Windows, **in welches
 
 ### Release (Installer für die Server-Downloads)
 
+Schritt für Schritt (committen, Version hochzählen, Tag pushen, Fehlerfälle):
+[`docs/release-anleitung.md`](docs/release-anleitung.md). Kurzfassung:
+`python3 scripts/bump_version.py patch --commit && git push --follow-tags`.
+
 Der Server speichert keine Installer, sondern verlinkt auf
 `https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
 sind deshalb fest: `opendox-client-installer.msi`, `opendox-client-amd64-installer.exe`,
@@ -255,6 +259,10 @@ Linux-Binary `opendox-client-linux-amd64.tar.gz`) in der CI und hängt sie **uns
 `scripts/release.sh <version>` lädt lokal gebaute, signierte Builds (und das macOS-ZIP) unter genau
 diesen Namen in das Release hoch und ersetzt dabei Dateien gleichen Namens (braucht die `gh` CLI). Solange das Repository privat ist,
 funktionieren die Links nur für eingeloggte GitHub-Nutzer mit Zugriff.
+
+Alle Pakete (MSI, `.exe`, Linux-Archiv, macOS-Bundle unter `Contents/Resources`) enthalten `LICENSE.txt`
+und `THIRD_PARTY_LICENSES.txt` mit den Lizenztexten aller mitgelieferten Komponenten. Die Datei erzeugt
+`python3 scripts/check_licenses.py --write-notices`; die CI prüft, dass sie aktuell ist.
 
 ### Frontend eigenständig
 

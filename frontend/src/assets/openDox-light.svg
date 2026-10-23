@@ -4,11 +4,6 @@
     .text-primary { fill: #0f172a; } /* Slate 900 */
     .text-accent { fill: #06b6d4; } /* Cyan 500 */
     .pulse-line { stroke: #06b6d4; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    
-    /* Dark Mode overrides */
-    @media (prefers-color-scheme: dark) {
-      .text-primary { fill: #f8fafc; } /* Slate 50 */
-    }
   </style>
 
   <!-- Text: open -->

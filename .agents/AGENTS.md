@@ -360,8 +360,14 @@ The repo mirrors the server repo's governance setup (same shape as `~/python/pro
 - **Docs:** `README.md` (German, setup/config), `docs/opendox-client.md` (overview),
   `docs/data-mapping.md` (data flow / local storage / known gaps — update it whenever data handling,
   network targets, logging, clipboard or `localStorage` keys change), `docs/audit-checklist-opendox-client.md`
-  (self-assessment with evidence), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
+  (self-assessment with evidence), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CLA.md`
+  (identical in the server repo; contributors accept it via the checkbox in the PR template — don't merge
+  external PRs without it),
   `CHANGELOG.md` (Keep a Changelog; add user-visible changes under `[Unreleased]`, German entries).
+- **Manual:** `docs/handbuch/` (user manual `benutzer/handbuch.md`, same template and layout as the server repo's
+  `docs/handbuch/`), built with `scripts/build_handbuch.sh` (Docker: Pandoc + Typst; version from `wails.json`) into
+  `build/handbuch/`; `release.yml` attaches the PDF to every release. Update it in the same commit when the UI
+  changes, and list new screenshots in `docs/handbuch/screenshots.md`.
 - **Version:** single source of truth is `info.productVersion` in `wails.json`. Never hand-edit it or
   `frontend/package.json`; run `python3 scripts/bump_version.py patch|minor|major [--commit]`, which also
   syncs the lockfile, moves `[Unreleased]` in the changelog and (with `--commit`) commits and tags `vX.Y.Z`.
@@ -381,9 +387,15 @@ The repo mirrors the server repo's governance setup (same shape as `~/python/pro
   `REUSE.toml`, including vendored `third_party/` (licenses taken from the upstream notices) and the Wails
   template files. Check with `pip install reuse && reuse lint`. A new file without a header must either get one
   or an explicit entry in `REUSE.toml`.
-- **Dependencies:** `python3 scripts/check_licenses.py [--write-notices]` checks Go (union of linux/windows/darwin
-  `go list -deps`) and production npm licenses against an AGPL-compatible allowlist and regenerates
-  `THIRD_PARTY_NOTICES.md` — never hand-edit that file.
+- **Dependencies:** `python3 scripts/check_licenses.py [--write-notices|--check]` checks Go (union of
+  linux/windows/darwin `go list -deps`) and production npm licenses against an AGPL-compatible allowlist and
+  regenerates `THIRD_PARTY_NOTICES.md` (table) and `THIRD_PARTY_LICENSES.txt` (full license texts incl. Go stdlib,
+  vendored hidapi/libusb, Nunito) — never hand-edit either. CI runs `--check`, so a dependency bump needs
+  `--write-notices` in the same PR. `THIRD_PARTY_LICENSES.txt` + `LICENSE` (as `LICENSE.txt`) ship in every
+  package: NSIS (`project.nsi`), MSI (`LicenseFiles` component), Linux tarball (`release.yml`), macOS bundle
+  `Contents/Resources` (`build-macos.sh`, before signing). The settings dialog links to the source (AGPL).
+- **Releasing:** step-by-step guide incl. recovery in `docs/release-anleitung.md` (bump with `--commit`, then
+  `git push --follow-tags` — a plain push doesn't send the tag, which is why releases went missing).
 - `build/windows/installer/tmp/` (Microsoft WebView2 bootstrapper) is gitignored: Wails downloads it for the
   NSIS build; don't commit proprietary binaries.
 

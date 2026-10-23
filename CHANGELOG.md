@@ -12,8 +12,15 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.4] — 2026-10-23
+
 ### Added
 
+- **Lizenztexte in allen Paketen** — MSI, Windows-Installer, Linux-Archiv und macOS-Bundle enthalten jetzt
+  `LICENSE.txt` und `THIRD_PARTY_LICENSES.txt` mit den Lizenztexten aller mitgelieferten Komponenten. Im
+  Einstellungen-Dialog stehen Version, Lizenz und ein Link zum Quellcode.
+- **Benutzerhandbuch** — Ein Handbuch für den Client als PDF, im selben Layout wie das openDox-Handbuch
+  (`docs/handbuch/`, gebaut mit `scripts/build_handbuch.sh`). Es hängt künftig an jedem Release.
 - **Hell/Dunkel-Design** — Das Overlay gibt es jetzt auch hell. Umschalten über das Zahnrad in der Statusleiste
   oder das Sonnen-/Mond-Symbol auf dem Anmeldebildschirm. Standard ist weiterhin dunkel.
 - **Einstellungen im Overlay** — Über das Zahnrad stellt jeder Nutzer Design, Live-Ansicht und das Verhalten der
@@ -60,6 +67,11 @@ afterwards with `scripts/release.sh`.
   gelegentlich abstürzen ließ; macOS meldete das alle paar Minuten, obwohl die App weiterlief.
 - **macOS-Build** — `paste_darwin.go` ließ sich mit aktuellem macOS-SDK nicht kompilieren
   (`CGEventSourceKeyState` mit falschem Argumenttyp).
+
+### Security
+- Update github.com/labstack/echo/v4 v4.13.3 -> v4.15.3
+- Update vite@8.3.2 -> vite@8.3.5
+- 
 
 ## [0.8.3] — 2026-10-15
 
@@ -184,7 +196,8 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/daemolition/openDox-client/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/daemolition/openDox-client/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/daemolition/openDox-client/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/daemolition/openDox-client/compare/v0.8.0...v0.8.1

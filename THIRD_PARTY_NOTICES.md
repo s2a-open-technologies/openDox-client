@@ -14,12 +14,12 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | Module | Version | License |
 |---|---|---|
 | git.sr.ht/~jackmordaunt/go-toast/v2 | v2.0.3 | Unlicense |
-| github.com/dblohm7/wingoes | v0.0.0-20250822163801-6d8e6105c62d | BSD-3-Clause |
-| github.com/gen2brain/shm | v0.2.1 | BSD-3-Clause |
+| github.com/dblohm7/wingoes | v0.0.0-20260526185140-fb298caac7ca | BSD-3-Clause |
+| github.com/gen2brain/shm | v0.2.2 | BSD-3-Clause |
 | github.com/go-ole/go-ole | v1.3.0 | MIT |
-| github.com/go-vgo/robotgo | v1.0.2 | Apache-2.0 |
+| github.com/go-vgo/robotgo | v1.3.2 | Apache-2.0 |
 | github.com/godbus/dbus/v5 | v5.2.2 | BSD-2-Clause |
-| github.com/jezek/xgb | v1.3.0 | BSD-3-Clause |
+| github.com/jezek/xgb | v1.3.1 | BSD-3-Clause |
 | github.com/jezek/xgbutil | v0.0.0-20260124183602-9fd151d6a51a | BSD-3-Clause |
 | github.com/leaanthony/go-ansi-parser | v1.6.1 | MIT |
 | github.com/leaanthony/slicer | v1.6.0 | MIT |
@@ -27,32 +27,34 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | github.com/pkg/errors | v0.9.1 | BSD-2-Clause |
 | github.com/ricknicius99/hid | v0.0.0-20231128165240-e77f6da9e619 | BSD-3-Clause AND LGPL-2.1-or-later |
 | github.com/rivo/uniseg | v0.4.7 | MIT |
-| github.com/shirou/gopsutil/v4 | v4.26.2 | BSD-3-Clause |
-| github.com/tailscale/win | v0.0.0-20250627215312-f4da2b8ee071 | BSD-2-Clause |
-| github.com/tklauser/go-sysconf | v0.3.16 | BSD-3-Clause |
-| github.com/tklauser/numcpus | v0.11.0 | Apache-2.0 |
-| github.com/vcaesar/gops | v0.41.0 | Apache-2.0 |
-| github.com/vcaesar/imgo | v0.41.0 | Apache-2.0 |
-| github.com/vcaesar/keycode | v0.10.1 | Apache-2.0 |
-| github.com/vcaesar/screenshot | v0.11.1 | MIT |
-| github.com/vcaesar/tt | v0.20.1 | Apache-2.0 |
+| github.com/shirou/gopsutil/v4 | v4.26.9 | BSD-3-Clause |
+| github.com/tailscale/win | v0.0.0-20260619195133-2d76c33a64c1 | BSD-2-Clause |
+| github.com/tklauser/go-sysconf | v0.4.0 | BSD-3-Clause |
+| github.com/tklauser/numcpus | v0.12.0 | Apache-2.0 |
+| github.com/vcaesar/gops | v0.43.0 | Apache-2.0 |
+| github.com/vcaesar/imgo | v0.44.0 | Apache-2.0 |
+| github.com/vcaesar/keycode | v0.20.0 | Apache-2.0 |
+| github.com/vcaesar/screenshot | v0.40.0 | MIT |
+| github.com/vcaesar/tt | v0.40.0 | Apache-2.0 |
 | github.com/wailsapp/go-webview2 | v1.0.22 | MIT |
-| github.com/wailsapp/wails/v2 | v2.15.0 | MIT |
+| github.com/wailsapp/wails/v2 | v2.16.0 | MIT |
 | github.com/yusufpapurcu/wmi | v1.2.4 | MIT |
 | golang.design/x/hotkey | v0.6.1 | MIT |
-| golang.org/x/exp | v0.0.0-20260312153236-7ab1446f8b90 | BSD-3-Clause |
-| golang.org/x/image | v0.41.0 | BSD-3-Clause |
-| golang.org/x/sys | v0.46.0 | BSD-3-Clause |
+| golang.org/x/exp | v0.0.0-20260908205506-85c1c2202aba | BSD-3-Clause |
+| golang.org/x/image | v0.46.0 | BSD-3-Clause |
+| golang.org/x/sys | v0.48.0 | BSD-3-Clause |
 
-## Frontend (npm, production, 5 packages)
+## Frontend (npm, production, 7 packages)
 
 | Package | Version | License |
 |---|---|---|
-| lucide-react | 1.28.0 | ISC |
-| react | 19.2.8 | MIT |
-| react-dom | 19.2.8 | MIT |
-| scheduler | 0.27.0 | MIT |
-| sonner | 2.0.7 | MIT |
+| @types/react | 19.3.0 | MIT |
+| csstype | 3.2.3 | MIT |
+| lucide-react | 1.52.0 | ISC |
+| react | 19.3.0 | MIT |
+| react-dom | 19.3.0 | MIT |
+| scheduler | 0.28.0 | MIT |
+| sonner | 2.0.8 | MIT |
 
 ## Embedded assets
 
@@ -60,6 +62,9 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 |---|---|
 | Nunito font (`frontend/src/assets/fonts`) | OFL-1.1 (© The Nunito Project Authors) |
 | Wails JS runtime (`frontend/wailsjs/runtime`) | MIT (© Lea Anthony) |
+
+The full license texts with copyright lines are in `THIRD_PARTY_LICENSES.txt`,
+which the installers ship next to `LICENSE`.
 
 ## Not part of this repository
 

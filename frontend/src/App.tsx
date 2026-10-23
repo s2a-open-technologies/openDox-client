@@ -77,14 +77,16 @@ function App() {
                 </button>
                 <Overlay/>
                 <Toaster
-                    position="top-center"
-                    // Unterhalb der Statusleiste (Kategorie, Mikrofon, Logout, Schließen)
-                    // statt darüber, damit Toasts keine Buttons verdecken. Das Overlay ist
-                    // schmaler als 600px, dort gilt bei sonner mobileOffset statt offset.
-                    offset={{top: 60}}
-                    mobileOffset={{top: 60}}
+                    position="bottom-center"
+                    // Unten, knapp über der Tastenkürzel-Leiste; kurz sichtbar (2,5 s statt
+                    // sonners 4 s), damit sie die Aufnahme-Schaltflächen nicht lange verdecken.
+                    // Fehler und Berechtigungshinweise setzen ihre eigene, längere duration.
+                    // Das Overlay ist schmaler als 600px, dort gilt bei sonner mobileOffset.
+                    offset={{bottom: 40}}
+                    mobileOffset={{bottom: 40}}
                     theme={theme}
                     toastOptions={{
+                        duration: 2500,
                         style: {
                             fontSize: '12px',
                         },
