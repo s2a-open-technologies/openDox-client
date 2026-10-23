@@ -19,18 +19,13 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"log"
 	"os"
-	"os/exec"
-	"time"
 
 	"github.com/ricknicius99/hid"
 )
 
-// dictationMicScanResult ist die über den Scan-Subprozess (siehe unten) ausgetauschte,
+// dictationMicScanResult ist die (auf macOS über den Scan-Subprozess) ausgetauschte,
 // abgespeckte Sicht auf ein gefundenes Diktiermikro-Gerät.
 type dictationMicScanResult struct {
 	Path      string `json:"path"`
@@ -38,10 +33,12 @@ type dictationMicScanResult struct {
 	ProductID uint16 `json:"product_id"`
 }
 
-// runDictationMicScanHelper führt GENAU EINEN hid.Enumerate()-Aufruf aus und schreibt passende
+// runDictationMicScanHelper führt einen Scan (enumerateDictationMics) aus und schreibt passende
 // Diktiermikro-Geräte zeilenweise als JSON auf stdout. Wird von main() aufgerufen, wenn die
-// Umgebungsvariable ODX_DICTATION_MIC_SCAN_HELPER gesetzt ist (siehe scanDictationMicDevices
-// unten, das diesen Modus als Subprozess startet) statt der normalen GUI.
+// Umgebungsvariable ODX_DICTATION_MIC_SCAN_HELPER gesetzt ist (siehe scanDictationMicDevices in
+// dictation_mic_scan_darwin.go, das diesen Modus als Subprozess startet) statt der normalen GUI.
+// Nur macOS nutzt den Subprozess; Windows/Linux scannen im Hauptprozess
+// (dictation_mic_scan_other.go).
 //
 // Grund für den Subprozess: hid_enumerate()s macOS-Backend (third_party/hid/hidapi_mac.h) kann
 // auf macOS 26 nicht-deterministisch mit einem fatalen, nicht abfangbaren EXC_GUARD/
@@ -52,50 +49,31 @@ type dictationMicScanResult struct {
 // wegwerfbaren Subprozess statt im Hauptprozess, kostet ein Absturz nur einen verpassten
 // Scan-Zyklus statt der ganzen App samt einer eventuell laufenden Diktier-Sitzung.
 func runDictationMicScanHelper() {
-	infos := hid.Enumerate(0, 0)
 	enc := json.NewEncoder(os.Stdout)
-	for _, info := range infos {
-		if matchDictationMicProfile(info.VendorID, info.ProductID) == nil {
-			continue
-		}
-		_ = enc.Encode(dictationMicScanResult{
-			Path:      info.Path,
-			VendorID:  info.VendorID,
-			ProductID: info.ProductID,
-		})
+	for _, r := range enumerateDictationMics() {
+		_ = enc.Encode(r)
 	}
 }
 
-// scanDictationMicDevices startet sich selbst als Subprozess im Scan-Helper-Modus (siehe oben),
-// wartet auf dessen Ergebnis oder timeout, und liefert die gefundenen Geräte zurück. Stürzt der
-// Subprozess ab (z.B. wegen des oben beschriebenen EXC_GUARD) oder überschreitet er timeout,
-// wird das nur geloggt — der nächste periodische Scan versucht es einfach erneut.
-func scanDictationMicDevices(timeout time.Duration) []dictationMicScanResult {
-	exe, err := os.Executable()
-	if err != nil {
-		log.Printf("[opendox] dictation mic: os.Executable() fehlgeschlagen: %v", err)
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, exe)
-	cmd.Env = append(os.Environ(), "ODX_DICTATION_MIC_SCAN_HELPER=1")
-	out, err := cmd.Output()
-	if err != nil {
-		log.Printf("[opendox] dictation mic: Scan-Subprozess fehlgeschlagen (%v), nächster Versuch in %s", err, dictationMicRescanInterval)
-		return nil
-	}
-
+// enumerateDictationMics listet alle angeschlossenen, unterstützten Diktiermikros. Abgefragt wird
+// je Vendor-ID aus dictationMicVendorIDs statt hid.Enumerate(0, 0): unter Windows öffnet hidapi
+// sonst jedes HID-Gerät und schickt ihm IOCTLs, alle dictationMicRescanInterval erneut — das hat
+// eine Windows-VM (ARM, VirtualBox) kurz nach dem App-Start einfrieren lassen bzw. einen Bluescreen
+// ausgelöst. Mit gesetzter Vendor-ID überspringt das gepatchte hidapi
+// (third_party/hid/hidapi/windows/hid.c) fremde Geräte anhand ihres Pfads, ohne sie zu öffnen.
+func enumerateDictationMics() []dictationMicScanResult {
 	var results []dictationMicScanResult
-	dec := json.NewDecoder(bytes.NewReader(out))
-	for {
-		var r dictationMicScanResult
-		if decErr := dec.Decode(&r); decErr != nil {
-			break
+	for _, vid := range dictationMicVendorIDs {
+		for _, info := range hid.Enumerate(vid, 0) {
+			if matchDictationMicProfile(info.VendorID, info.ProductID) == nil {
+				continue
+			}
+			results = append(results, dictationMicScanResult{
+				Path:      info.Path,
+				VendorID:  info.VendorID,
+				ProductID: info.ProductID,
+			})
 		}
-		results = append(results, r)
 	}
 	return results
 }

@@ -176,6 +176,13 @@ held, so a recording can never get stuck). `Recorder.tsx` starts with `startReco
 prompt still applies). A release before the async start finished is handled via `micReleasedEarlyRef`. The
 Stop/Rewind/Ins-Ovr buttons and keyboard hotkeys are unchanged.
 
+**Scanning.** The device scan (at startup, then every 5 s) asks `hid.Enumerate(vid, 0)` once per vendor in
+`dictationMicVendorIDs` — never `Enumerate(0, 0)`. On Windows the vendored hidapi (`third_party/hid/hidapi/windows/hid.c`,
+"openDox patch") then skips non-matching devices by their interface path (`vid_XXXX&pid_XXXX`) instead of opening every
+HID device and sending it IOCTLs; that periodic IOCTL storm froze/bluescreened a Windows-on-ARM VirtualBox VM shortly
+after app start. Only macOS runs the scan in a subprocess (`dictation_mic_scan_darwin.go`, isolates an IOKit
+EXC_GUARD crash); Windows/Linux scan in-process on the pinned worker thread (`dictation_mic_scan_other.go`).
+
 **These offsets are unverified against real hardware.** Set
 `ODX_DICTATION_MIC_DEBUG=1` to log every raw input report's hex bytes for any matched device —
 use this to confirm the offsets once a physical device is available, before trusting button

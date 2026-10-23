@@ -18,9 +18,11 @@
   Server-URL: die settings.json (Component SettingsJson unten, aus
   SettingsTemplatePath) landet direkt neben der .exe in Program Files. loadSettings()
   in app.go liest genau diese Datei (exeDirSettingsPath()) VOR dem plattformüblichen
-  %AppData%-Fallback. IT/Admin passt die Server-URL nach der Installation einfach per
-  Texteditor (mit Adminrechten, da Program Files) in dieser Datei an — kein
-  msiexec-Property, kein Rebuild pro Kunde. Eine frühere Version versuchte stattdessen,
+  %AppData%-Fallback. Die MSI legt sie nur an, wenn sie fehlt; eine vorhandene Datei
+  überschreibt ein Upgrade nie, eine Deinstallation entfernt sie (siehe
+  Kommentar an der Component). IT/Admin legt die richtige Datei nach der Installation
+  ab bzw. passt sie an (Adminrechte, da Program Files) — kein msiexec-Property, kein
+  Rebuild pro Kunde. Eine frühere Version versuchte stattdessen,
   die URL über eine deferred CustomAction beim Setup selbst in die Datei zu schreiben
   (erneuter Aufruf von opendox-client.exe in einem eigenen Kommandozeilen-Hilfsmodus) —
   das scheiterte auf einer echten Windows-Installation wiederholt und ohne eindeutig
@@ -86,21 +88,27 @@
           <Component Id="MainExecutable" Guid="FF68B69F-323C-41D2-A1C2-3072A59239A4">
             <File Id="opendoxEXE" Name="opendox-client.exe" Source="$(var.ExePath)" KeyPath="yes" />
           </Component>
-          <!-- Wichtig: diese wixl-Version (msitools 0.103) implementiert die
-               WiX-Attribute NeverOverwrite/Permanent auf Component NICHT (nur Guid/
-               KeyPath/Win64/DiskId werden geparst — verifiziert über die im wixl-
-               Binary vorhandenen GObject-Property-Strings). Der einzige Schutz für
-               eine von IT angepasste Server-URL ist daher die über Versionen hinweg
-               STABILE Component-Guid unten: bei einem In-Place-Major-Upgrade
-               installiert die neue Produktversion die Datei zuerst (siehe
-               RemoveExistingProducts After="InstallExecute" oben), danach sinkt beim
-               Entfernen der alten Version deren Referenzzähler auf dieselbe Guid nur
-               auf 1 (nicht 0), sodass die Datei NICHT gelöscht wird — Windows
-               Installer überschreibt eine bereits vorhandene, nicht neu versionierte
-               Datei bei diesem Ablauf i.d.R. ebenfalls nicht. Eine ECHTE
-               Deinstallation (kein Upgrade) entfernt settings.json aber trotzdem
-               mit, da ohne Permanent kein Referenzzähler-Schutz greift — anders als
-               ursprünglich geplant, aber mit dieser wixl-Version nicht erreichbar. -->
+          <!-- settings.json wird nur angelegt, wenn sie fehlt, und von einem Upgrade
+               nie überschrieben; eine Deinstallation entfernt sie (bewusst KEIN
+               Permanent). Dafür braucht die Component das Attribut NeverOverwrite
+               (0x80). Diese wixl-Version (msitools 0.103) parst es NICHT (nur Guid/
+               KeyPath/Win64/DiskId), daher setzt scripts/build-windows-msi.sh es
+               nach dem wixl-Lauf per msibuild direkt in der Component-Tabelle
+               (Attributes 256 -> 384) und bricht ab, falls das fehlschlägt.
+
+               Ohne NeverOverwrite reicht die Windows-Installer-Regel "unversionierte
+               Dateien sind Benutzerdaten" NICHT: sie schützt nur Dateien mit
+               Änderungsdatum > Erstellungsdatum (im Editor bearbeitet). Eine per
+               copy/Copy-Item/Explorer/GPO abgelegte Datei (der Weg aus DEPLOYMENT.md)
+               bekommt ein neues Erstellungsdatum bei altem Änderungsdatum, gilt als
+               unverändert und wurde beim Upgrade mit dem Template überschrieben.
+
+               NeverOverwrite registriert das Produkt trotzdem als Client der
+               Component, daher bleibt die Datei auch beim Upgrade von einer alten
+               Version ohne diese Attribute erhalten (Referenzzähler sinkt beim
+               Entfernen der alten Version nicht auf 0). Die Guid darf sich deshalb
+               weiterhin über KEINE Version ändern. -->
+
           <Component Id="SettingsJson" Guid="C2840E38-3FA1-42DD-AC6E-A63CCEF0ABCC">
             <File Id="settingsJson" Name="settings.json" Source="$(var.SettingsTemplatePath)" KeyPath="yes" />
           </Component>

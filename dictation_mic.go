@@ -134,7 +134,7 @@ func (t *dictationMicTracker) markClosed(path string) {
 }
 
 func (a *App) scanDictationMicsWithTracker(worker *dictationMicWorker, tracker *dictationMicTracker) {
-	results := scanDictationMicDevices(5 * time.Second)
+	results := scanDictationMicDevices(worker, 5*time.Second)
 	for _, r := range results {
 		profile := matchDictationMicProfile(r.VendorID, r.ProductID)
 		if profile == nil {

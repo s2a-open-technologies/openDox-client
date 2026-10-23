@@ -54,5 +54,27 @@ wixl \
     -o build/bin/opendox-client-installer.msi \
     build/windows/installer/opendox-client.wxs
 
+# settings.json nur anlegen, wenn sie fehlt, und beim Update nie überschreiben:
+# Component SettingsJson bekommt NeverOverwrite (0x80). Bewusst OHNE Permanent — eine
+# Deinstallation soll die Datei entfernen. wixl parst das Attribut nicht, daher
+# Post-Patch der fertigen MSI. Begründung: siehe Kommentar an der Component in
+# opendox-client.wxs.
+MSI=build/bin/opendox-client-installer.msi
+settings_attrs() {
+    msiinfo export "$MSI" Component | awk -F'\t' '$1 == "SettingsJson" { print $4 }'
+}
+OLD_ATTRS=$(settings_attrs)
+if [[ -z "$OLD_ATTRS" ]]; then
+    echo "Fehler: Component SettingsJson nicht in $MSI gefunden." >&2
+    exit 1
+fi
+NEW_ATTRS=$(( OLD_ATTRS | 0x80 ))
+msibuild "$MSI" -q "UPDATE \`Component\` SET \`Attributes\` = $NEW_ATTRS WHERE \`Component\` = 'SettingsJson'"
+if [[ "$(settings_attrs)" != "$NEW_ATTRS" ]]; then
+    echo "Fehler: NeverOverwrite für SettingsJson konnte nicht gesetzt werden." >&2
+    exit 1
+fi
+echo "    SettingsJson-Attribute: $OLD_ATTRS -> $NEW_ATTRS (NeverOverwrite)"
+
 echo "==> Done."
 echo "    -> build/bin/opendox-client-installer.msi"

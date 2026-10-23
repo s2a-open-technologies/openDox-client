@@ -12,6 +12,33 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Orb wie im Web-Frontend** — Ist die Live-Ansicht aus, zeigt der Client jetzt denselben cyanfarbenen,
+  weich leuchtenden Orb wie die openDox-Weboberfläche statt des roten, zackigen.
+- **Titel der Aufnahmen** — Aufnahmen aus dem Client heißen jetzt „Client-Aufnahme“ statt „Overlay-Aufnahme“.
+
+### Fixed
+
+- **„Neue Aufnahme“ hängt an die alte Aufnahme an** — Gab es beim Programmstart eine unfertige Aufnahme
+  (z. B. nach einem Verbindungsabbruch), hat der Client sie nicht nur einmal fortgesetzt, sondern bei
+  jeder weiteren „Neuen Aufnahme“ wieder dieselbe Sitzung verwendet und den Text an die alte Aufnahme
+  angehängt. Jetzt wird sie nur beim nächsten Start einmal fortgesetzt, danach entsteht jedes Mal eine
+  neue Aufnahme.
+- **Windows friert kurz nach dem Start ein / Bluescreen** — Die Suche nach Diktiermikros (beim Start und
+  danach alle 5 s) hat jedes HID-Gerät (Maus, Tastatur, ...) geöffnet und abgefragt und dafür jedes Mal
+  das ganze Programm als Unterprozess gestartet. Auf einer Windows-VM (ARM, VirtualBox) hat das Windows
+  einfrieren lassen. Jetzt werden nur noch Geräte von Philips und Nuance geöffnet (Auswahl anhand des
+  Gerätepfads), und der Unterprozess wird nur noch unter macOS verwendet.
+- **Hinweis-Meldungen verdecken die Buttons** — Meldungen (Toasts) erscheinen jetzt unterhalb der
+  Statusleiste über dem Textbereich statt am oberen Rand, wo sie Kategorie, Mikrofon, Logout und
+  Schließen verdeckt haben.
+- **settings.json bei MSI-Update** — Die MSI legt `settings.json` nur noch an, wenn sie fehlt. Eine
+  vorhandene (z. B. per `copy`/`Copy-Item`/GPO abgelegte) Datei wird bei einem Update nicht mehr mit
+  der Vorlage (`localhost`) überschrieben. Eine Deinstallation entfernt sie weiterhin.
+- **Installationspfad in der Doku** — `DEPLOYMENT.md` und `docs/data-mapping.md` nennen jetzt den
+  tatsächlichen MSI-Pfad `%ProgramFiles%\openDox\` statt `%ProgramFiles%\openDox\openDox\`.
+
 ## [0.8.3] — 2026-10-15
 
 ### Changed

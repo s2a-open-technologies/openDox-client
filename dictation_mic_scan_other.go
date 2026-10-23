@@ -1,0 +1,39 @@
+// openDox - Medical transcription platform
+// Copyright (C) 2026  S2A Open Technologies gGmbH
+// SPDX-FileCopyrightText: 2026 S2A Open Technologies gGmbH
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+//go:build !darwin
+
+package main
+
+import (
+	"log"
+	"time"
+)
+
+// scanDictationMicDevices fragt die Diktiermikros direkt im Hauptprozess ab, auf dem fixierten
+// Worker-Thread und mit timeout. Der Subprozess-Umweg ist nur für den macOS-IOKit-Absturz nötig
+// (dictation_mic_scan_darwin.go); unter Windows hat das Starten der ganzen exe alle 5 s nur
+// zusätzlich Last erzeugt.
+func scanDictationMicDevices(worker *dictationMicWorker, timeout time.Duration) []dictationMicScanResult {
+	var results []dictationMicScanResult
+	if ok := worker.run(timeout, func() { results = enumerateDictationMics() }); !ok {
+		log.Printf("[opendox] dictation mic: Scan nach %s abgebrochen, nächster Versuch in %s", timeout, dictationMicRescanInterval)
+		return nil
+	}
+	return results
+}

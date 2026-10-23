@@ -267,6 +267,39 @@ int HID_API_EXPORT hid_exit(void)
 	return 0;
 }
 
+/* openDox patch: VID/PID aus dem Interface-Pfad lesen (z.B.
+   "\\?\hid#vid_0911&pid_0c1c&mi_00#..."), ohne das Geraet zu oeffnen. Gibt 0
+   zurueck, wenn der Pfad keine "vid_"/"pid_"-Angabe enthaelt (z.B. Bluetooth-HID). */
+static int path_hex4_after(const char *path, const char *key, unsigned short *out)
+{
+	size_t klen = strlen(key);
+	const char *p;
+	for (p = path; *p; p++) {
+		size_t k;
+		int v = 0;
+		for (k = 0; k < klen; k++) {
+			char c = p[k];
+			if (c >= 'A' && c <= 'Z')
+				c = (char)(c - 'A' + 'a');
+			if (c != key[k])
+				break;
+		}
+		if (k != klen)
+			continue;
+		for (k = 0; k < 4; k++) {
+			char c = p[klen + k];
+			v <<= 4;
+			if (c >= '0' && c <= '9') v |= c - '0';
+			else if (c >= 'a' && c <= 'f') v |= c - 'a' + 10;
+			else if (c >= 'A' && c <= 'F') v |= c - 'A' + 10;
+			else return 0;
+		}
+		*out = (unsigned short)v;
+		return 1;
+	}
+	return 0;
+}
+
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
 	BOOL res;
@@ -368,6 +401,21 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		}
 
 		//wprintf(L"HandleName: %s\n", device_interface_detail_data->DevicePath);
+
+		/* openDox patch: Bei gesetztem Filter nicht passende Geraete gar nicht erst
+		   oeffnen. Das Original oeffnet jedes HID-Geraet (Maus, Tastatur, ...) und
+		   schickt HID-IOCTLs, bevor es nach VID/PID filtert; periodisch wiederholt hat
+		   das eine Windows-VM (ARM, VirtualBox) zum Einfrieren/Bluescreen gebracht.
+		   Pfade ohne VID/PID-Angabe werden bei gesetztem Filter ebenfalls uebersprungen. */
+		if (vendor_id != 0x0 || product_id != 0x0) {
+			unsigned short path_vid = 0, path_pid = 0;
+			if (!path_hex4_after(device_interface_detail_data->DevicePath, "vid_", &path_vid) ||
+			    !path_hex4_after(device_interface_detail_data->DevicePath, "pid_", &path_pid))
+				goto cont;
+			if ((vendor_id != 0x0 && path_vid != vendor_id) ||
+			    (product_id != 0x0 && path_pid != product_id))
+				goto cont;
+		}
 
 		/* Open a handle to the device */
 		write_handle = open_device(device_interface_detail_data->DevicePath, TRUE);

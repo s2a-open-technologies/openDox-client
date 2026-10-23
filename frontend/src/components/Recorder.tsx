@@ -97,6 +97,13 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     // Gesetzt, wenn der Server den Abbruch mit einem Fehlercode erklärt hat -
     // dann zeigt onclose nicht zusätzlich "Verbindung unterbrochen".
     const serverErrorShownRef = useRef(false);
+    // Unfertige Session vom App-Start (App.tsx, GetActiveSession): wird nur beim nächsten
+    // Start EINMAL fortgesetzt. Bliebe sie dauerhaft gesetzt, würde jede weitere "Neue
+    // Aufnahme" wieder dieselbe session_id nehmen und an die alte Aufnahme anhängen.
+    const pendingResumeRef = useRef<string | undefined>(resumeSessionId);
+    useEffect(() => {
+        pendingResumeRef.current = resumeSessionId;
+    }, [resumeSessionId]);
     const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Für den globalen Hotkey-Listener (unten): der spiegelt isRecording/isProcessing,
@@ -197,7 +204,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }));
 
     const createRecord = async () => {
-        const record = await GoCreateRecord(parseInt(userId), title || "Overlay-Aufnahme", selectedCategoryId, getToken());
+        const record = await GoCreateRecord(parseInt(userId), title || "Client-Aufnahme", selectedCategoryId, getToken());
 
         setSessionId(record.session_id);
         sessionIdRef.current = record.session_id;
@@ -408,22 +415,24 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             }
 
             let record;
+            const resumeId = pendingResumeRef.current;
+            pendingResumeRef.current = undefined;
 
             // Neue Aufnahme: altes Transkript verwerfen.
             // Bei Resume (unfertige Session) den Text vom Server restoren lassen.
-            if (!resumeSessionId) {
+            if (!resumeId) {
                 setStableTranscript("");
                 setLiveTranscript("");
                 setRecordId(null);
             }
 
             // Resume an existing unfinished session or create a new recording.
-            if (resumeSessionId) {
+            if (resumeId) {
                 // Reuse the existing session_id - backend restores the live transcript
                 // and new audio is appended to the same session.
-                record = {session_id: resumeSessionId};
-                setSessionId(resumeSessionId);
-                sessionIdRef.current = resumeSessionId;
+                record = {session_id: resumeId};
+                setSessionId(resumeId);
+                sessionIdRef.current = resumeId;
             } else {
                 record = await createRecord();
             }
@@ -887,7 +896,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     useEffect(() => {
         // Resume an existing unfinished session or auto-start a new recording.
         // The server (session_store) holds the live state across reconnects.
-        if (resumeSessionId || autoStart) {
+        if (pendingResumeRef.current || autoStart) {
             startRecording();
         }
 

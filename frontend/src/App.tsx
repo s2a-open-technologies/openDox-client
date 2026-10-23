@@ -76,6 +76,11 @@ function App() {
                 <Overlay/>
                 <Toaster
                     position="top-center"
+                    // Unterhalb der Statusleiste (Kategorie, Mikrofon, Logout, Schließen)
+                    // statt darüber, damit Toasts keine Buttons verdecken. Das Overlay ist
+                    // schmaler als 600px, dort gilt bei sonner mobileOffset statt offset.
+                    offset={{top: 60}}
+                    mobileOffset={{top: 60}}
                     theme="dark"
                     toastOptions={{
                         style: {

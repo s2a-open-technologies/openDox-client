@@ -54,6 +54,11 @@ func matchDictationMicProfile(vendorID, productID uint16) *micProfile {
 	return nil
 }
 
+// dictationMicVendorIDs sind alle USB-Vendor-IDs aus matchDictationMicProfile (Philips, Nuance).
+// Der Scan fragt nur diese ab, damit unter Windows keine fremden HID-Geräte (Maus, Tastatur, ...)
+// geöffnet werden — siehe enumerateDictationMics.
+var dictationMicVendorIDs = []uint16{0x0911, 0x0554}
+
 func matchesSpeechMikeClass(vendorID, productID uint16) bool {
 	if vendorID == 0x0911 {
 		switch productID {

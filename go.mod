@@ -72,6 +72,10 @@ require (
 // third_party/hid/hidapi/mac/hid.c for the fix. Upstream karalabe/hid is archived and
 // unmaintained; this fork doesn't fix the bug either, hence vendoring the patch locally
 // instead of waiting on upstream.
+// Second patch (third_party/hid/hidapi/windows/hid.c, "openDox patch"): with a VID/PID
+// filter, hid_enumerate() skips non-matching devices by their interface path instead of
+// opening every HID device and sending it IOCTLs - the periodic rescan froze/bluescreened
+// a Windows-on-ARM VirtualBox VM.
 replace github.com/ricknicius99/hid => ./third_party/hid
 
 // Local copy of golang.design/x/hotkey patched to enable X11 Detectable

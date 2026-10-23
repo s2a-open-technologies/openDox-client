@@ -1,11 +1,16 @@
 # openDox unter Windows verteilen (SCCM/Intune/GPO)
 
 Die MSI (`opendox-client-installer.msi`, gebaut über `../../../scripts/build-windows-msi.sh`)
-installiert die App maschinenweit nach `%ProgramFiles%\openDox\openDox\` und legt dort
+installiert die App maschinenweit nach `%ProgramFiles%\openDox\` und legt dort
 eine `settings.json` mit der zum Build-Zeitpunkt eingebetteten Server-URL ab
 (`settings.json.template` in diesem Verzeichnis). Für einen einzelnen Rechner reicht
 das — ein Admin öffnet die Datei danach einmal im Texteditor und trägt die richtige
 URL ein.
+
+Die MSI legt `settings.json` **nur an, wenn sie noch fehlt**: Ein Update überschreibt eine
+vorhandene Datei nie (Component-Attribut NeverOverwrite, siehe `opendox-client.wxs`);
+eine Deinstallation entfernt sie. Eine einmal abgelegte Datei
+übersteht also Updates; zum Ändern der URL einfach die Datei selbst überschreiben.
 
 **Einfachster Weg:** Im openDox-Server unter Admin → **Clients** gibt es die Installer (Links auf das
 neueste GitHub-Release), eine fertige `settings.json` mit der Adresse dieses Servers und die Befehle
@@ -18,7 +23,7 @@ MSI pro Kunde neu bauen. Stattdessen: **eine** MSI für alle, und die passende
 `settings.json` als zweiten, unabhängigen Schritt eurer Softwareverteilung an
 
 ```
-%ProgramFiles%\openDox\openDox\settings.json
+%ProgramFiles%\openDox\settings.json
 ```
 
 kopieren. `loadSettings()` (`app.go`) liest diese Datei bei jedem App-Start neu — kein
@@ -40,7 +45,7 @@ Die kundenspezifische `settings.json` mit in dasselbe `.intunewin`-Paket packen 
 die MSI, und als Installationsbefehl statt nur `msiexec` einen Einzeiler verwenden:
 
 ```
-msiexec /i opendox-client-installer.msi /qn && copy /Y settings.json "%ProgramFiles%\openDox\openDox\settings.json"
+msiexec /i opendox-client-installer.msi /qn && copy /Y settings.json "%ProgramFiles%\openDox\settings.json"
 ```
 
 Uninstall-Befehl unverändert `msiexec /x {ProductCode} /qn`.
@@ -52,7 +57,7 @@ beide Schritte macht:
 
 ```powershell
 Start-Process msiexec.exe -ArgumentList '/i opendox-client-installer.msi /qn' -Wait
-Copy-Item .\settings.json 'C:\Program Files\openDox\openDox\settings.json' -Force
+Copy-Item .\settings.json 'C:\Program Files\openDox\settings.json' -Force
 ```
 
 Alternativ als separates Configuration Item/Baseline, das nur die Datei durchsetzt —
