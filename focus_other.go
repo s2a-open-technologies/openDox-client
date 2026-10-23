@@ -16,10 +16,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//go:build !windows
+//go:build !windows && !darwin
 
 package main
 
-// Kein NOACTIVATE-Äquivalent auf macOS/Linux — dort bleibt der Button beim
+// Kein NOACTIVATE-Äquivalent auf Linux — dort bleibt der Button beim
 // bisherigen Hide/Show-Weg in InsertTranscript.
 func setOverlayNoActivate(enabled bool) bool { return false }
+
+// restoreInsertFocus: hier nicht nötig (setOverlayNoActivate liefert false, der
+// Button-Insert geht über Hide/Show).
+func restoreInsertFocus() {}

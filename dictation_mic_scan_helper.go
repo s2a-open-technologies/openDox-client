@@ -33,7 +33,7 @@ type dictationMicScanResult struct {
 	ProductID uint16 `json:"product_id"`
 }
 
-// runDictationMicScanHelper führt einen Scan (enumerateDictationMics) aus und schreibt passende
+// runDictationMicScanHelper führt je Diktiermikro-Hersteller einen hid.Enumerate()-Aufruf aus und schreibt passende
 // Diktiermikro-Geräte zeilenweise als JSON auf stdout. Wird von main() aufgerufen, wenn die
 // Umgebungsvariable ODX_DICTATION_MIC_SCAN_HELPER gesetzt ist (siehe scanDictationMicDevices in
 // dictation_mic_scan_darwin.go, das diesen Modus als Subprozess startet) statt der normalen GUI.
@@ -48,7 +48,17 @@ type dictationMicScanResult struct {
 // nicht ausreichende Fixes). Läuft der riskante Aufruf in einem eigenen, jederzeit
 // wegwerfbaren Subprozess statt im Hauptprozess, kostet ein Absturz nur einen verpassten
 // Scan-Zyklus statt der ganzen App samt einer eventuell laufenden Diktier-Sitzung.
+//
+// Aber auch der Absturz des Subprozesses ist sichtbar: macOS zeigt dafür den Dialog „openDox
+// wurde unerwartet beendet“, obwohl die App weiterläuft. Daher wird nur nach den Hersteller-IDs
+// der Diktiermikros gesucht: hid_enumerate() filtert nach VID, BEVOR es IORegistryEntryGetPath()
+// aufruft, die Pfade fremder Geräte (Tastatur, Trackpad, Bluetooth, virtuelle HIDs), bei denen
+// der Absturz auftritt, werden also gar nicht mehr gelesen.
 func runDictationMicScanHelper() {
+	var infos []hid.DeviceInfo
+	for _, vid := range dictationMicVendorIDs {
+		infos = append(infos, hid.Enumerate(vid, 0)...)
+	}
 	enc := json.NewEncoder(os.Stdout)
 	for _, r := range enumerateDictationMics() {
 		_ = enc.Encode(r)

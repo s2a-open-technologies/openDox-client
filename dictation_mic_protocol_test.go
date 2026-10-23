@@ -149,3 +149,19 @@ func TestFallingEdge(t *testing.T) {
 		})
 	}
 }
+
+// Der Scan fragt nur dictationMicVendorIDs ab — jede VID, die ein Profil erkennt, muss dort stehen,
+// sonst würde ein neu eingetragenes Gerät nie gefunden.
+func TestDictationMicVendorIDsCoverProfiles(t *testing.T) {
+	known := map[uint16]bool{}
+	for _, vid := range dictationMicVendorIDs {
+		known[vid] = true
+	}
+	for vid := 0; vid <= 0xffff; vid++ {
+		for _, pid := range []uint16{0x0064, 0x1001, 0x0c1c, 0x0c1d, 0x0c1e, 0x0fa0} {
+			if matchDictationMicProfile(uint16(vid), pid) != nil && !known[uint16(vid)] {
+				t.Errorf("VID %#04x wird erkannt, fehlt aber in dictationMicVendorIDs", vid)
+			}
+		}
+	}
+}

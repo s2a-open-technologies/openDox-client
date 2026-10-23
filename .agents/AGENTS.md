@@ -265,6 +265,11 @@ focuses the clicked window), so `InsertTranscript` briefly hides the overlay to 
 target window, sleeps, types/pastes, then re-shows and repositions it. The hotkey/dictation-mic path never
 focused the overlay in the first place, so it skips hide/show entirely — see commits `d8cc475`/`524c706`
 for why (hiding unconditionally caused mispositioning and unnecessary flicker on that path).
+On **macOS** the button path does not hide either: `orderOut` doesn't hand focus back to the previous app
+(openDox stays the active app with no window, Cmd+V goes nowhere and the overlay stayed hidden).
+`focus_darwin.go` instead tracks the last active foreign app via an `NSWorkspace` activation observer
+(`setOverlayNoActivate` returns true there) and `restoreInsertFocus()` reactivates it (yielding activation,
+macOS 14+) before the paste; the always-on-top overlay stays visible.
 
 **Clipboard hardening and insert target (Windows).** (The Linux/Windows bullet above is historical: on Windows the
 text is now pasted with Ctrl+V and only typed in Citrix clients, see `insert_windows.go`; Linux uses simulated Ctrl+V.)

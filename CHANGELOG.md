@@ -38,6 +38,14 @@ afterwards with `scripts/release.sh`.
   der Vorlage (`localhost`) überschrieben. Eine Deinstallation entfernt sie weiterhin.
 - **Installationspfad in der Doku** — `DEPLOYMENT.md` und `docs/data-mapping.md` nennen jetzt den
   tatsächlichen MSI-Pfad `%ProgramFiles%\openDox\` statt `%ProgramFiles%\openDox\openDox\`.
+- **macOS: „Akzeptieren und einfügen“** — Das Overlay wird beim Einfügen per Button nicht mehr ausgeblendet
+  (es blieb danach unsichtbar, und der Text kam nicht an). Stattdessen wird das zuvor aktive Programm
+  wieder in den Vordergrund geholt und der Text dort eingefügt; das Overlay bleibt sichtbar.
+- **macOS: Absturzmeldung „openDox neu starten“** — Die Suche nach Diktiermikros fragt nur noch Geräte von
+  Philips und Nuance ab. Bisher wurden alle HID-Geräte ausgelesen, was unter macOS 26 den Such-Hilfsprozess
+  gelegentlich abstürzen ließ; macOS meldete das alle paar Minuten, obwohl die App weiterlief.
+- **macOS-Build** — `paste_darwin.go` ließ sich mit aktuellem macOS-SDK nicht kompilieren
+  (`CGEventSourceKeyState` mit falschem Argumenttyp).
 
 ## [0.8.3] — 2026-10-15
 
