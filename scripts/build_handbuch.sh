@@ -40,7 +40,11 @@ fi
 mkdir -p "$OUT/assets" "$OUT/bilder"
 # "/." statt nur des Ordners: sonst kopiert cp ab dem zweiten Build nach
 # bilder/bilder/, und die alten Platzhalter bleiben in der PDF.
-cp -r "$SRC/bilder/." "$OUT/bilder/"
+# Ohne echte Screenshots fehlt bilder/ im Git-Checkout (leere Ordner trackt Git
+# nicht) – dann gibt es nur Platzhalter.
+if [ -d "$SRC/bilder" ]; then
+  cp -r "$SRC/bilder/." "$OUT/bilder/"
+fi
 
 # Das S2A-Logo ist weiß (für dunkle Flächen, Deckblatt); für die Kopfzeile
 # auf weißem Grund wird die Schrift in Navy umgefärbt.
