@@ -12,6 +12,26 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.5] — 2026-10-26
+
+### Fixed
+
+- **Client bleibt angemeldet** — Der Client erneuerte seine Anmeldung bisher nur beim Start. Lief er länger
+  als 30 Minuten, schlugen Aufnahme, Kategorien und Status still fehl, bis man ihn neu startete. Jetzt
+  erneuert er das Token vor Ablauf und bei jeder Anfrage, die es braucht. Angemeldet bleibt man, solange
+  der Client mindestens einmal pro Woche läuft. Lehnt der Server die Erneuerung ab (Konto gesperrt,
+  LDAP-/SSO-Gruppe entzogen), erscheint der Anmeldebildschirm. Ist der Server nur kurz nicht erreichbar,
+  bleibt man angemeldet.
+- **Hinweise verdecken keine Schaltflächen mehr** — Meldungen erscheinen jetzt unten rechts im Textfeld
+  statt über den Schaltflächen darunter.
+- **Mikrofon-Auswahl schon vor der ersten Aufnahme** — Das Mikrofon-Symbol oben war erst nach einer
+  Aufnahme zu sehen, weil der Client ohne Mikrofonfreigabe nicht weiß, wie viele Mikrofone angeschlossen
+  sind. Es ist jetzt von Anfang an da. Beim ersten Öffnen fragt der Client die Freigabe ab und zeigt dann
+  die Liste.
+- **Kein doppelter Aufnahme-Button** — Liegt ein fertiger Text vor, ist der große Aufnahme-Button
+  ausgeblendet. Die neue Aufnahme startet dann der mittlere der drei Buttons darunter (oder
+  **Strg+Alt+R**).
+
 ## [0.8.4] — 2026-10-23
 
 ### Added
@@ -196,7 +216,8 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.4...HEAD
+[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/daemolition/openDox-client/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/daemolition/openDox-client/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/daemolition/openDox-client/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/daemolition/openDox-client/compare/v0.8.1...v0.8.2
