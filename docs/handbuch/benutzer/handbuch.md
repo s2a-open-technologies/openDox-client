@@ -64,7 +64,7 @@ aufrufen können.
 
 ## Anmelden
 
-![Anmeldung im Client](bilder/benutzer/01-anmeldung.png)
+![Anmeldung im Client](bilder/benutzer/01-anmeldung.png){width=6.5cm}
 
 1. Starten Sie **openDox** über das Startmenü, das Dock oder die
    Programmübersicht.
@@ -85,11 +85,11 @@ Sie ihn, setzen Sie das Häkchen und klicken Sie auf **Bestätigen**. Die
 Bestätigung gilt für Ihr Konto, also auch für die Weboberfläche. Mit
 **Abmelden** brechen Sie ab.
 
-![Hinweis bei der ersten Anmeldung](bilder/benutzer/02-hinweis.png)
+![Hinweis bei der ersten Anmeldung](bilder/benutzer/02-hinweis.png){width=6.5cm}
 
 ## Das Fenster im Überblick
 
-![Der Client nach dem Start](bilder/benutzer/03-uebersicht.png)
+![Der Client nach dem Start](bilder/benutzer/03-uebersicht.png){width=6.5cm}
 
 **Statusleiste (oben)**
 
@@ -140,7 +140,7 @@ richtige aus. Auch diese Wahl bleibt gespeichert.
 
 ## Aufnahme starten, pausieren und beenden
 
-![Laufende Aufnahme mit Live-Ansicht](bilder/benutzer/04-aufnahme-laeuft.png)
+![Laufende Aufnahme mit Live-Ansicht](bilder/benutzer/04-aufnahme-laeuft.png){width=6.5cm}
 
 | Aktion | Im Fenster | Tastenkürzel |
 |---|---|---|
@@ -177,7 +177,7 @@ Ist die Live-Ansicht aus, zeigt der Client während der Aufnahme nur einen
 leuchtenden Kreis, der auf Ihre Stimme reagiert. Das Endergebnis ist dasselbe.
 Manche Anwender finden das ruhiger; außerdem entlastet es den Server.
 
-![Laufende Aufnahme ohne Live-Ansicht](bilder/benutzer/05-aufnahme-ohne-live.png)
+![Laufende Aufnahme ohne Live-Ansicht](bilder/benutzer/05-aufnahme-ohne-live.png){width=6.5cm}
 
 Sie schalten die Live-Ansicht über das **Auge** in der Statusleiste oder in den
 **Einstellungen** um. Hat Ihre Administration die Live-Vorschau für den ganzen
@@ -208,7 +208,7 @@ einige Sekunden. Danach erscheint der fertige Text, und eine Meldung weist auf
 
 ## Akzeptieren und einfügen
 
-![Fertiger Text mit Einfügeziel](bilder/benutzer/06-fertiger-text.png)
+![Fertiger Text mit Einfügeziel](bilder/benutzer/06-fertiger-text.png){width=6.5cm}
 
 1. Lesen Sie den Text im Fenster.
 2. Klicken Sie in Ihrem Zielprogramm an die Stelle, an der der Text stehen
@@ -307,7 +307,7 @@ vergeben.
 
 # Einstellungen
 
-![Einstellungen](bilder/benutzer/07-einstellungen.png)
+![Einstellungen](bilder/benutzer/07-einstellungen.png){width=6.5cm}
 
 Über das **Zahnrad** in der Statusleiste öffnen Sie die **Einstellungen**:
 

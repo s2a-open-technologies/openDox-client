@@ -11,6 +11,8 @@ Alle Bilder, die die Handbücher referenzieren. Fehlende Dateien ersetzt
 - Nur Demo-Daten: keine echten Patienten-, Personen- oder Servernamen, keine
   echten Fenstertitel im Einfügeziel, keine Passwörter.
 - Dateiname exakt wie unten, Ablage unter `docs/handbuch/<Pfad>`.
+- Im Markdown mit fester Breite einbinden (`![…](bilder/…png){width=6.5cm}`): Die Vorlage
+  zieht Bilder sonst auf Seitenbreite, das schmale Client-Fenster füllte dann eine ganze Seite.
 
 ## Benutzerhandbuch
 

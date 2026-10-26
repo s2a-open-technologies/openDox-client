@@ -18,7 +18,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {createContext, useState, useEffect, useContext, ReactNode} from 'react';
+import {createContext, useState, useEffect, useContext, useRef, ReactNode} from 'react';
 import {useSettings} from '@/contexts/SettingsContext';
 
 type User = {
@@ -39,10 +39,30 @@ type AuthContextType = {
     logout: () => Promise<void>;
     authFetch: (url: string, options?: RequestInit) => Promise<Response>;
     getToken: () => string;
+    getFreshToken: () => Promise<string>;
     acceptDisclaimer: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+type RefreshOutcome = 'ok' | 'rejected' | 'error';
+
+// Erneuern, sobald das Access-Token weniger als das noch gilt; der Timer schaut
+// alle REFRESH_CHECK_MS nach. So bleibt der Client angemeldet, solange er läuft,
+// und das Refresh-Token rotiert mit (läuft erst nach REFRESH_TOKEN_EXPIRE_DAYS
+// ohne laufenden Client ab).
+const REFRESH_MARGIN_MS = 2 * 60_000;
+const REFRESH_CHECK_MS = 60_000;
+
+// Ablaufzeit eines JWT in ms; 0, wenn sie nicht lesbar ist.
+const tokenExpiry = (token: string): number => {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return typeof payload.exp === 'number' ? payload.exp * 1000 : 0;
+    } catch {
+        return 0;
+    }
+};
 
 export const AuthProvider = ({children}: { children: ReactNode }) => {
     const {settings, isLoading: settingsLoading} = useSettings();
@@ -59,29 +79,66 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
         localStorage.setItem("refresh_token", refreshToken);
     };
 
-    // Tauscht den Refresh-Token gegen ein frisches Token-Paar - vermeidet, dass jeder
-    // Neustart nach Ablauf des kurzlebigen Access-Tokens (Default 30min) eine erneute
-    // manuelle Anmeldung erzwingt, solange der Refresh-Token (Default 7 Tage) noch gültig ist.
-    const refreshAccessToken = async (): Promise<boolean> => {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) return false;
-        try {
-            const res = await fetch(
-                `${restURL}/api/v1/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`,
-                {method: "POST"}
-            );
-            if (!res.ok) return false;
-            const data = await res.json();
-            if (!data.access_token || !data.refresh_token) return false;
-            applyTokens(data.access_token, data.refresh_token);
-            return true;
-        } catch (error) {
-            console.error("Token refresh error:", error);
-            return false;
-        }
+    const clearSession = (): void => {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("currentSession");
+        setUser(null);
+        setIsAuthenticated(false);
     };
 
-    const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    // Nur eine Erneuerung gleichzeitig: parallele Aufrufe warten auf dieselbe,
+    // statt das (rotierende) Refresh-Token mehrfach zu verbrauchen.
+    const refreshInFlight = useRef<Promise<RefreshOutcome> | null>(null);
+
+    // Tauscht den Refresh-Token gegen ein frisches Token-Paar. Der Server prüft
+    // dabei LDAP-/OIDC-Benutzer erneut: "rejected" heißt, die Sitzung ist wirklich
+    // vorbei (Konto gesperrt, Gruppe entzogen, Refresh-Token abgelaufen). "error"
+    // (Server/WLAN weg) lässt die Tokens stehen, damit der Client danach weiterläuft.
+    const refreshAccessToken = (): Promise<RefreshOutcome> => {
+        if (refreshInFlight.current) return refreshInFlight.current;
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) return Promise.resolve('rejected');
+        refreshInFlight.current = (async (): Promise<RefreshOutcome> => {
+            try {
+                // Im Body, nicht in der URL: URLs landen in Proxy-Logs.
+                const res = await fetch(`${restURL}/api/v1/auth/refresh`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({refresh_token: refreshToken}),
+                });
+                if (res.status === 401) return 'rejected';
+                if (!res.ok) return 'error';
+                const data = await res.json();
+                if (!data.access_token || !data.refresh_token) return 'error';
+                applyTokens(data.access_token, data.refresh_token);
+                return 'ok';
+            } catch (error) {
+                console.error("Token refresh error:", error);
+                return 'error';
+            } finally {
+                refreshInFlight.current = null;
+            }
+        })();
+        return refreshInFlight.current;
+    };
+
+    // Access-Token für die Go-Aufrufe und den WebSocket, die selbst nicht auf 401
+    // reagieren: läuft es bald ab, wird es vorher erneuert.
+    const getFreshToken = async (): Promise<string> => {
+        const token = getToken();
+        const expiry = token ? tokenExpiry(token) : 0;
+        if (expiry && expiry - Date.now() < REFRESH_MARGIN_MS) {
+            const outcome = await refreshAccessToken();
+            if (outcome === 'rejected') {
+                clearSession();
+                return "";
+            }
+        }
+        return getToken();
+    };
+
+    const plainFetch = (url: string, options: RequestInit): Promise<Response> => {
         const token = getToken();
         const headers = {
             ...options.headers,
@@ -91,17 +148,21 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
         return fetch(fullUrl, {...options, headers});
     };
 
+    // Bei 401 einmal still erneuern und die Anfrage wiederholen.
+    const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+        const res = await plainFetch(url, options);
+        if (res.status !== 401) return res;
+        const outcome = await refreshAccessToken();
+        if (outcome === 'ok') return plainFetch(url, options);
+        if (outcome === 'rejected' && getToken()) clearSession();
+        return res;
+    };
+
     const fetchUser = async (): Promise<void> => {
         try {
-            let res = await authFetch("/api/v1/auth/me", {method: "GET"});
-            if (res.status === 401) {
-                // Access-Token abgelaufen (typischerweise nach einem Neustart) - still per
-                // Refresh-Token erneuern statt den Nutzer zur erneuten Anmeldung zu zwingen.
-                const refreshed = await refreshAccessToken();
-                if (refreshed) {
-                    res = await authFetch("/api/v1/auth/me", {method: "GET"});
-                }
-            }
+            // authFetch erneuert ein abgelaufenes Access-Token (typischerweise nach
+            // einem Neustart) still per Refresh-Token.
+            const res = await authFetch("/api/v1/auth/me", {method: "GET"});
             if (res.ok) {
                 const data = await res.json();
                 setUser({
@@ -114,8 +175,8 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
                 });
                 setIsAuthenticated(true);
             } else {
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
+                // Bei 401 hat authFetch die Tokens schon verworfen; bei einem
+                // Serverfehler bleiben sie für den nächsten Start erhalten.
                 setUser(null);
                 setIsAuthenticated(false);
             }
@@ -167,11 +228,7 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            localStorage.removeItem("currentSession");
-            setUser(null);
-            setIsAuthenticated(false);
+            clearSession();
         }
     };
 
@@ -203,7 +260,17 @@ export const AuthProvider = ({children}: { children: ReactNode }) => {
         }
     }, [settingsLoading]);
 
-    const value = {user, isLoading, isAuthenticated, login, loginWithTokens, logout, authFetch, getToken, acceptDisclaimer};
+    // Solange der Client angemeldet ist, das Token vor Ablauf erneuern. Läuft
+    // der Rechner im Ruhezustand, holt der erste Tick danach das nach.
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        const timer = window.setInterval(() => {
+            getFreshToken();
+        }, REFRESH_CHECK_MS);
+        return () => window.clearInterval(timer);
+    }, [isAuthenticated, restURL]);
+
+    const value = {user, isLoading, isAuthenticated, login, loginWithTokens, logout, authFetch, getToken, getFreshToken, acceptDisclaimer};
 
     return (
         <AuthContext.Provider value={value}>

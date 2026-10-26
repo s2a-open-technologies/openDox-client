@@ -18,7 +18,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {useState, useRef, useEffect, forwardRef, useImperativeHandle} from "react";
+import {useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback} from "react";
 import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut, Check, Eye, EyeOff, HelpCircle, Settings as SettingsIcon} from "lucide-react";
 import {resetPreferences, savePreferences, usePreferences} from "@/lib/preferences";
 import {toast} from "sonner";
@@ -60,7 +60,7 @@ const SERVER_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, categoryId, onFinalTranscription, onRecordingStart, autoStart, resumeSessionId, onLogout}, ref) => {
-    const {getToken} = useAuth();
+    const {getFreshToken} = useAuth();
     const {settings} = useSettings();
     const restURL = settings?.server_url || "http://localhost:10000";
     const wsBaseURL = restURL.startsWith('https://')
@@ -198,7 +198,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }));
 
     const createRecord = async () => {
-        const record = await GoCreateRecord(parseInt(userId), title || "Client-Aufnahme", selectedCategoryId, getToken());
+        const record = await GoCreateRecord(parseInt(userId), title || "Client-Aufnahme", selectedCategoryId, await getFreshToken());
 
         setSessionId(record.session_id);
         sessionIdRef.current = record.session_id;
@@ -218,7 +218,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
         let status;
         try {
-            status = await GoGetTaskStatus(taskId, getToken());
+            status = await GoGetTaskStatus(taskId, await getFreshToken());
         } catch (err) {
             console.error("Task-Status-Abfrage fehlgeschlagen:", err);
             pollTimeoutRef.current = setTimeout(() => pollTaskStatus(taskId, pollSessionId), 2000);
@@ -228,7 +228,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
         if (status.status === "finished") {
             try {
-                const record = await GoGetRecordBySession(pollSessionId, getToken());
+                const record = await GoGetRecordBySession(pollSessionId, await getFreshToken());
                 if (sessionIdRef.current !== pollSessionId) return;
                 setStableTranscript(record.summarize || "");
                 setLiveTranscript("");
@@ -286,7 +286,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         }, 90_000);
 
         try {
-            const record = await GoReprocessWithCategory(recordId, newCategoryId, getToken());
+            const record = await GoReprocessWithCategory(recordId, newCategoryId, await getFreshToken());
             if (sessionIdRef.current !== pollSessionId) return;
             setStableTranscript(record.summarize || "");
             toast.success(`Neuverarbeitung abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
@@ -306,9 +306,9 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         // WebSocket-URL direkt aus den Settings bauen (Fallback wenn Go-Binding nicht da ist)
         let wsURL: string;
         try {
-            wsURL = await GoGetWSURL(session_id, userId, getToken(), liveEnabledRef.current);
+            wsURL = await GoGetWSURL(session_id, userId, await getFreshToken(), liveEnabledRef.current);
         } catch {
-            wsURL = `${wsBaseURL}/api/v1/records/ws/record?session_id=${encodeURIComponent(session_id)}&user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(getToken())}${liveEnabledRef.current ? "" : "&live=0"}`;
+            wsURL = `${wsBaseURL}/api/v1/records/ws/record?session_id=${encodeURIComponent(session_id)}&user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(await getFreshToken())}${liveEnabledRef.current ? "" : "&live=0"}`;
         }
         const ws = new WebSocket(wsURL);
         socketRef.current = ws;
@@ -447,6 +447,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 }
             });
             streamRef.current = stream;
+            // Mit erteilter Freigabe kennt der Browser jetzt alle Geräte samt Labels.
+            refreshMics();
 
             // 2) AudioContext + Worklet + Visualizer
             const audioCtx = new AudioContext({sampleRate: 16000});
@@ -520,7 +522,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             }
             socketRef.current = null;
             if (sessionIdRef.current) {
-                try {await GoCancelSession(parseInt(userId), getToken());} catch (_) {
+                try {await GoCancelSession(parseInt(userId), await getFreshToken());} catch (_) {
                 }
                 setSessionId(null);
                 sessionIdRef.current = null;
@@ -596,7 +598,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         setRecordId(null);
 
         try {
-            await GoCancelSession(parseInt(userId), getToken());
+            await GoCancelSession(parseInt(userId), await getFreshToken());
             toast.success("Aufnahme abgebrochen");
         } catch (err) {
             console.error(err);
@@ -744,7 +746,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             .catch(() => setServerLive(true));
 
         // Kategorien vom Server laden
-        GoGetCategories(getToken())
+        getFreshToken()
+            .then(GoGetCategories)
             .then((cats) => {
                 const list = cats || [];
                 setCategories(list);
@@ -762,28 +765,51 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }, [selectedCategoryId, userId]);
 
     // Mikrofonliste laden + auf Hot-Plug (USB-Mikro an/ab) reagieren.
-    // Vor der ersten getUserMedia-Berechtigung liefern WebKit-Browser leere
-    // Labels — die UI zeigt dann einen Fallback-Text ("Mikrofon N").
+    // Vor der ersten getUserMedia-Berechtigung liefern Browser (WebKitGTK, WKWebView
+    // und WebView2 gleichermaßen) laut Spezifikation nur einen Platzhalter ohne
+    // Label/deviceId — daher fragt openMicMenu die Freigabe bei Bedarf selbst an.
+    const refreshMics = useCallback(() => {
+        return navigator.mediaDevices?.enumerateDevices()
+            .then((devices) => {
+                const mics = devices.filter((d) => d.kind === "audioinput");
+                setMicDevices(mics);
+                // Verschwindenes Gerät (z.B. USB-Mikro gezogen) aus der
+                // Auswahl nehmen, sonst schlägt getUserMedia({exact}) fehl.
+                setSelectedMicId((current) =>
+                    current && !mics.some((m) => m.deviceId === current) ? "" : current
+                );
+            })
+            .catch(() => setMicDevices([]));
+    }, []);
+
     useEffect(() => {
-        const refreshMics = () => {
-            navigator.mediaDevices?.enumerateDevices()
-                .then((devices) => {
-                    const mics = devices.filter((d) => d.kind === "audioinput");
-                    setMicDevices(mics);
-                    // Verschwindenes Gerät (z.B. USB-Mikro gezogen) aus der
-                    // Auswahl nehmen, sonst schlägt getUserMedia({exact}) fehl.
-                    setSelectedMicId((current) =>
-                        current && !mics.some((m) => m.deviceId === current) ? "" : current
-                    );
-                })
-                .catch(() => setMicDevices([]));
-        };
         refreshMics();
         const md = navigator.mediaDevices;
         if (!md) return;
         md.addEventListener("devicechange", refreshMics);
         return () => md.removeEventListener("devicechange", refreshMics);
-    }, []);
+    }, [refreshMics]);
+
+    // Ohne Freigabe ist unbekannt, wie viele Mikrofone es gibt — dann die Auswahl
+    // trotzdem anbieten, statt sie erst nach der ersten Aufnahme einzublenden.
+    const micsUnknown = micDevices.some((d) => !d.label);
+
+    const openMicMenu = async () => {
+        if (micMenuOpen) {
+            setMicMenuOpen(false);
+            return;
+        }
+        if (micsUnknown) {
+            try {
+                const probe = await navigator.mediaDevices.getUserMedia({audio: true});
+                probe.getTracks().forEach((t) => t.stop());
+            } catch (err) {
+                console.warn("Mikrofon-Freigabe für Geräteliste fehlgeschlagen:", err);
+            }
+            await refreshMics();
+        }
+        setMicMenuOpen(true);
+    };
 
     useEffect(() => {
         localStorage.setItem(`selected_mic_id_${userId}`, selectedMicId);
@@ -950,11 +976,11 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     >
                         <HelpCircle size={14}/>
                     </button>
-                    {!isRecording && !isProcessing && micDevices.length > 1 && (
+                    {!isRecording && !isProcessing && (micDevices.length > 1 || micsUnknown || micMenuOpen) && (
                         <div className="recorder-mic-wrap">
                             <button
                                 className={`recorder-mic-select-btn ${micMenuOpen ? "open" : ""}`}
-                                onClick={() => setMicMenuOpen((o) => !o)}
+                                onClick={openMicMenu}
                                 title="Mikrofon auswählen"
                                 aria-label="Mikrofon auswählen"
                                 aria-haspopup="menu"
@@ -1061,56 +1087,59 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 <BarVisualizer analyser={analyser}/>
             )}
 
-            {/* Footer / Controls */}
-            <div className="recorder-controls">
-                {!isProcessing ? (
-                    <>
-                        {isRecording && (
-                            <button
-                                onClick={handleCancelClick}
-                                className="recorder-cancel-btn"
-                                aria-label="Aufnahme abbrechen"
-                                title="Aufnahme abbrechen"
-                            >
-                                <X className="icon-fill"/>
-                            </button>
-                        )}
-
-                        {isRecording && (
-                            <button
-                                onClick={isPaused ? resumeSession : pauseSession}
-                                className={`recorder-pause-btn ${isPaused ? "resuming" : "pausing"}`}
-                                aria-label={isPaused ? "Fortsetzen" : "Pausieren"}
-                            >
-                                {isPaused ? <Play className="icon-fill"/> : <Pause className="icon-fill"/>}
-                            </button>
-                        )}
-
-                        <button
-                            onClick={isRecording ? handleStopClick : () => startRecording()}
-                            className={`recorder-mic-btn ${isRecording ? "recording" : ""}`}
-                            aria-label={isRecording ? "Stop" : "Aufnahme starten"}
-                        >
-                            {isRecording ? (
-                                <Square className="icon-fill"/>
-                            ) : (
-                                <Mic className="icon-fill"/>
-                            )}
+            {/* Footer / Controls — bei fertigem Text ausgeblendet: dann startet der
+                Mikrofon-Button in den Aktions-Buttons die neue Aufnahme. */}
+            {!insertVisible && (
+                <div className="recorder-controls">
+                    {!isProcessing ? (
+                        <>
                             {isRecording && (
-                                <span className="recorder-pulse-ring"/>
+                                <button
+                                    onClick={handleCancelClick}
+                                    className="recorder-cancel-btn"
+                                    aria-label="Aufnahme abbrechen"
+                                    title="Aufnahme abbrechen"
+                                >
+                                    <X className="icon-fill"/>
+                                </button>
                             )}
-                        </button>
-                    </>
-                ) : (
-                    <div className="recorder-processing">
-                        <Loader2 className="icon-spin"/>
-                        <span>Verarbeite...</span>
-                    </div>
-                )}
-            </div>
 
-            {/* Aktions-Buttons unter dem Aufnahme-Button (nur wenn fertig transkribiert) */}
-            {!isProcessing && stableTranscript && !isRecording && (
+                            {isRecording && (
+                                <button
+                                    onClick={isPaused ? resumeSession : pauseSession}
+                                    className={`recorder-pause-btn ${isPaused ? "resuming" : "pausing"}`}
+                                    aria-label={isPaused ? "Fortsetzen" : "Pausieren"}
+                                >
+                                    {isPaused ? <Play className="icon-fill"/> : <Pause className="icon-fill"/>}
+                                </button>
+                            )}
+
+                            <button
+                                onClick={isRecording ? handleStopClick : () => startRecording()}
+                                className={`recorder-mic-btn ${isRecording ? "recording" : ""}`}
+                                aria-label={isRecording ? "Stop" : "Aufnahme starten"}
+                            >
+                                {isRecording ? (
+                                    <Square className="icon-fill"/>
+                                ) : (
+                                    <Mic className="icon-fill"/>
+                                )}
+                                {isRecording && (
+                                    <span className="recorder-pulse-ring"/>
+                                )}
+                            </button>
+                        </>
+                    ) : (
+                        <div className="recorder-processing">
+                            <Loader2 className="icon-spin"/>
+                            <span>Verarbeite...</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Aktions-Buttons statt Aufnahme-Button (nur wenn fertig transkribiert) */}
+            {insertVisible && (
                 <div className="recorder-actions">
                     {insertTarget?.process && (
                         <div
