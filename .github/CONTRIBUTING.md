@@ -1,7 +1,7 @@
 # Contributing to openDox Client
 
 Thank you for considering a contribution! The openDox Client is the desktop part of
-[openDox](https://github.com/daemolition/openDox): a small always-on-top overlay for dictating
+[openDox](https://github.com/s2a-open-technologies/openDox): a small always-on-top overlay for dictating
 and inserting medical text. For an overview of what it does and how it is built, start with
 [`docs/opendox-client.md`](../docs/opendox-client.md).
 

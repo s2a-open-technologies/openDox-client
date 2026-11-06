@@ -12,6 +12,26 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.7] — 2026-11-06
+
+### Security
+
+- **Go 1.27.3** — Client und Installer werden jetzt mit Go 1.27.3 gebaut. Die Installer von 0.8.6 waren noch mit
+  Go 1.26.0 gebaut und enthielten damit eine Standardbibliothek ohne die späteren Sicherheitskorrekturen.
+
+## [0.8.6] — 2026-11-06
+
+### Added
+- **Hinweis auf neue Version** — Unten im Einstellungsdialog steht unter der Versionsnummer
+  „(Version x verfügbar – wird von Ihrer IT bereitgestellt)“, sobald es eine neuere Client-Version gibt. Die
+  neueste Version meldet der openDox-Server (`latest_client_version` in `client-config`, er fragt dafür GitHub);
+  der Client selbst spricht weiterhin nur mit dem eigenen Server. Reine Info: Der Client lädt und installiert
+  nichts, das Ausrollen bleibt bei der Softwareverteilung der IT. Ohne Angabe vom Server (ältere Server-Version,
+  abgeschaltet oder kein Internet am Server) erscheint kein Hinweis.
+
+### Changed
+- Repository links (README, source link in the overlay, CLA, release and license scripts, CHANGELOG compare links) point to `github.com/s2a-open-technologies/openDox-client`.
+
 ## [0.8.5] — 2026-10-26
 
 ### Fixed
@@ -216,10 +236,12 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/daemolition/openDox-client/compare/v0.8.5...HEAD
-[0.8.5]: https://github.com/daemolition/openDox-client/compare/v0.8.4...v0.8.5
-[0.8.4]: https://github.com/daemolition/openDox-client/compare/v0.8.3...v0.8.4
-[0.8.3]: https://github.com/daemolition/openDox-client/compare/v0.8.2...v0.8.3
-[0.8.2]: https://github.com/daemolition/openDox-client/compare/v0.8.1...v0.8.2
-[0.8.1]: https://github.com/daemolition/openDox-client/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/daemolition/openDox-client/releases/tag/v0.8.0
+[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.7...HEAD
+[0.8.7]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.6...v0.8.7
+[0.8.6]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.5...v0.8.6
+[0.8.5]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.4...v0.8.5
+[0.8.4]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.3...v0.8.4
+[0.8.3]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/s2a-open-technologies/openDox-client/releases/tag/v0.8.0

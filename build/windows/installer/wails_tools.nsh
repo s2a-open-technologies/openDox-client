@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "openDox"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.8.4"
+    !define INFO_PRODUCTVERSION "0.8.5"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright........."

@@ -252,7 +252,7 @@ Schritt für Schritt (committen, Version hochzählen, Tag pushen, Fehlerfälle):
 `python3 scripts/bump_version.py patch --commit && git push --follow-tags`.
 
 Der Server speichert keine Installer, sondern verlinkt auf
-`https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
+`https://github.com/s2a-open-technologies/openDox-client/releases/latest/download/<Dateiname>`. Die Dateinamen
 sind deshalb fest: `opendox-client-installer.msi`, `opendox-client-amd64-installer.exe`,
 `opendox-client-macos.zip`. Beim Tag-Push baut der Release-Workflow MSI und `.exe` (sowie ein
 Linux-Binary `opendox-client-linux-amd64.tar.gz`) in der CI und hängt sie **unsigniert** an das Release.
