@@ -17,8 +17,8 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | github.com/dblohm7/wingoes | v0.0.0-20260526185140-fb298caac7ca | BSD-3-Clause |
 | github.com/gen2brain/shm | v0.2.2 | BSD-3-Clause |
 | github.com/go-ole/go-ole | v1.3.0 | MIT |
-| github.com/go-vgo/robotgo | v1.3.2 | Apache-2.0 |
-| github.com/godbus/dbus/v5 | v5.2.2 | BSD-2-Clause |
+| github.com/go-vgo/robotgo | v1.3.7 | Apache-2.0 |
+| github.com/godbus/dbus/v5 | v5.2.4 | BSD-2-Clause |
 | github.com/jezek/xgb | v1.3.1 | BSD-3-Clause |
 | github.com/jezek/xgbutil | v0.0.0-20260124183602-9fd151d6a51a | BSD-3-Clause |
 | github.com/leaanthony/go-ansi-parser | v1.6.1 | MIT |
@@ -37,12 +37,12 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | github.com/vcaesar/screenshot | v0.40.0 | MIT |
 | github.com/vcaesar/tt | v0.40.0 | Apache-2.0 |
 | github.com/wailsapp/go-webview2 | v1.0.22 | MIT |
-| github.com/wailsapp/wails/v2 | v2.16.0 | MIT |
+| github.com/wailsapp/wails/v2 | v2.17.0 | MIT |
 | github.com/yusufpapurcu/wmi | v1.2.4 | MIT |
 | golang.design/x/hotkey | v0.6.1 | MIT |
-| golang.org/x/exp | v0.0.0-20260908205506-85c1c2202aba | BSD-3-Clause |
-| golang.org/x/image | v0.46.0 | BSD-3-Clause |
-| golang.org/x/sys | v0.48.0 | BSD-3-Clause |
+| golang.org/x/exp | v0.0.0-20261014143641-f0251eb4aa3e | BSD-3-Clause |
+| golang.org/x/image | v0.47.0 | BSD-3-Clause |
+| golang.org/x/sys | v0.49.0 | BSD-3-Clause |
 
 ## Frontend (npm, production, 7 packages)
 
