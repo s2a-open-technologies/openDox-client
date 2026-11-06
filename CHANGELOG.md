@@ -12,6 +12,11 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Security
+
+- **Go 1.27.3** — Client und Installer werden jetzt mit Go 1.27.3 gebaut. Die Installer von 0.8.6 waren noch mit
+  Go 1.26.0 gebaut und enthielten damit eine Standardbibliothek ohne die späteren Sicherheitskorrekturen.
+
 ## [0.8.6] — 2026-11-06
 
 ### Added
