@@ -12,6 +12,13 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.7] — 2026-11-06
+
+### Security
+
+- **Go 1.27.3** — Client und Installer werden jetzt mit Go 1.27.3 gebaut. Die Installer von 0.8.6 waren noch mit
+  Go 1.26.0 gebaut und enthielten damit eine Standardbibliothek ohne die späteren Sicherheitskorrekturen.
+
 ## [0.8.6] — 2026-11-06
 
 ### Added
@@ -229,7 +236,8 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.6...HEAD
+[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.7...HEAD
+[0.8.7]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.3...v0.8.4
