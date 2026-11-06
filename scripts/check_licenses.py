@@ -249,7 +249,7 @@ def render_licenses(go: list[dict], frontend: list[dict]) -> str:
         "",
         "openDox Client is free software under the GNU Affero General Public License,",
         "version 3 or later (see LICENSE). Source code:",
-        "https://github.com/daemolition/openDox-client",
+        "https://github.com/s2a-open-technologies/openDox-client",
         "",
         "The application contains the third-party components below. Each is used under",
         "the license stated with it; the license texts and copyright notices follow.",
