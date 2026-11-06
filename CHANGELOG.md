@@ -12,6 +12,8 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.8.6] — 2026-11-06
+
 ### Added
 - **Hinweis auf neue Version** — Unten im Einstellungsdialog steht unter der Versionsnummer
   „(Version x verfügbar – wird von Ihrer IT bereitgestellt)“, sobald es eine neuere Client-Version gibt. Die
@@ -227,7 +229,8 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.6...HEAD
+[0.8.6]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.2...v0.8.3
