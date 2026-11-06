@@ -27,6 +27,8 @@ export function GetSettings():Promise<main.Settings>;
 
 export function GetTaskStatus(arg1:number,arg2:string):Promise<main.TaskStatus>;
 
+export function GetUpdateInfo():Promise<main.UpdateInfo>;
+
 export function GetWSURL(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<string>;
 
 export function GetWhisperSettings():Promise<main.WhisperSettings>;

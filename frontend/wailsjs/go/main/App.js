@@ -50,6 +50,10 @@ export function GetTaskStatus(arg1, arg2) {
   return window['go']['main']['App']['GetTaskStatus'](arg1, arg2);
 }
 
+export function GetUpdateInfo() {
+  return window['go']['main']['App']['GetUpdateInfo']();
+}
+
 export function GetWSURL(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetWSURL'](arg1, arg2, arg3, arg4);
 }

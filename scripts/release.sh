@@ -2,7 +2,7 @@
 # scripts/release.sh — vorhandene Builds als GitHub-Release hochladen
 #
 # Der openDox-Server (Admin → Clients) verlinkt auf
-#   https://github.com/daemolition/openDox-client/releases/latest/download/<Dateiname>
+#   https://github.com/s2a-open-technologies/openDox-client/releases/latest/download/<Dateiname>
 # Die Dateinamen hier sind deshalb FEST — ändern nur zusammen mit
 # _CLIENT_DOWNLOAD_FILES in backend/views/settings_api/settings_routes.py (Server-Repo).
 #

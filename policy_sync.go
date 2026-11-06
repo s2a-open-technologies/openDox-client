@@ -92,3 +92,22 @@ func (a *App) refreshPolicy() {
 	a.policyMu.Unlock()
 	log.Printf("[opendox] Client-Richtlinie vom Server übernommen")
 }
+
+// UpdateInfo ist der Versionsabgleich für den Hinweis im Einstellungsdialog. Reine Info:
+// installiert wird über die Softwareverteilung der IT, der Client lädt nichts herunter.
+type UpdateInfo struct {
+	Current   string `json:"current"`
+	Latest    string `json:"latest"`
+	Available bool   `json:"available"`
+}
+
+// GetUpdateInfo vergleicht die installierte Version mit der neuesten, die der Server meldet
+// (client-config, beim Start geholt bzw. aus dem Cache).
+func (a *App) GetUpdateInfo() UpdateInfo {
+	latest := a.currentPolicy().LatestClientVersion
+	return UpdateInfo{
+		Current:   appVersion,
+		Latest:    latest,
+		Available: clientpolicy.NewerVersion(latest, appVersion),
+	}
+}

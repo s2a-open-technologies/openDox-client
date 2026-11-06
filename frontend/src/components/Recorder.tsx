@@ -30,6 +30,7 @@ import {GetTaskStatus as GoGetTaskStatus, GetRecordBySession as GoGetRecordBySes
 import {ReprocessWithCategory as GoReprocessWithCategory} from "../../wailsjs/go/main/App";
 import {OpenDashboard as GoOpenDashboard, CancelSession as GoCancelSession} from "../../wailsjs/go/main/App";
 import {CheckAccessibility as GoCheckAccessibility, CheckHotkeys as GoCheckHotkeys} from "../../wailsjs/go/main/App";
+import {GetUpdateInfo as GoGetUpdateInfo} from "../../wailsjs/go/main/App";
 import {BrowserOpenURL, EventsOn, Environment} from "../../wailsjs/runtime/runtime";
 import {useAuth} from "@/contexts/AuthContext";
 import {useSettings} from "@/contexts/SettingsContext";
@@ -129,6 +130,14 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const liveView = prefs.live_view;
     const liveEnabled = serverLive && liveView;
     const [prefsOpen, setPrefsOpen] = useState(false);
+    // Neuere Client-Version laut Server (nur Info; installiert wird über die IT-Verteilung).
+    const [updateLatest, setUpdateLatest] = useState<string | null>(null);
+    useEffect(() => {
+        if (!prefsOpen) return;
+        GoGetUpdateInfo()
+            .then((info) => setUpdateLatest(info.available ? info.latest : null))
+            .catch(() => setUpdateLatest(null));
+    }, [prefsOpen]);
     const liveEnabledRef = useRef(true);
     liveEnabledRef.current = liveEnabled;
     const toggleLiveView = () => {
@@ -1264,6 +1273,11 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                                 <button onClick={() => BrowserOpenURL(SOURCE_URL)}>
                                     Quellcode und Lizenzen
                                 </button>
+                                {updateLatest && (
+                                    <div className="recorder-prefs-update">
+                                        (Version {updateLatest} verfügbar – wird von Ihrer IT bereitgestellt)
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1306,7 +1320,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 export default Recorder;
 
 // Quellcode des Clients (AGPL), dort liegen auch LICENSE und THIRD_PARTY_LICENSES.txt.
-const SOURCE_URL = "https://github.com/daemolition/openDox-client";
+const SOURCE_URL = "https://github.com/s2a-open-technologies/openDox-client";
 
 // Eine Zeile im Einstellungen-Dialog: Beschriftung + Segment-Umschalter.
 function PrefRow<T extends string>({label, value, options, onChange}: {

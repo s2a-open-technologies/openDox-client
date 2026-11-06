@@ -327,6 +327,11 @@ zurücksetzen** gelten wieder diese Vorgaben.
 Einstellungen zur Zwischenablage und zu freigegebenen Programmen können Sie
 nicht selbst ändern; sie gehören zum Datenschutz Ihrer Einrichtung.
 
+Ganz unten stehen die installierte Version und der Link zum Quellcode. Gibt es
+eine neuere Version, steht darunter z. B. „(Version 0.9.0 verfügbar – wird von
+Ihrer IT bereitgestellt)“. Sie müssen nichts tun: Die neue Version spielt Ihre
+IT ein.
+
 # Fenster ausblenden, abmelden, beenden
 
 - **Strg+Alt+H** blendet das Fenster aus und wieder ein. Ausgeblendet nimmt der
