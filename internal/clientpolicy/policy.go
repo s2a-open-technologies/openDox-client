@@ -54,6 +54,10 @@ type Settings struct {
 	// Theme: Default des Designs ("dark" oder "light"). Kann der Nutzer im Overlay
 	// überschreiben (preferences.json). Default "dark".
 	Theme string `json:"theme"`
+	// LatestClientVersion: neueste veröffentlichte Client-Version ("0.9.0"), nur vom Server
+	// (der sie bei GitHub erfragt). Reine Info für den Hinweis im Einstellungsdialog; eine
+	// lokale settings.json setzt sie nicht (Merge übernimmt sie unverändert vom Server).
+	LatestClientVersion string `json:"latest_client_version"`
 }
 
 // ThemeDefault liefert das Design; alles außer "light" (auch leer/unbekannt) ergibt "dark".
