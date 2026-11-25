@@ -23,11 +23,6 @@ if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && command -v makensis >/de
     # by default on cross-builds, which breaks robotgo (used for Ctrl+Alt+A typing).
     CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 wails build -platform windows/amd64 -nsis
     echo "    -> build/bin/opendox-client.exe + NSIS installer under build/bin/"
-    cat > build/bin/settings.json <<'EOF'
-{
-    "server_url": "https://opendox.s2a-ot.digital"
-}
-EOF
 else
     echo "==> Skipping Windows build: x86_64-w64-mingw32-gcc and/or makensis not found."
     echo "    Install with: sudo apt install gcc-mingw-w64-x86-64 nsis"
