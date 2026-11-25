@@ -51,6 +51,13 @@ flowchart TB
 
 Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 
+**Übersetzung (Diktat in Fremdsprache).** Ist sie am Server aktiv und für den Nutzer freigegeben, fragt das Go-Backend
+`GET /api/v1/settings/translation/me` ab (nur Sprachlisten, keine Patientendaten) und sendet beim Anlegen der Aufnahme das
+Feld `source_language` (ISO-639-1-Code, z. B. `pl`). Übersetzt wird ausschließlich auf dem Server; der Client erhält den
+übersetzten Text wie bisher als Endtext (`summarize`) sowie die Zahlenprüfung (`translation_segments`, vom Client nur auf
+abweichende Zahlen ausgewertet, Satztexte werden nicht angezeigt oder gespeichert). Die gewählte Sprache steht in
+`preferences.json`.
+
 ## Datenkategorien
 
 | Kategorie | Beispiele | Wo im Client |
@@ -59,7 +66,7 @@ Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 | Zugangsdaten | Passwort (nur während der Eingabe), Access- und Refresh-Token | Passwort im Komponenten-State bis zum Absenden; Tokens im WebView-Profil (`localStorage`) |
 | Nutzerbezogene UI-Daten | gewählte Kategorie und gewähltes Mikrofon (je Nutzer-ID im Schlüsselnamen), offene Sitzungs-ID | WebView-Profil (`localStorage`) |
 | Betriebsdaten des Rechners | Name/Titel des Vordergrundprogramms (Windows) | nur Anzeige im Overlay und Allow-Listen-Prüfung, nie gespeichert oder geloggt |
-| Konfiguration | Server-Adresse, Client-Richtlinie, Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste) | `settings.json`, `client-policy-cache.json`, `preferences.json` (keine personenbezogenen Daten) |
+| Konfiguration | Server-Adresse, Client-Richtlinie, Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste, Diktiersprache, Oberflächensprache) | `settings.json`, `client-policy-cache.json`, `preferences.json` (keine personenbezogenen Daten) |
 | Geräteinformationen | USB-IDs und Tastenzustände von Diktiermikros | nur im Arbeitsspeicher |
 
 ## Verarbeitungsschritte im Detail
@@ -82,7 +89,7 @@ Die Nummerierung folgt dem zeitlichen Ablauf einer Aufnahme.
 |---|---|---|---|---|
 | Access-/Refresh-Token, gewählte Kategorie/Mikrofon je Nutzer-ID, Sitzungs-ID | WebView-Profil (`localStorage`), vom jeweiligen WebView verwaltet: Windows `%AppData%\opendox-client.exe\` (WebView2), Linux `~/.local/share/opendox-client` und `~/.cache/opendox-client`, macOS unter `~/Library/WebKit/` bzw. `~/Library/Caches/` | siehe links | ❌ nicht durch den Client; Schutz nur über die Zugriffsrechte des Benutzerprofils | Abmelden entfernt Tokens und Sitzungs-ID (`logout`); die übrigen Werte bis zur Deinstallation/Löschung des Profils |
 | `settings.json` | neben der Programmdatei (Windows: `%ProgramFiles%\openDox\`) oder im Benutzer-Konfigordner (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`) | Server-Adresse, optionale Richtlinien-Schlüssel | — (keine personenbezogenen Daten) | manuell |
-| `preferences.json` | Benutzer-Konfigordner (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`) | im Overlay gewählte Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste); Rechte `0600` | — (keine personenbezogenen Daten) | „Auf Standard zurücksetzen“ im Overlay oder manuell |
+| `preferences.json` | Benutzer-Konfigordner (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`) | im Overlay gewählte Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste, Diktiersprache, Oberflächensprache); Rechte `0600` | — (keine personenbezogenen Daten) | „Auf Standard zurücksetzen“ im Overlay oder manuell |
 | `client-policy-cache.json` | Benutzer-Cache-Ordner (`%LocalAppData%\opendox-client\`, `~/Library/Caches/opendox-client/`, `~/.cache/opendox-client/`) | letzter Richtlinienstand vom Server, gebunden an die Server-Adresse; Rechte `0600` | — (keine personenbezogenen Daten) | manuell |
 | Zwischenablage | Betriebssystem | der zuletzt eingefügte Text | siehe unten | Windows: nach 30 s (Standard), wenn unverändert, und beim Beenden; macOS/Linux: nicht automatisch |
 | Audio, Transkripte, Zusammenfassungen | **nirgends** | — | — | — |

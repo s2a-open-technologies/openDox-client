@@ -192,6 +192,28 @@ Server abgeschaltet, gibt es den Schalter nicht.
   sie in ein Wörterbuch der Weboberfläche ein.
 - Pausieren Sie bei Unterbrechungen, statt die Aufnahme laufen zu lassen.
 
+## In einer anderen Sprache diktieren
+
+Hat Ihre Administration die Übersetzung für Sie freigegeben, finden Sie in den **Einstellungen** die Auswahl
+**Diktiersprache** (siehe Kapitel „Einstellungen“). Ohne Freigabe fehlt sie, und es wird nur in der Sprache des
+Servers diktiert.
+
+1. Wählen Sie unter **Diktiersprache** die Sprache, in der Sie sprechen werden, z. B. Polnisch.
+2. Im Fenster erscheint die Sprachrichtung, z. B. „Polnisch → Deutsch“. Prüfen Sie sie vor jeder Aufnahme, damit Sie
+   nicht versehentlich in der falschen Sprache diktieren.
+3. Diktieren Sie wie gewohnt. Nach dem Beenden zeigt der Client zusätzlich **Übersetze...**.
+4. Eingefügt wird der **übersetzte** Text, nicht das Original.
+
+![Diktat mit Sprachrichtung](bilder/benutzer/08-diktiersprache.png){width=6.5cm}
+
+Für manche Sprachen (z. B. Arabisch) gibt es keine Live-Vorschau; dann sehen Sie während des Sprechens nur den
+leuchtenden Kreis. Die Vorschau zeigt sonst den Text in der gesprochenen Sprache, noch nicht die Übersetzung.
+
+**Zahlen prüfen.** Der Server vergleicht Zahlen im Original und in der Übersetzung. Weichen sie ab (z. B. Dosierungen
+oder Datumsangaben), fügt der Client **nicht** automatisch ein, auch nicht per Mikrofontaste. Stattdessen erscheinen
+**Zahlen prüfen** mit den betroffenen Zahlen und eine Meldung. Prüfen Sie den Text und klicken Sie dann selbst auf
+**Akzeptieren und einfügen**. Maschinelle Übersetzungen müssen wie jedes Ergebnis von Fachpersonal geprüft werden.
+
 ## Unterbrochene Aufnahme fortsetzen
 
 Bricht die Verbindung ab oder wird der Client während einer Aufnahme beendet,
@@ -204,7 +226,11 @@ Client sie automatisch fort, das bisher Gesagte bleibt erhalten.
 
 Nach dem Beenden zeigt der Client **Verarbeite...**. Je nach Länge dauert das
 einige Sekunden. Danach erscheint der fertige Text, und eine Meldung weist auf
-**Strg+Alt+V** zum Einfügen hin.
+**Strg+Alt+V** zum Einfügen hin. Bei einer Diktiersprache zeigt der Client dazwischen
+**Übersetze...**.
+
+Meldungen blenden sich nach kurzer Zeit von selbst aus, Fehlermeldungen etwas später.
+Über das kleine **x** am rechten Rand schließen Sie eine Meldung sofort.
 
 ## Akzeptieren und einfügen
 
@@ -314,12 +340,17 @@ vergeben.
 | Einstellung | Auswahl | Wirkung |
 |---|---|---|
 | **Design** | **Dunkel** / **Hell** | Farbgebung des Fensters |
+| **Sprache** | **Deutsch** / **English** / **Español** | Sprache der Bedienoberfläche |
 | **Live-Ansicht** | **An** / **Aus** | Text während des Sprechens anzeigen |
+| **Diktiersprache** | Liste der Sprachen | Nur sichtbar, wenn Ihre Administration die Übersetzung für Sie freigegeben hat: Sie diktieren in der gewählten Sprache und der Client fügt den ins Deutsche übersetzten Text ein |
 | **Mikrofontaste** | **Halten** / **Umschalten** | Verhalten der Aufnahmetaste am Diktiermikrofon |
 
 Jede Änderung gilt sofort und bleibt auf diesem Rechner für Ihr Benutzerkonto
 gespeichert, auch nach einem Neustart oder Update. Das Design wechseln Sie
-auch auf dem Anmeldebildschirm über das Sonnen- bzw. Mond-Symbol.
+auch auf dem Anmeldebildschirm über das Sonnen- bzw. Mond-Symbol; dort wählen Sie auch die Sprache.
+
+Wie die **Diktiersprache** wirkt, steht im Abschnitt „In einer anderen Sprache diktieren“. Die Sprache der
+Bedienoberfläche gilt auch für Hinweise und Fehlermeldungen; dieses Handbuch nennt die Bezeichnungen auf Deutsch.
 
 Die Ausgangswerte legt Ihre IT oder Administration fest. Mit **Auf Standard
 zurücksetzen** gelten wieder diese Vorgaben.

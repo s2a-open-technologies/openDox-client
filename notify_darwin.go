@@ -23,14 +23,16 @@ package main
 import (
 	"log"
 	"os/exec"
+	"strings"
 )
 
 // notifyReview zeigt eine native Desktop-Benachrichtigung als Erinnerung, den
 // eingefügten Text vor Verwendung zu prüfen. macOS-Äquivalent zu notify-send
 // (Linux) via osascript — kein zusätzliches Paket nötig, da osascript Teil
 // von macOS ist. Best-effort: Fehler werden nur geloggt.
-func notifyReview() {
-	script := `display notification "Text eingefügt – bitte vor Verwendung prüfen." with title "openDox"`
+func notifyReview(msg string) {
+	msg = strings.NewReplacer(`\`, ``, `"`, `'`).Replace(msg)
+	script := `display notification "` + msg + `" with title "openDox"`
 	cmd := exec.Command("osascript", "-e", script)
 	if err := cmd.Run(); err != nil {
 		log.Printf("[opendox] osascript notification failed: %v", err)

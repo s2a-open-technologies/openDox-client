@@ -18,8 +18,8 @@ export function CopyToClipboard(arg1) {
   return window['go']['main']['App']['CopyToClipboard'](arg1);
 }
 
-export function CreateRecord(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['CreateRecord'](arg1, arg2, arg3, arg4);
+export function CreateRecord(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['CreateRecord'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function GetActiveSession(arg1, arg2) {
@@ -48,6 +48,10 @@ export function GetSettings() {
 
 export function GetTaskStatus(arg1, arg2) {
   return window['go']['main']['App']['GetTaskStatus'](arg1, arg2);
+}
+
+export function GetTranslationAvailability(arg1) {
+  return window['go']['main']['App']['GetTranslationAvailability'](arg1);
 }
 
 export function GetUpdateInfo() {
@@ -92,4 +96,8 @@ export function SavePreferences(arg1) {
 
 export function SetOverlayNoActivate(arg1) {
   return window['go']['main']['App']['SetOverlayNoActivate'](arg1);
+}
+
+export function SetUILanguage(arg1) {
+  return window['go']['main']['App']['SetUILanguage'](arg1);
 }

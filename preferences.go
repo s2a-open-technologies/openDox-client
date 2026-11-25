@@ -33,6 +33,11 @@ type Preferences struct {
 	Theme            string `json:"theme"`
 	LiveView         bool   `json:"live_view"`
 	DictationMicMode string `json:"dictation_mic_mode"`
+	// UILanguage: "de", "en", "es" oder "" (= Frontend nimmt die Sprache des Betriebssystems).
+	UILanguage string `json:"ui_language"`
+	// DictationLanguage: Diktiersprache für die Übersetzung, "" = keine. Ob sie erlaubt ist,
+	// prüft das Frontend gegen GetTranslationAvailability.
+	DictationLanguage string `json:"dictation_language"`
 }
 
 func loadPreferences() clientpolicy.Preferences {
@@ -46,11 +51,14 @@ func loadPreferences() clientpolicy.Preferences {
 // GetPreferences liefert die effektiven Nutzer-Einstellungen.
 func (a *App) GetPreferences() Preferences {
 	p := a.currentPolicy()
+	a.policyMu.RLock()
+	lang := a.prefs.DictationLang()
+	a.policyMu.RUnlock()
 	mode := "hold"
 	if !p.MicHoldMode() {
 		mode = "toggle"
 	}
-	return Preferences{Theme: p.ThemeDefault(), LiveView: p.LiveViewDefault(), DictationMicMode: mode}
+	return Preferences{Theme: p.ThemeDefault(), LiveView: p.LiveViewDefault(), DictationMicMode: mode, UILanguage: p.UILanguageDefault(), DictationLanguage: lang}
 }
 
 // SavePreferences übernimmt die in u gesetzten Felder in preferences.json; nicht gesetzte

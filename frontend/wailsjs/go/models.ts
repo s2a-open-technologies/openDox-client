@@ -4,6 +4,8 @@ export namespace clientpolicy {
 	    theme?: string;
 	    live_view?: boolean;
 	    dictation_mic_mode?: string;
+	    ui_language?: string;
+	    dictation_language?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Preferences(source);
@@ -14,6 +16,8 @@ export namespace clientpolicy {
 	        this.theme = source["theme"];
 	        this.live_view = source["live_view"];
 	        this.dictation_mic_mode = source["dictation_mic_mode"];
+	        this.ui_language = source["ui_language"];
+	        this.dictation_language = source["dictation_language"];
 	    }
 	}
 
@@ -71,6 +75,8 @@ export namespace main {
 	    theme: string;
 	    live_view: boolean;
 	    dictation_mic_mode: string;
+	    ui_language: string;
+	    dictation_language: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Preferences(source);
@@ -81,6 +87,8 @@ export namespace main {
 	        this.theme = source["theme"];
 	        this.live_view = source["live_view"];
 	        this.dictation_mic_mode = source["dictation_mic_mode"];
+	        this.ui_language = source["ui_language"];
+	        this.dictation_language = source["dictation_language"];
 	    }
 	}
 	export class Record {
@@ -97,10 +105,27 @@ export namespace main {
 	        this.id = source["id"];
 	    }
 	}
+	export class TranslationSegment {
+	    missing_numbers: string[];
+	    extra_numbers: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TranslationSegment(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.missing_numbers = source["missing_numbers"];
+	        this.extra_numbers = source["extra_numbers"];
+	    }
+	}
 	export class RecordDetails {
 	    id: number;
 	    task_id: number;
 	    summarize: string;
+	    source_language?: string;
+	    translation_language?: string;
+	    translation_segments?: TranslationSegment[];
 	
 	    static createFrom(source: any = {}) {
 	        return new RecordDetails(source);
@@ -111,7 +136,28 @@ export namespace main {
 	        this.id = source["id"];
 	        this.task_id = source["task_id"];
 	        this.summarize = source["summarize"];
+	        this.source_language = source["source_language"];
+	        this.translation_language = source["translation_language"];
+	        this.translation_segments = this.convertValues(source["translation_segments"], TranslationSegment);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Settings {
 	    server_url: string;
@@ -143,6 +189,25 @@ export namespace main {
 	        this.error = source["error"];
 	    }
 	}
+	export class TranslationAvailability {
+	    available: boolean;
+	    languages: string[];
+	    target_language: string;
+	    live_languages: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TranslationAvailability(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.languages = source["languages"];
+	        this.target_language = source["target_language"];
+	        this.live_languages = source["live_languages"];
+	    }
+	}
+	
 	export class UpdateInfo {
 	    current: string;
 	    latest: string;

@@ -1,0 +1,155 @@
+{
+  "common": {
+    "close": "Cerrar",
+    "logout": "Cerrar sesión",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "back": "Volver"
+  },
+  "goerr": {
+    "insert_busy": "Ya hay una inserción en curso; espere un momento",
+    "clipboard_unavailable": "Portapapeles no disponible; inténtelo de nuevo",
+    "modifiers_held": "Ctrl/Alt/Mayús aún pulsadas: el texto está en el portapapeles",
+    "sendinput_failed": "Error al insertar: el texto está en el portapapeles",
+    "oidc_no_token": "No se recibió ningún token del servidor",
+    "oidc_timeout": "Tiempo agotado en el inicio de sesión"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "login": {
+    "subtitle": "Inicie sesión para empezar",
+    "failed": "Error de inicio de sesión. Compruebe su nombre de usuario y contraseña.",
+    "ssoStartFailed": "No se pudo iniciar el inicio de sesión SSO.",
+    "ssoFailed": "Error en el inicio de sesión SSO.",
+    "ssoWaiting": "Esperando al navegador...",
+    "ssoButton": "Iniciar sesión con SSO",
+    "or": "o",
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión..."
+  },
+  "theme": {
+    "light": "Tema claro",
+    "dark": "Tema oscuro",
+    "toLight": "Activar el tema claro",
+    "toDark": "Activar el tema oscuro"
+  },
+  "disclaimer": {
+    "title": "No es un producto sanitario",
+    "p1": "openDox no es un producto sanitario autorizado conforme a la ley alemana de productos sanitarios (MPG) ni a normativas comparables (p. ej., MDR de la UE, FDA). Está destinado exclusivamente a apoyar la documentación.",
+    "p2": "Todas las transcripciones y resúmenes generados automáticamente deben ser revisados por personal cualificado antes de utilizarse o incorporarse a una historia clínica. openDox no sustituye el diagnóstico, el asesoramiento ni las recomendaciones terapéuticas de un médico.",
+    "p3": "Quien opere esta aplicación es responsable de que su uso sea conforme a las normas de su propia jurisdicción. Más detalles en <code>DISCLAIMER.md</code> en el repositorio del proyecto.",
+    "checkbox": "He leído y entendido este aviso y confirmo que soy responsable de utilizar esta aplicación conforme a las normas.",
+    "failed": "Error en la confirmación; inténtelo de nuevo.",
+    "submitting": "Confirmando..."
+  },
+  "prefs": {
+    "saveFailed": "No se pudo guardar el ajuste",
+    "resetFailed": "No se pudieron restablecer los ajustes"
+  },
+  "status": {
+    "paused": "Grabación en pausa",
+    "recording": "Grabando...",
+    "ready": "Listo",
+    "unreachable": "No disponible",
+    "serverReachable": "Servidor openDox disponible",
+    "serverUnreachable": "Servidor openDox no disponible",
+    "processing": "Procesando...",
+    "translating": "Traduciendo..."
+  },
+  "toolbar": {
+    "liveOff": "Desactivar la vista en vivo",
+    "liveOn": "Activar la vista en vivo",
+    "settings": "Ajustes",
+    "shortcuts": "Atajos de teclado",
+    "shortcutsShow": "Mostrar atajos de teclado",
+    "micSelect": "Seleccionar micrófono",
+    "micNumber": "Micrófono {{n}}",
+    "mic": "Micrófono",
+    "category": "Seleccionar categoría",
+    "dictationLanguageHint": "Idioma de dictado (ajustes)"
+  },
+  "transcript": {
+    "placeholder": "Hable para iniciar la transcripción"
+  },
+  "controls": {
+    "cancel": "Cancelar grabación",
+    "resume": "Reanudar",
+    "pause": "Pausar",
+    "stop": "Detener",
+    "start": "Iniciar grabación"
+  },
+  "actions": {
+    "insertIn": "Insertar en: {{process}}",
+    "insertInTitle": "Insertar en: {{process}} – {{title}}",
+    "numbersCheck": "Compruebe las cifras:",
+    "accept": "Aceptar e insertar",
+    "acceptTitle": "Aceptar e insertar ({{mod}}+V)",
+    "newRecording": "Nueva grabación",
+    "newRecordingTitle": "Iniciar nueva grabación ({{mod}}+R)",
+    "openInOpenDox": "Abrir en openDox"
+  },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "record": "Iniciar / detener la grabación",
+    "pause": "Pausar / reanudar",
+    "insert": "Aceptar e insertar",
+    "hold": "Mantener para dictar",
+    "hide": "Mostrar / ocultar la superposición"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "theme": "Tema",
+    "themeDark": "Oscuro",
+    "themeLight": "Claro",
+    "liveView": "Vista en vivo",
+    "on": "Sí",
+    "off": "No",
+    "uiLanguage": "Idioma",
+    "dictationLanguage": "Idioma de dictado",
+    "noTranslation": "{{language}} (sin traducción)",
+    "micButton": "Botón del micrófono",
+    "micHold": "Mantener",
+    "micToggle": "Alternar",
+    "reset": "Restablecer valores predeterminados",
+    "source": "Código fuente y licencias",
+    "updateAvailable": "(Versión {{version}} disponible; la proporciona su departamento de TI)"
+  },
+  "dialog": {
+    "stopTitle": "Finalizar grabación",
+    "stopDescription": "¿Realmente desea finalizar y guardar la grabación?",
+    "cancelTitle": "Cancelar grabación",
+    "cancelDescription": "¿Realmente desea cancelar la grabación? No se guardará y no se podrá recuperar.",
+    "insertTitle": "Confirmar la inserción",
+    "insertDescription": "«{{process}}» no está autorizado en este puesto de trabajo. ¿Insertar de todos modos?",
+    "insertAnyway": "Insertar de todos modos",
+    "unknownWindow": "Ventana desconocida"
+  },
+  "toast": {
+    "started": "Grabación iniciada",
+    "numbersDeviate": "Las cifras de la traducción difieren: compruébelas; no se insertó automáticamente",
+    "done": "Transcripción completada: {{mod}}+V para insertar",
+    "fetchFailed": "Error al obtener la grabación terminada",
+    "processingFailed": "Error en el procesamiento",
+    "reprocessTimeout": "Tiempo agotado: error en el reprocesamiento",
+    "reprocessDone": "Reprocesamiento completado: {{mod}}+V para insertar",
+    "reprocessFailed": "Error en el reprocesamiento",
+    "serverAudioElsewhere": "Esta grabación no se puede continuar aquí: su audio anterior está en otra instancia del servidor. Reinicie la grabación.",
+    "processingStarted": "Se está procesando la grabación...",
+    "recordingError": "Error en la grabación",
+    "wsError": "Error de WebSocket",
+    "connectionLost": "Conexión interrumpida: reinicie la grabación",
+    "micDenied": "Acceso al micrófono denegado: revise los ajustes de macOS",
+    "noMic": "No se encontró ningún micrófono",
+    "startFailed": "Error al iniciar la grabación",
+    "processTimeout": "Tiempo agotado: no se pudo procesar la grabación",
+    "alreadyDisconnected": "La conexión ya se interrumpió",
+    "cancelled": "Grabación cancelada",
+    "cancelFailed": "Error al cancelar la grabación",
+    "macPermAll": "Faltan los permisos de Accesibilidad y Supervisión de entrada: permítalos en Ajustes del Sistema de macOS, en Privacidad.",
+    "macPermAx": "Falta el permiso de Accesibilidad: la inserción está desactivada. Permítalo en Ajustes del Sistema de macOS, en Privacidad → Accesibilidad.",
+    "macPermInput": "Falta el permiso de Supervisión de entrada: los atajos están desactivados. Permítalo en Ajustes del Sistema de macOS, en Privacidad → Supervisión de entrada."
+  }
+}

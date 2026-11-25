@@ -7,6 +7,7 @@ import {DisclaimerGate} from '@/components/DisclaimerGate';
 import Recorder from '@/components/Recorder';
 import {GetActiveSession as GoGetActiveSession, Quit as GoQuit} from '../wailsjs/go/main/App';
 import {Toaster} from 'sonner';
+import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/lib/preferences';
 import './App.css';
 
@@ -102,6 +103,7 @@ function useToastAnchor() {
 }
 
 function App() {
+    const {t} = useTranslation();
     const theme = useTheme();
     const anchor = useToastAnchor();
     // Das Overlay ist schmaler als 600px, dort gilt bei sonner mobileOffset und die
@@ -119,23 +121,24 @@ function App() {
                 <button
                     className="app-close"
                     onClick={() => GoQuit()}
-                    title="Schließen"
-                    aria-label="Schließen"
+                    title={t("common.close")}
+                    aria-label={t("common.close")}
                 >
                     <X size={16}/>
                 </button>
                 <Overlay/>
                 <Toaster
                     // Unten rechts in der Transkript-Card (ohne Card: unten mittig über der
-                    // Tastenkürzel-Leiste); kurz sichtbar (2,5 s statt sonners 4 s).
+                    // Tastenkürzel-Leiste); kurz sichtbar (1,5 s statt sonners 4 s).
                     // Fehler und Berechtigungshinweise setzen ihre eigene, längere duration.
                     position={anchored ? 'bottom-right' : 'bottom-center'}
                     offset={anchored ? {bottom: anchored.bottom, right: anchored.right} : {bottom: 40}}
                     mobileOffset={anchored ? {bottom: anchored.bottom, right: anchored.right, left: 0} : {bottom: 40}}
                     style={anchored ? {left: 'auto', width: anchored.width, '--width': `${anchored.width}px`} as CSSProperties : undefined}
                     theme={theme}
+                    closeButton
                     toastOptions={{
-                        duration: 2500,
+                        duration: 1500,
                         style: {
                             fontSize: '12px',
                         },

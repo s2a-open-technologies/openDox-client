@@ -204,13 +204,15 @@ Dieselben Schlüssel können in der `settings.json` stehen; **was dort steht, ge
     "insert_allowlist": [],
     "dictation_mic_mode": "hold",
     "live_view": true,
-    "theme": "dark"
+    "theme": "dark",
+    "ui_language": "de"
 }
 ```
 
-**Nutzer-Einstellungen.** `theme`, `live_view` und `dictation_mic_mode` sind nur Vorgaben: Der Nutzer
+**Nutzer-Einstellungen.** `theme`, `live_view`, `dictation_mic_mode` und `ui_language` sind nur Vorgaben: Der Nutzer
 stellt sie im Overlay um (Zahnrad → Einstellungen; Design auch auf dem Anmeldebildschirm, Live-Ansicht auch
-über das Auge). Die Wahl landet in `preferences.json` im Benutzer-Konfigordner
+über das Auge; die Diktiersprache für die Übersetzung erscheint nur, wenn der Server sie für den Nutzer freigegeben
+hat, und ist keine settings.json-Vorgabe). Die Wahl landet in `preferences.json` im Benutzer-Konfigordner
 (`%AppData%\opendox-client\`, `~/Library/Application Support/opendox-client/`, `~/.config/opendox-client/`)
 und gewinnt gegenüber `settings.json` und Server. „Auf Standard zurücksetzen“ löscht die Datei. Die
 Zwischenablage- und Allow-Listen-Schlüssel kann der Nutzer bewusst nicht ändern.
@@ -234,6 +236,9 @@ Zwischenablage- und Allow-Listen-Schlüssel kann der Nutzer bewusst nicht änder
 
 - `theme` (Default `"dark"`) — Design des Overlays, `"dark"` oder `"light"`.
 
+- `ui_language` (Default: Sprache des Betriebssystems, sonst `"de"`) — Oberflächensprache des Clients: `"de"`, `"en"`
+  oder `"es"`. Nur eine Vorgabe, der Nutzer wählt im Anmeldebildschirm oder unter Einstellungen → Sprache selbst
+  (`preferences.json`). Der Server liefert sie nicht, sie lässt sich nur lokal in der `settings.json` vorgeben.
 - `live_view` (Default `true`) — Live-Ansicht (Text erscheint während des Sprechens). Auf `false` zeigt das
   Overlay nur einen Orb (Fenstergröße unverändert), und der Server startet für die Aufnahme keine Live-
   Transkription (WebSocket-Parameter `live=0`; spart Rechenlast, das Endergebnis nach dem Stop bleibt gleich).

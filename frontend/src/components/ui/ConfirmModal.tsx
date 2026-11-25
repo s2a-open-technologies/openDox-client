@@ -1,3 +1,4 @@
+import {useTranslation} from 'react-i18next';
 import {ReactNode} from 'react';
 import {Button} from './Button';
 import './Modal.css';
@@ -17,11 +18,12 @@ export const ConfirmModal = ({
     open,
     title,
     description,
-    confirmLabel = 'Bestätigen',
-    cancelLabel = 'Abbrechen',
+    confirmLabel,
+    cancelLabel,
     onConfirm,
     onCancel,
 }: ConfirmModalProps) => {
+    const {t} = useTranslation();
     if (!open) return null;
 
     return (
@@ -31,10 +33,10 @@ export const ConfirmModal = ({
                 {description && <p className="od-modal-desc">{description}</p>}
                 <div className="od-modal-actions">
                     <Button variant="outline" size="sm" onClick={onCancel}>
-                        {cancelLabel}
+                        {cancelLabel ?? t('common.cancel')}
                     </Button>
                     <Button variant="primary" size="sm" onClick={onConfirm}>
-                        {confirmLabel}
+                        {confirmLabel ?? t('common.confirm')}
                     </Button>
                 </div>
             </div>

@@ -54,6 +54,10 @@ type Settings struct {
 	// Theme: Default des Designs ("dark" oder "light"). Kann der Nutzer im Overlay
 	// überschreiben (preferences.json). Default "dark".
 	Theme string `json:"theme"`
+	// UILanguage: Default der Oberflächensprache ("de", "en" oder "es"). Kann der Nutzer im
+	// Overlay überschreiben (preferences.json). Leer = Sprache des Betriebssystems, sonst "de"
+	// (das entscheidet das Frontend, das die System-Locale kennt).
+	UILanguage string `json:"ui_language"`
 	// LatestClientVersion: neueste veröffentlichte Client-Version ("0.9.0"), nur vom Server
 	// (der sie bei GitHub erfragt). Reine Info für den Hinweis im Einstellungsdialog; eine
 	// lokale settings.json setzt sie nicht (Merge übernimmt sie unverändert vom Server).
@@ -66,6 +70,25 @@ func (s Settings) ThemeDefault() string {
 		return "light"
 	}
 	return "dark"
+}
+
+// UILanguages sind die vom Client unterstützten Oberflächensprachen (wie die Web-UI).
+var UILanguages = []string{"de", "en", "es"}
+
+func validUILanguage(s string) string {
+	s = normalize(s)
+	for _, l := range UILanguages {
+		if s == l {
+			return l
+		}
+	}
+	return ""
+}
+
+// UILanguageDefault liefert die Oberflächensprache; unbekannt/leer = "" (Frontend wählt dann
+// nach System-Locale).
+func (s Settings) UILanguageDefault() string {
+	return validUILanguage(s.UILanguage)
 }
 
 // LiveViewDefault liefert den Default der Live-Ansicht; nicht gesetzt = an.

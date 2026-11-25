@@ -59,6 +59,7 @@ path = [
   "frontend/tsconfig.json",
   "frontend/vite.config.js",
   "frontend/wailsjs/go/**",
+  "frontend/src/i18n/locales/**",
   "frontend/src/App.css",
   "frontend/src/App.tsx",
   "frontend/src/main.tsx",

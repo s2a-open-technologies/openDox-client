@@ -44,17 +44,24 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | golang.org/x/image | v0.47.0 | BSD-3-Clause |
 | golang.org/x/sys | v0.49.0 | BSD-3-Clause |
 
-## Frontend (npm, production, 7 packages)
+## Frontend (npm, production, 14 packages)
 
 | Package | Version | License |
 |---|---|---|
+| @babel/runtime | 7.29.15 | MIT |
 | @types/react | 19.3.0 | MIT |
+| @typescript/typescript-linux-x64 | 7.0.2 | Apache-2.0 |
 | csstype | 3.2.3 | MIT |
+| html-parse-stringify | 4.0.1 | MIT |
+| i18next | 26.7.2 | MIT |
 | lucide-react | 1.67.0 | ISC |
 | react | 19.3.1 | MIT |
 | react-dom | 19.3.1 | MIT |
+| react-i18next | 17.1.13 | MIT |
 | scheduler | 0.28.0 | MIT |
 | sonner | 2.0.8 | MIT |
+| typescript | 7.0.2 | Apache-2.0 |
+| use-sync-external-store | 1.7.0 | MIT |
 
 ## Embedded assets
 
