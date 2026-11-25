@@ -6,9 +6,9 @@ require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3
 	github.com/go-vgo/robotgo v1.3.7
 	github.com/ricknicius99/hid v0.0.0-20231128165240-e77f6da9e619
-	github.com/wailsapp/wails/v2 v2.17.0
+	github.com/wailsapp/wails/v2 v2.17.1
 	golang.design/x/hotkey v0.6.1
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
