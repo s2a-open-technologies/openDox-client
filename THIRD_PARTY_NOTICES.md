@@ -37,12 +37,12 @@ and libusb (LGPL-2.1-or-later, dynamically linked on Linux).
 | github.com/vcaesar/screenshot | v0.40.0 | MIT |
 | github.com/vcaesar/tt | v0.40.0 | Apache-2.0 |
 | github.com/wailsapp/go-webview2 | v1.0.22 | MIT |
-| github.com/wailsapp/wails/v2 | v2.17.0 | MIT |
+| github.com/wailsapp/wails/v2 | v2.17.1 | MIT |
 | github.com/yusufpapurcu/wmi | v1.2.4 | MIT |
 | golang.design/x/hotkey | v0.6.1 | MIT |
 | golang.org/x/exp | v0.0.0-20261014143641-f0251eb4aa3e | BSD-3-Clause |
 | golang.org/x/image | v0.47.0 | BSD-3-Clause |
-| golang.org/x/sys | v0.49.0 | BSD-3-Clause |
+| golang.org/x/sys | v0.50.0 | BSD-3-Clause |
 
 ## Frontend (npm, production, 14 packages)
 
