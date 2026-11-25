@@ -12,6 +12,8 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-25
+
 ### Added
 
 - **Übersetzung (Diktat in Fremdsprache)** — Ab openDox-Server 0.12.0 kann in den Einstellungen eine Diktiersprache gewählt
@@ -266,7 +268,8 @@ Erster getaggter Stand; fasst die bisherige Entwicklung seit August 2026 zusamme
   Windows eine sichtbare Konsole.
 - OIDC-Callback und automatische WebView-Berechtigungen gehärtet.
 
-[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.7...HEAD
+[Unreleased]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.7...v0.9.0
 [0.8.7]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/s2a-open-technologies/openDox-client/compare/v0.8.4...v0.8.5
