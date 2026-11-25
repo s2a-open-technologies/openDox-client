@@ -20,11 +20,13 @@
 
 import {useState} from 'react';
 import {AlertTriangle} from 'lucide-react';
+import {Trans, useTranslation} from 'react-i18next';
 import {useAuth} from '@/contexts/AuthContext';
 import {Button} from '@/components/ui/Button';
 import './DisclaimerGate.css';
 
 export const DisclaimerGate = () => {
+    const {t} = useTranslation();
     const {acceptDisclaimer, logout} = useAuth();
     const [confirmed, setConfirmed] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,7 +38,7 @@ export const DisclaimerGate = () => {
         const ok = await acceptDisclaimer();
         setIsSubmitting(false);
         if (!ok) {
-            setError('Bestätigung fehlgeschlagen – bitte erneut versuchen.');
+            setError(t('disclaimer.failed'));
         }
     };
 
@@ -49,24 +51,11 @@ export const DisclaimerGate = () => {
                 <div className="disclaimer-alert">
                     <div className="disclaimer-alert-header">
                         <AlertTriangle size={16}/>
-                        <span>Kein Medizinprodukt</span>
+                        <span>{t('disclaimer.title')}</span>
                     </div>
-                    <p>
-                        openDox ist kein zugelassenes Medizinprodukt gemäß Medizinproduktegesetz (MPG)
-                        oder vergleichbaren Regularien (z. B. EU-MDR, FDA). Es dient ausschließlich der
-                        Unterstützung bei der Dokumentation.
-                    </p>
-                    <p>
-                        Alle maschinell erstellten Transkriptionen und Zusammenfassungen müssen von
-                        qualifiziertem Fachpersonal überprüft werden, bevor sie verwendet oder in eine
-                        Patientenakte übernommen werden. openDox ersetzt keine ärztliche Diagnose,
-                        Beratung oder Therapieempfehlung.
-                    </p>
-                    <p>
-                        Wer diese Anwendung betreibt, trägt die Verantwortung dafür, dass der Einsatz mit
-                        den in der eigenen Jurisdiktion geltenden Vorschriften vereinbar ist. Details siehe{' '}
-                        <code>DISCLAIMER.md</code> im Projekt-Repository.
-                    </p>
+                    <p>{t('disclaimer.p1')}</p>
+                    <p>{t('disclaimer.p2')}</p>
+                    <p><Trans i18nKey="disclaimer.p3" components={{code: <code/>}}/></p>
                 </div>
 
                 <label className="disclaimer-checkbox-row">
@@ -76,17 +65,14 @@ export const DisclaimerGate = () => {
                         onChange={(e) => setConfirmed(e.target.checked)}
                         disabled={isSubmitting}
                     />
-                    <span>
-                        Ich habe den Hinweis gelesen und verstanden und bestätige, dass ich für die
-                        regelkonforme Nutzung dieser Anwendung verantwortlich bin.
-                    </span>
+                    <span>{t('disclaimer.checkbox')}</span>
                 </label>
 
                 {error && <div className="disclaimer-error">{error}</div>}
 
                 <div className="disclaimer-actions">
                     <Button variant="ghost" size="sm" onClick={() => logout()} disabled={isSubmitting}>
-                        Abmelden
+                        {t('common.logout')}
                     </Button>
                     <Button
                         variant="primary"
@@ -94,7 +80,7 @@ export const DisclaimerGate = () => {
                         onClick={handleAccept}
                         disabled={!confirmed || isSubmitting}
                     >
-                        {isSubmitting ? 'Bestätige...' : 'Bestätigen'}
+                        {isSubmitting ? t('disclaimer.submitting') : t('common.confirm')}
                     </Button>
                 </div>
             </div>

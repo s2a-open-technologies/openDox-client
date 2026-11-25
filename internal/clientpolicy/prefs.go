@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 // Preferences sind die Einstellungen, die der Nutzer selbst im Overlay umschaltet
@@ -32,7 +33,15 @@ type Preferences struct {
 	Theme            string `json:"theme,omitempty"`
 	LiveView         *bool  `json:"live_view,omitempty"`
 	DictationMicMode string `json:"dictation_mic_mode,omitempty"`
+	// UILanguage: Oberflächensprache ("de", "en", "es"), leer = nicht gewählt.
+	UILanguage string `json:"ui_language,omitempty"`
+	// DictationLanguage ist die Diktiersprache für die Übersetzung (ISO 639-1, z. B. "pl").
+	// nil = nicht gewählt, "" = bewusst keine Übersetzung. Reine Nutzerwahl: ob sie erlaubt
+	// ist, entscheidet der Server (/settings/translation/me), nicht die Richtlinie.
+	DictationLanguage *string `json:"dictation_language,omitempty"`
 }
+
+var langCodeRe = regexp.MustCompile(`^[a-z]{2}$`)
 
 // Clean verwirft unbekannte Werte, damit eine von Hand kaputt editierte Datei nur auf die
 // Vorgabe zurückfällt statt ein undefiniertes Verhalten zu erzeugen.
@@ -49,6 +58,15 @@ func (p Preferences) Clean() Preferences {
 	default:
 		p.DictationMicMode = ""
 	}
+	p.UILanguage = validUILanguage(p.UILanguage)
+	if p.DictationLanguage != nil {
+		l := normalize(*p.DictationLanguage)
+		if l != "" && !langCodeRe.MatchString(l) {
+			p.DictationLanguage = nil
+		} else {
+			p.DictationLanguage = &l
+		}
+	}
 	return p
 }
 
@@ -64,7 +82,21 @@ func (p Preferences) Update(u Preferences) Preferences {
 	if u.DictationMicMode != "" {
 		p.DictationMicMode = u.DictationMicMode
 	}
+	if u.UILanguage != "" {
+		p.UILanguage = u.UILanguage
+	}
+	if u.DictationLanguage != nil {
+		p.DictationLanguage = u.DictationLanguage
+	}
 	return p
+}
+
+// DictationLang liefert die gewählte Diktiersprache ("" = keine Übersetzung).
+func (p Preferences) DictationLang() string {
+	if p.DictationLanguage == nil {
+		return ""
+	}
+	return *p.DictationLanguage
 }
 
 // Apply legt die Nutzer-Einstellungen über die Richtlinie s.
@@ -78,6 +110,9 @@ func (p Preferences) Apply(s Settings) Settings {
 	}
 	if p.DictationMicMode != "" {
 		s.DictationMicMode = p.DictationMicMode
+	}
+	if p.UILanguage != "" {
+		s.UILanguage = p.UILanguage
 	}
 	return s
 }

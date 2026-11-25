@@ -87,7 +87,7 @@ func (a *App) LoginWithOIDC() error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if accessToken == "" || refreshToken == "" {
 			fmt.Fprint(w, oidcCallbackErrorHTML)
-			runtime.EventsEmit(a.ctx, "oidc:login-error", "Kein Token vom Server erhalten")
+			runtime.EventsEmit(a.ctx, "oidc:login-error", oidcErrNoToken)
 		} else {
 			fmt.Fprint(w, oidcCallbackSuccessHTML)
 			runtime.EventsEmit(a.ctx, "oidc:login-complete", accessToken, refreshToken)
@@ -103,7 +103,7 @@ func (a *App) LoginWithOIDC() error {
 		select {
 		case <-done:
 		case <-time.After(5 * time.Minute):
-			runtime.EventsEmit(a.ctx, "oidc:login-error", "Zeitüberschreitung beim Login")
+			runtime.EventsEmit(a.ctx, "oidc:login-error", oidcErrTimeout)
 		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

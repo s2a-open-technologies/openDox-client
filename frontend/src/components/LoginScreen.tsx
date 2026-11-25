@@ -1,4 +1,7 @@
 import {FormEvent, useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {goMessage} from '@/i18n';
+import {UiLanguageSelect} from '@/components/ui/UiLanguageSelect';
 import {Loader2, Lock, LogIn, Moon, Sun, User} from 'lucide-react';
 import {toggleTheme, useTheme} from '@/lib/preferences';
 import {useAuth} from '@/contexts/AuthContext';
@@ -19,6 +22,7 @@ export const LoginScreen = () => {
     const [oidcEnabled, setOidcEnabled] = useState(false);
     const [ssoWaiting, setSsoWaiting] = useState(false);
     const theme = useTheme();
+    const {t} = useTranslation();
 
     useEffect(() => {
         // Erst abfragen, wenn die Server-URL feststeht — sonst geht der Request
@@ -37,7 +41,7 @@ export const LoginScreen = () => {
         });
         const offError = EventsOn('oidc:login-error', (message?: string) => {
             setSsoWaiting(false);
-            setError(message || 'SSO-Login fehlgeschlagen.');
+            setError(message ? goMessage(message) : t('login.ssoFailed'));
         });
         return () => {
             offComplete();
@@ -51,7 +55,7 @@ export const LoginScreen = () => {
         setSubmitting(true);
         const ok = await login(name.trim(), password);
         if (!ok) {
-            setError('Anmeldung fehlgeschlagen. Bitte Benutzername und Passwort prüfen.');
+            setError(t('login.failed'));
         }
         setSubmitting(false);
     };
@@ -64,7 +68,7 @@ export const LoginScreen = () => {
         } catch (err) {
             console.error('SSO login error:', err);
             setSsoWaiting(false);
-            setError('SSO-Login konnte nicht gestartet werden.');
+            setError(t('login.ssoStartFailed'));
         }
     };
 
@@ -76,16 +80,18 @@ export const LoginScreen = () => {
                 type="button"
                 className="login-theme-btn"
                 onClick={toggleTheme}
-                title={theme === "dark" ? "Helles Design" : "Dunkles Design"}
-                aria-label={theme === "dark" ? "Helles Design einschalten" : "Dunkles Design einschalten"}
+                title={theme === "dark" ? t("theme.light") : t("theme.dark")}
+                aria-label={theme === "dark" ? t("theme.toLight") : t("theme.toDark")}
             >
                 {theme === "dark" ? <Sun size={14}/> : <Moon size={14}/>}
             </button>
 
+            <UiLanguageSelect className="login-lang-select"/>
+
             <div className="login-inner">
                 <div className="login-header">
                     <h1 className="login-title">openDox</h1>
-                    <p className="login-subtitle">Bitte anmelden, um zu starten</p>
+                    <p className="login-subtitle">{t('login.subtitle')}</p>
                 </div>
 
                 {oidcEnabled && (
@@ -101,22 +107,22 @@ export const LoginScreen = () => {
                             {ssoWaiting ? (
                                 <>
                                     <Loader2 size={18} className="icon-spin-inline"/>
-                                    Warte auf Browser...
+                                    {t('login.ssoWaiting')}
                                 </>
                             ) : (
                                 <>
                                     <LogIn size={18}/>
-                                    Mit SSO anmelden
+                                    {t('login.ssoButton')}
                                 </>
                             )}
                         </Button>
-                        <div className="login-divider"><span>oder</span></div>
+                        <div className="login-divider"><span>{t('login.or')}</span></div>
                     </>
                 )}
 
                 <form className="login-form" onSubmit={handleSubmit}>
                     <label className="login-field">
-                        <span className="login-label">Benutzername</span>
+                        <span className="login-label">{t('login.username')}</span>
                         <div className="login-input-wrap">
                             <User className="login-input-icon" size={16}/>
                             <input
@@ -127,13 +133,13 @@ export const LoginScreen = () => {
                                 autoComplete="username"
                                 autoFocus
                                 disabled={submitting || ssoWaiting}
-                                placeholder="Benutzername"
+                                placeholder={t('login.username')}
                             />
                         </div>
                     </label>
 
                     <label className="login-field">
-                        <span className="login-label">Passwort</span>
+                        <span className="login-label">{t('login.password')}</span>
                         <div className="login-input-wrap">
                             <Lock className="login-input-icon" size={16}/>
                             <input
@@ -143,7 +149,7 @@ export const LoginScreen = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 autoComplete="current-password"
                                 disabled={submitting || ssoWaiting}
-                                placeholder="Passwort"
+                                placeholder={t('login.password')}
                             />
                         </div>
                     </label>
@@ -160,10 +166,10 @@ export const LoginScreen = () => {
                         {submitting ? (
                             <>
                                 <Loader2 size={18} className="icon-spin-inline"/>
-                                Anmelden...
+                                {t('login.submitting')}
                             </>
                         ) : (
-                            'Anmelden'
+                            t('login.submit')
                         )}
                     </Button>
                 </form>

@@ -1,0 +1,155 @@
+{
+  "common": {
+    "close": "Close",
+    "logout": "Log out",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "goerr": {
+    "insert_busy": "Insert already in progress – please wait a moment",
+    "clipboard_unavailable": "Clipboard unavailable – please try again",
+    "modifiers_held": "Ctrl/Alt/Shift still held – the text is on the clipboard",
+    "sendinput_failed": "Insert failed – the text is on the clipboard",
+    "oidc_no_token": "No token received from the server",
+    "oidc_timeout": "Login timed out"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "login": {
+    "subtitle": "Please log in to get started",
+    "failed": "Login failed. Please check your username and password.",
+    "ssoStartFailed": "SSO login could not be started.",
+    "ssoFailed": "SSO login failed.",
+    "ssoWaiting": "Waiting for browser...",
+    "ssoButton": "Log in with SSO",
+    "or": "or",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Log in",
+    "submitting": "Logging in..."
+  },
+  "theme": {
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme"
+  },
+  "disclaimer": {
+    "title": "Not a medical device",
+    "p1": "openDox is not an approved medical device under the German Medical Devices Act (MPG) or comparable regulations (e.g. EU MDR, FDA). It is intended solely to support documentation.",
+    "p2": "All machine-generated transcriptions and summaries must be reviewed by qualified professionals before they are used or added to a patient record. openDox does not replace medical diagnosis, advice or treatment recommendations.",
+    "p3": "Whoever operates this application is responsible for ensuring that its use complies with the regulations of their own jurisdiction. For details see <code>DISCLAIMER.md</code> in the project repository.",
+    "checkbox": "I have read and understood this notice and confirm that I am responsible for using this application in compliance with the rules.",
+    "failed": "Confirmation failed – please try again.",
+    "submitting": "Confirming..."
+  },
+  "prefs": {
+    "saveFailed": "Setting could not be saved",
+    "resetFailed": "Settings could not be reset"
+  },
+  "status": {
+    "paused": "Recording paused",
+    "recording": "Recording...",
+    "ready": "Ready",
+    "unreachable": "Unreachable",
+    "serverReachable": "openDox server reachable",
+    "serverUnreachable": "openDox server unreachable",
+    "processing": "Processing...",
+    "translating": "Translating..."
+  },
+  "toolbar": {
+    "liveOff": "Turn live view off",
+    "liveOn": "Turn live view on",
+    "settings": "Settings",
+    "shortcuts": "Keyboard shortcuts",
+    "shortcutsShow": "Show keyboard shortcuts",
+    "micSelect": "Select microphone",
+    "micNumber": "Microphone {{n}}",
+    "mic": "Microphone",
+    "category": "Select category",
+    "dictationLanguageHint": "Dictation language (settings)"
+  },
+  "transcript": {
+    "placeholder": "Speak to start the transcription"
+  },
+  "controls": {
+    "cancel": "Cancel recording",
+    "resume": "Resume",
+    "pause": "Pause",
+    "stop": "Stop",
+    "start": "Start recording"
+  },
+  "actions": {
+    "insertIn": "Insert into: {{process}}",
+    "insertInTitle": "Insert into: {{process}} – {{title}}",
+    "numbersCheck": "Check numbers:",
+    "accept": "Accept and insert",
+    "acceptTitle": "Accept and insert ({{mod}}+V)",
+    "newRecording": "New recording",
+    "newRecordingTitle": "Start new recording ({{mod}}+R)",
+    "openInOpenDox": "Open in openDox"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "record": "Start / stop recording",
+    "pause": "Pause / resume",
+    "insert": "Accept and insert",
+    "hold": "Hold to dictate",
+    "hide": "Show / hide overlay"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "liveView": "Live view",
+    "on": "On",
+    "off": "Off",
+    "uiLanguage": "Language",
+    "dictationLanguage": "Dictation language",
+    "noTranslation": "{{language}} (no translation)",
+    "micButton": "Microphone button",
+    "micHold": "Hold",
+    "micToggle": "Toggle",
+    "reset": "Reset to defaults",
+    "source": "Source code and licenses",
+    "updateAvailable": "(Version {{version}} available – provided by your IT department)"
+  },
+  "dialog": {
+    "stopTitle": "End recording",
+    "stopDescription": "Do you really want to end and save the recording?",
+    "cancelTitle": "Cancel recording",
+    "cancelDescription": "Really cancel the recording? It will not be saved and cannot be restored.",
+    "insertTitle": "Confirm insert",
+    "insertDescription": "“{{process}}” is not approved on this workstation. Insert anyway?",
+    "insertAnyway": "Insert anyway",
+    "unknownWindow": "Unknown window"
+  },
+  "toast": {
+    "started": "Recording started",
+    "numbersDeviate": "Numbers in the translation differ – please check, not inserted automatically",
+    "done": "Transcription complete – {{mod}}+V to insert",
+    "fetchFailed": "Error retrieving the finished recording",
+    "processingFailed": "Processing failed",
+    "reprocessTimeout": "Timeout – reprocessing failed",
+    "reprocessDone": "Reprocessing complete – {{mod}}+V to insert",
+    "reprocessFailed": "Reprocessing failed",
+    "serverAudioElsewhere": "This recording cannot be continued here: your audio so far is on another server instance. Please restart the recording.",
+    "processingStarted": "Recording is being processed...",
+    "recordingError": "Recording error",
+    "wsError": "WebSocket error",
+    "connectionLost": "Connection lost – please restart the recording",
+    "micDenied": "Microphone access denied – check macOS settings",
+    "noMic": "No microphone found",
+    "startFailed": "Error starting the recording",
+    "processTimeout": "Timeout – the recording could not be processed",
+    "alreadyDisconnected": "Connection already lost",
+    "cancelled": "Recording cancelled",
+    "cancelFailed": "Error cancelling the recording",
+    "macPermAll": "Accessibility and Input Monitoring are missing – allow them in macOS System Settings under Privacy.",
+    "macPermAx": "Accessibility permission missing – insert disabled. Allow it in macOS System Settings under Privacy → Accessibility.",
+    "macPermInput": "Input Monitoring permission missing – hotkeys disabled. Allow it in macOS System Settings under Privacy → Input Monitoring."
+  }
+}

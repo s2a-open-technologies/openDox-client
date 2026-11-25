@@ -1,0 +1,155 @@
+{
+  "common": {
+    "close": "Schließen",
+    "logout": "Abmelden",
+    "confirm": "Bestätigen",
+    "cancel": "Abbrechen",
+    "back": "Zurück"
+  },
+  "goerr": {
+    "insert_busy": "Einfügen läuft bereits – bitte kurz warten",
+    "clipboard_unavailable": "Zwischenablage nicht verfügbar – bitte erneut versuchen",
+    "modifiers_held": "Strg/Alt/Shift noch gedrückt – Text liegt in der Zwischenablage",
+    "sendinput_failed": "Einfügen fehlgeschlagen – Text liegt in der Zwischenablage",
+    "oidc_no_token": "Kein Token vom Server erhalten",
+    "oidc_timeout": "Zeitüberschreitung beim Login"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "login": {
+    "subtitle": "Bitte anmelden, um zu starten",
+    "failed": "Anmeldung fehlgeschlagen. Bitte Benutzername und Passwort prüfen.",
+    "ssoStartFailed": "SSO-Login konnte nicht gestartet werden.",
+    "ssoFailed": "SSO-Login fehlgeschlagen.",
+    "ssoWaiting": "Warte auf Browser...",
+    "ssoButton": "Mit SSO anmelden",
+    "or": "oder",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "submitting": "Anmelden..."
+  },
+  "theme": {
+    "light": "Helles Design",
+    "dark": "Dunkles Design",
+    "toLight": "Helles Design einschalten",
+    "toDark": "Dunkles Design einschalten"
+  },
+  "disclaimer": {
+    "title": "Kein Medizinprodukt",
+    "p1": "openDox ist kein zugelassenes Medizinprodukt gemäß Medizinproduktegesetz (MPG) oder vergleichbaren Regularien (z. B. EU-MDR, FDA). Es dient ausschließlich der Unterstützung bei der Dokumentation.",
+    "p2": "Alle maschinell erstellten Transkriptionen und Zusammenfassungen müssen von qualifiziertem Fachpersonal überprüft werden, bevor sie verwendet oder in eine Patientenakte übernommen werden. openDox ersetzt keine ärztliche Diagnose, Beratung oder Therapieempfehlung.",
+    "p3": "Wer diese Anwendung betreibt, trägt die Verantwortung dafür, dass der Einsatz mit den in der eigenen Jurisdiktion geltenden Vorschriften vereinbar ist. Details siehe <code>DISCLAIMER.md</code> im Projekt-Repository.",
+    "checkbox": "Ich habe den Hinweis gelesen und verstanden und bestätige, dass ich für die regelkonforme Nutzung dieser Anwendung verantwortlich bin.",
+    "failed": "Bestätigung fehlgeschlagen – bitte erneut versuchen.",
+    "submitting": "Bestätige..."
+  },
+  "prefs": {
+    "saveFailed": "Einstellung konnte nicht gespeichert werden",
+    "resetFailed": "Einstellungen konnten nicht zurückgesetzt werden"
+  },
+  "status": {
+    "paused": "Aufnahme pausiert",
+    "recording": "Aufnahme läuft...",
+    "ready": "Bereit",
+    "unreachable": "Nicht erreichbar",
+    "serverReachable": "openDox-Server erreichbar",
+    "serverUnreachable": "openDox-Server nicht erreichbar",
+    "processing": "Verarbeite...",
+    "translating": "Übersetze..."
+  },
+  "toolbar": {
+    "liveOff": "Live-Ansicht ausschalten",
+    "liveOn": "Live-Ansicht einschalten",
+    "settings": "Einstellungen",
+    "shortcuts": "Tastenkürzel",
+    "shortcutsShow": "Tastenkürzel anzeigen",
+    "micSelect": "Mikrofon auswählen",
+    "micNumber": "Mikrofon {{n}}",
+    "mic": "Mikrofon",
+    "category": "Kategorie auswählen",
+    "dictationLanguageHint": "Diktiersprache (Einstellungen)"
+  },
+  "transcript": {
+    "placeholder": "Sprechen Sie, um die Transkription zu starten"
+  },
+  "controls": {
+    "cancel": "Aufnahme abbrechen",
+    "resume": "Fortsetzen",
+    "pause": "Pausieren",
+    "stop": "Stop",
+    "start": "Aufnahme starten"
+  },
+  "actions": {
+    "insertIn": "Einfügen in: {{process}}",
+    "insertInTitle": "Einfügen in: {{process}} – {{title}}",
+    "numbersCheck": "Zahlen prüfen:",
+    "accept": "Akzeptieren und einfügen",
+    "acceptTitle": "Akzeptieren und einfügen ({{mod}}+V)",
+    "newRecording": "Neue Aufnahme",
+    "newRecordingTitle": "Neue Aufnahme starten ({{mod}}+R)",
+    "openInOpenDox": "In openDox öffnen"
+  },
+  "shortcuts": {
+    "title": "Tastenkürzel",
+    "record": "Aufnahme starten / stoppen",
+    "pause": "Pausieren / Fortsetzen",
+    "insert": "Akzeptieren und einfügen",
+    "hold": "Halten zum Diktieren",
+    "hide": "Overlay ein- / ausblenden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "theme": "Design",
+    "themeDark": "Dunkel",
+    "themeLight": "Hell",
+    "liveView": "Live-Ansicht",
+    "on": "An",
+    "off": "Aus",
+    "uiLanguage": "Sprache",
+    "dictationLanguage": "Diktiersprache",
+    "noTranslation": "{{language}} (keine Übersetzung)",
+    "micButton": "Mikrofontaste",
+    "micHold": "Halten",
+    "micToggle": "Umschalten",
+    "reset": "Auf Standard zurücksetzen",
+    "source": "Quellcode und Lizenzen",
+    "updateAvailable": "(Version {{version}} verfügbar – wird von Ihrer IT bereitgestellt)"
+  },
+  "dialog": {
+    "stopTitle": "Aufnahme beenden",
+    "stopDescription": "Möchten Sie die Aufnahme wirklich beenden und speichern?",
+    "cancelTitle": "Aufnahme abbrechen",
+    "cancelDescription": "Aufnahme wirklich abbrechen? Die Aufnahme wird nicht gespeichert und kann nicht wiederhergestellt werden.",
+    "insertTitle": "Einfügen bestätigen",
+    "insertDescription": "„{{process}}“ ist auf diesem Arbeitsplatz nicht freigegeben. Trotzdem einfügen?",
+    "insertAnyway": "Trotzdem einfügen",
+    "unknownWindow": "Unbekanntes Fenster"
+  },
+  "toast": {
+    "started": "Aufnahme gestartet",
+    "numbersDeviate": "Zahlen in der Übersetzung weichen ab – bitte prüfen, nicht automatisch eingefügt",
+    "done": "Transkription abgeschlossen – {{mod}}+V zum Einfügen",
+    "fetchFailed": "Fehler beim Abrufen der fertigen Aufnahme",
+    "processingFailed": "Verarbeitung fehlgeschlagen",
+    "reprocessTimeout": "Zeitüberschreitung – Neuverarbeitung fehlgeschlagen",
+    "reprocessDone": "Neuverarbeitung abgeschlossen – {{mod}}+V zum Einfügen",
+    "reprocessFailed": "Neuverarbeitung fehlgeschlagen",
+    "serverAudioElsewhere": "Diese Aufnahme kann hier nicht fortgesetzt werden: Ihr bisheriges Audio liegt auf einer anderen Server-Instanz. Bitte die Aufnahme neu starten.",
+    "processingStarted": "Aufnahme wird verarbeitet...",
+    "recordingError": "Fehler bei der Aufnahme",
+    "wsError": "WebSocket Fehler",
+    "connectionLost": "Verbindung unterbrochen – bitte Aufnahme neu starten",
+    "micDenied": "Mikrofonzugriff verweigert – in macOS-Einstellungen prüfen",
+    "noMic": "Kein Mikrofon gefunden",
+    "startFailed": "Fehler beim Starten der Aufnahme",
+    "processTimeout": "Zeitüberschreitung – Aufnahme konnte nicht verarbeitet werden",
+    "alreadyDisconnected": "Verbindung bereits unterbrochen",
+    "cancelled": "Aufnahme abgebrochen",
+    "cancelFailed": "Fehler beim Abbrechen der Aufnahme",
+    "macPermAll": "Bedienhilfen und Eingabeüberwachung fehlen – in den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen und Eingabeüberwachung erlauben.",
+    "macPermAx": "Bedienhilfen-Berechtigung fehlt – Einfügen deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen erlauben.",
+    "macPermInput": "Eingabeüberwachung-Berechtigung fehlt – Hotkeys deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Eingabeüberwachung erlauben."
+  }
+}

@@ -24,17 +24,19 @@ import {
     GetPreferences as GoGetPreferences,
     ResetPreferences as GoResetPreferences,
     SavePreferences as GoSavePreferences,
+    SetUILanguage as GoSetUILanguage,
 } from '../../wailsjs/go/main/App';
 import {clientpolicy, main} from '../../wailsjs/go/models';
+import i18n, {applyUiLanguage} from '@/i18n';
 
 // Nutzer-Einstellungen (Design, Live-Ansicht, Mikrofontaste). Go hält sie in preferences.json im
 // Benutzer-Konfigordner; ohne Wahl des Nutzers liefert GetPreferences die Vorgabe aus
 // settings.json bzw. Server-Richtlinie. Ein kleiner Modul-Store statt eines Contexts, damit
 // Recorder, LoginScreen und der Toaster in App.tsx denselben Stand sehen.
 export type Theme = "dark" | "light";
-export type Prefs = {theme: Theme; live_view: boolean; dictation_mic_mode: "hold" | "toggle"};
+export type Prefs = {theme: Theme; live_view: boolean; dictation_mic_mode: "hold" | "toggle"; dictation_language: string; ui_language: string};
 
-const DEFAULTS: Prefs = {theme: "dark", live_view: true, dictation_mic_mode: "hold"};
+const DEFAULTS: Prefs = {theme: "dark", live_view: true, dictation_mic_mode: "hold", dictation_language: "", ui_language: ""};
 const listeners = new Set<() => void>();
 let current: Prefs = DEFAULTS;
 
@@ -43,8 +45,13 @@ function set(p: main.Preferences) {
         theme: p.theme === "light" ? "light" : "dark",
         live_view: p.live_view,
         dictation_mic_mode: p.dictation_mic_mode === "toggle" ? "toggle" : "hold",
+        dictation_language: p.dictation_language ?? "",
+        ui_language: p.ui_language ?? "",
     };
     document.documentElement.dataset.theme = current.theme;
+    applyUiLanguage(current.ui_language);
+    // Go braucht die Sprache für native Benachrichtigungen.
+    GoSetUILanguage(i18n.language).catch(() => { /* nicht kritisch */ });
     listeners.forEach((l) => l());
 }
 
@@ -70,7 +77,7 @@ export async function savePreferences(update: Partial<Prefs>) {
         set(await GoSavePreferences(clientpolicy.Preferences.createFrom(update)));
     } catch (e) {
         console.warn("Einstellungen nicht speicherbar:", e);
-        toast.error("Einstellung konnte nicht gespeichert werden");
+        toast.error(i18n.t("prefs.saveFailed"), {duration: 4000});
     }
 }
 
@@ -79,7 +86,7 @@ export async function resetPreferences() {
         set(await GoResetPreferences());
     } catch (e) {
         console.warn("Einstellungen nicht zurücksetzbar:", e);
-        toast.error("Einstellungen konnten nicht zurückgesetzt werden");
+        toast.error(i18n.t("prefs.resetFailed"), {duration: 4000});
     }
 }
 

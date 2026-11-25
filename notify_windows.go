@@ -33,11 +33,11 @@ import (
 // daher kein neues Modul nötig. Fällt ohne registrierte AppUserModelID
 // automatisch auf einen PowerShell-Toast zurück, statt zu scheitern. Best-effort:
 // Fehler werden nur geloggt.
-func notifyReview() {
+func notifyReview(msg string) {
 	n := toast.Notification{
 		AppID: "openDox",
 		Title: "openDox",
-		Body:  "Text eingefügt – bitte vor Verwendung prüfen.",
+		Body:  msg,
 	}
 	if err := n.Push(); err != nil {
 		log.Printf("[opendox] toast notification failed: %v", err)

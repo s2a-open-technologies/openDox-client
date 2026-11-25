@@ -45,6 +45,8 @@ type RecordCreate struct {
 	UserID     int    `json:"user_id"`
 	Title      string `json:"title"`
 	CategoryID *int   `json:"category_id"`
+	// SourceLanguage: Diktiersprache (ISO 639-1) für die Übersetzung; leer = keine Übersetzung.
+	SourceLanguage string `json:"source_language,omitempty"`
 }
 
 type Record struct {
@@ -77,6 +79,25 @@ type RecordDetails struct {
 	ID        int    `json:"id"`
 	TaskID    int    `json:"task_id"`
 	Summarize string `json:"summarize"`
+	// Übersetzung (nur gesetzt, wenn in einer Fremdsprache diktiert wurde).
+	SourceLanguage      string               `json:"source_language,omitempty"`
+	TranslationLanguage string               `json:"translation_language,omitempty"`
+	TranslationSegments []TranslationSegment `json:"translation_segments,omitempty"`
+}
+
+// TranslationSegment ist ein Satzpaar der Übersetzung samt Zahlenprüfung des Servers.
+// Der Text selbst wird im Client nicht angezeigt, nur die abweichenden Zahlen.
+type TranslationSegment struct {
+	MissingNumbers []string `json:"missing_numbers"`
+	ExtraNumbers   []string `json:"extra_numbers"`
+}
+
+// TranslationAvailability sagt, ob und in welchen Sprachen der Nutzer Diktate übersetzen lassen darf.
+type TranslationAvailability struct {
+	Available      bool     `json:"available"`
+	Languages      []string `json:"languages"`
+	TargetLanguage string   `json:"target_language"`
+	LiveLanguages  []string `json:"live_languages"`
 }
 
 type Settings struct {
@@ -611,11 +632,12 @@ func (a *App) doRequest(method, path, token string, body interface{}) (*http.Res
 // --- Bound Methods (werden als TS-Funktionen generiert) ---
 
 // CreateRecord erstellt eine neue Aufnahme beim OpenDox-Server.
-// categoryID 0 bedeutet "keine Kategorie" (wird als null gesendet).
-func (a *App) CreateRecord(userID int, title string, categoryID int, token string) (Record, error) {
+// categoryID 0 bedeutet "keine Kategorie" (wird als null gesendet). sourceLanguage "" = keine Übersetzung.
+func (a *App) CreateRecord(userID int, title string, categoryID int, sourceLanguage string, token string) (Record, error) {
 	req := RecordCreate{
-		UserID: userID,
-		Title:  title,
+		UserID:         userID,
+		Title:          title,
+		SourceLanguage: sourceLanguage,
 	}
 	if categoryID > 0 {
 		req.CategoryID = &categoryID
@@ -709,6 +731,24 @@ func (a *App) GetCategories(token string) ([]Category, error) {
 	return cats, nil
 }
 
+// GetTranslationAvailability fragt ab, ob der Nutzer Übersetzung nutzen darf. Ältere Server ohne
+// den Endpunkt (404) oder jeder Fehler gelten als "nicht verfügbar", nie als Fehler im UI.
+func (a *App) GetTranslationAvailability(token string) TranslationAvailability {
+	resp, err := a.doRequest("GET", "/api/v1/settings/translation/me", token, nil)
+	if err != nil {
+		return TranslationAvailability{}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return TranslationAvailability{}
+	}
+	var t TranslationAvailability
+	if json.NewDecoder(resp.Body).Decode(&t) != nil {
+		return TranslationAvailability{}
+	}
+	return t
+}
+
 // GetTaskStatus fragt den Status eines Hintergrund-Tasks ab (Transkription + LLM-Summary).
 func (a *App) GetTaskStatus(taskID int, token string) (TaskStatus, error) {
 	resp, err := a.doRequest("GET", fmt.Sprintf("/api/v1/records/status/%d", taskID), token, nil)
@@ -791,7 +831,7 @@ func (a *App) CopyToClipboard(text string) error {
 	if seq != 0 {
 		a.clipCleaner.Schedule(seq, a.currentPolicy().ClipboardClearAfter())
 	}
-	go notifyReview()
+	go notifyReview(goMessage(msgNotifyReviewKey))
 	return nil
 }
 
@@ -816,7 +856,7 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 	// Frontend) — besser als lautlos zu verwürfeln.
 	if !a.insertMu.TryLock() {
 		log.Printf("[opendox] InsertTranscript: bereits ein Insert aktiv, ignoriere weiteren Aufruf (viaHotkey=%v)", viaHotkey)
-		return fmt.Errorf("Einfügen läuft bereits – bitte kurz warten")
+		return errInsertBusy
 	}
 	defer a.insertMu.Unlock()
 
@@ -832,11 +872,11 @@ func (a *App) InsertTranscript(text string, viaHotkey bool) error {
 			// Ohne frisch gesetzte Zwischenablage würde Strg+V einen alten, fremden
 			// Inhalt einfügen — lieber sichtbar abbrechen.
 			log.Printf("[opendox] InsertTranscript: Zwischenablage nicht gesetzt: %v", err)
-			return fmt.Errorf("Zwischenablage nicht verfügbar – bitte erneut versuchen")
+			return errClipboardNA
 		}
 		clipSeq = seq
 	}
-	go notifyReview()
+	go notifyReview(goMessage(msgNotifyReviewKey))
 
 	// Ein Klick auf den "Akzeptieren und einfügen"-Button fokussiert zwangsläufig
 	// erst das openDox-Overlay selbst (jeder Mausklick auf ein Fenster holt es in

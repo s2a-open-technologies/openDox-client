@@ -29,8 +29,8 @@ import (
 // eingefügten Text vor Verwendung zu prüfen. Best-effort: falls notify-send
 // fehlt oder fehlschlägt, wird das nur geloggt, da die Zwischenablage/der
 // Zieltext bereits erfolgreich gesetzt wurde.
-func notifyReview() {
-	cmd := exec.Command("notify-send", "openDox", "Text eingefügt – bitte vor Verwendung prüfen.")
+func notifyReview(msg string) {
+	cmd := exec.Command("notify-send", "openDox", msg)
 	if err := cmd.Run(); err != nil {
 		log.Printf("[opendox] notify-send failed: %v", err)
 	}

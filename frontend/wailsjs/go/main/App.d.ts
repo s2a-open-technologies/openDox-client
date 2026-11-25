@@ -11,7 +11,7 @@ export function CheckHotkeys():Promise<boolean>;
 
 export function CopyToClipboard(arg1:string):Promise<void>;
 
-export function CreateRecord(arg1:number,arg2:string,arg3:number,arg4:string):Promise<main.Record>;
+export function CreateRecord(arg1:number,arg2:string,arg3:number,arg4:string,arg5:string):Promise<main.Record>;
 
 export function GetActiveSession(arg1:number,arg2:string):Promise<main.ActiveSession>;
 
@@ -26,6 +26,8 @@ export function GetRecordBySession(arg1:string,arg2:string):Promise<main.RecordD
 export function GetSettings():Promise<main.Settings>;
 
 export function GetTaskStatus(arg1:number,arg2:string):Promise<main.TaskStatus>;
+
+export function GetTranslationAvailability(arg1:string):Promise<main.TranslationAvailability>;
 
 export function GetUpdateInfo():Promise<main.UpdateInfo>;
 
@@ -48,3 +50,5 @@ export function ResetPreferences():Promise<main.Preferences>;
 export function SavePreferences(arg1:clientpolicy.Preferences):Promise<main.Preferences>;
 
 export function SetOverlayNoActivate(arg1:boolean):Promise<void>;
+
+export function SetUILanguage(arg1:string):Promise<void>;

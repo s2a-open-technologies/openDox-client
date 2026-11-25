@@ -21,7 +21,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
 	"strings"
@@ -89,7 +88,7 @@ func insertText(text string) error {
 	// Noch gehaltene Hotkey-Modifier würden aus Strg+V ein Strg+Alt+V (unseren
 	// eigenen Hotkey) bzw. beim Tippen AltGr-Zeichen/Shortcuts machen.
 	if !waitModifiersReleased(2 * time.Second) {
-		return fmt.Errorf("Strg/Alt/Shift noch gedrückt – Text liegt in der Zwischenablage")
+		return errModifiersHeld
 	}
 
 	exe := foregroundProcessName()
@@ -159,10 +158,10 @@ func sendCtrlV() error {
 		{typ: inputKeyboard, ki: keybdInput{wVk: vkV, dwFlags: keyeventfKeyUp}},
 		{typ: inputKeyboard, ki: keybdInput{wVk: vkControl, dwFlags: keyeventfKeyUp}},
 	}
-	n, _, err := procSendInput.Call(uintptr(len(inputs)),
+	n, _, _ := procSendInput.Call(uintptr(len(inputs)),
 		uintptr(unsafe.Pointer(&inputs[0])), unsafe.Sizeof(inputs[0]))
 	if int(n) != len(inputs) {
-		return fmt.Errorf("SendInput(Strg+V) fehlgeschlagen: %v", err)
+		return errSendInputFailed
 	}
 	return nil
 }

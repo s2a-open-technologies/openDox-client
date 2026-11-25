@@ -56,3 +56,27 @@
         transform: rotate(360deg);
     }
 }
+
+/* Toasts: kleines x innen rechts, dauerhaft sichtbar (sonners Standard sitzt halb außerhalb
+   des Rands und erscheint erst beim Überfahren — im schmalen Overlay würde es abgeschnitten). */
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+    left: auto;
+    right: 6px;
+    top: 6px;
+    transform: none;
+    opacity: 1;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+    background: var(--tint-2);
+    color: var(--text);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+    padding-right: 28px;
+}

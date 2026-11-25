@@ -22,7 +22,10 @@ import {useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallbac
 import {Mic, Square, Loader2, Pause, Play, X, ExternalLink, LogOut, Check, Eye, EyeOff, HelpCircle, Settings as SettingsIcon} from "lucide-react";
 import {resetPreferences, savePreferences, usePreferences} from "@/lib/preferences";
 import {toast} from "sonner";
-import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories} from "../../wailsjs/go/main/App";
+import {useTranslation} from "react-i18next";
+import i18n, {goMessage} from "@/i18n";
+import {UiLanguageSelect} from "@/components/ui/UiLanguageSelect";
+import {CreateRecord as GoCreateRecord, GetWSURL as GoGetWSURL, GetWhisperSettings as GoGetWhisperSettings, GetCategories as GoGetCategories, GetTranslationAvailability as GoGetTranslationAvailability} from "../../wailsjs/go/main/App";
 import {InsertTranscript as GoInsertTranscript, SetOverlayNoActivate as GoSetOverlayNoActivate} from "../../wailsjs/go/main/App";
 import {GetInsertTarget as GoGetInsertTarget} from "../../wailsjs/go/main/App";
 import type {main} from "../../wailsjs/go/models";
@@ -55,12 +58,19 @@ export interface RecorderHandle {
 
 // Meldungen für Fehlercodes, mit denen der Server den WebSocket ablehnt und schließt.
 // Unbekannte Codes zeigen den (englischen) Fehlertext des Servers.
-const SERVER_ERROR_MESSAGES: Record<string, string> = {
-    recording_audio_unavailable:
-        "Diese Aufnahme kann hier nicht fortgesetzt werden: Ihr bisheriges Audio liegt auf einer anderen Server-Instanz. Bitte die Aufnahme neu starten.",
+const SERVER_ERROR_KEYS: Record<string, string> = {
+    recording_audio_unavailable: "toast.serverAudioElsewhere",
 };
 
+// Welches Eingabegerät gilt ohne eigene Wahl: der Eintrag "default", sonst das erste echte Gerät
+// (Monitor-Quellen, also mitgehörte Ausgaben, überspringen). "" = noch nicht bestimmbar.
+function chooseDefaultMic(mics: MediaDeviceInfo[]): string {
+    const real = mics.filter((m) => m.deviceId && !/monitor/i.test(m.label));
+    return (real.find((m) => m.deviceId === "default") ?? real[0])?.deviceId ?? "";
+}
+
 const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, categoryId, onFinalTranscription, onRecordingStart, autoStart, resumeSessionId, onLogout}, ref) => {
+    const {t} = useTranslation();
     const {getFreshToken} = useAuth();
     const {settings} = useSettings();
     const restURL = settings?.server_url || "http://localhost:10000";
@@ -128,7 +138,32 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const [serverLive, setServerLive] = useState(true);
     const prefs = usePreferences();
     const liveView = prefs.live_view;
-    const liveEnabled = serverLive && liveView;
+    // Übersetzung (Diktat in Fremdsprache): nur wenn der Server sie für diesen Nutzer freigibt
+    // (/settings/translation/me). Die gewählte Sprache zählt nur, solange sie dort noch angeboten wird.
+    const [translation, setTranslation] = useState<{languages: string[]; live: string[]; target: string}>({languages: [], live: [], target: ""});
+    useEffect(() => {
+        let cancelled = false;
+        getFreshToken()
+            .then((t) => GoGetTranslationAvailability(t))
+            .then((a) => {
+                if (!cancelled && a.available) setTranslation({languages: a.languages ?? [], live: a.live_languages ?? [], target: a.target_language ?? ""});
+            })
+            .catch(() => { /* nicht verfügbar */ });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
+    const sourceLanguage = translation.languages.includes(prefs.dictation_language) ? prefs.dictation_language : "";
+    const sourceLanguageRef = useRef("");
+    sourceLanguageRef.current = sourceLanguage;
+    // Sprachen ohne Live-Modell: der Server liefert dort keinen Live-Text, also nur den Orb zeigen.
+    const liveEnabled = serverLive && liveView && !(sourceLanguage && !translation.live.includes(sourceLanguage));
+    const languageName = (code: string) => {
+        try {return new Intl.DisplayNames([i18n.language], {type: "language"}).of(code) ?? code;} catch (_) {return code;}
+    };
+    // "processing" zeigt den Server-Schritt (Transkription, Übersetzung, ...) im Overlay.
+    const [processingStep, setProcessingStep] = useState("");
+    // Zahlen, die in der Übersetzung fehlen oder dazugekommen sind: dann kein Auto-Insert.
+    const [numberWarning, setNumberWarning] = useState<string[]>([]);
     const [prefsOpen, setPrefsOpen] = useState(false);
     // Neuere Client-Version laut Server (nur Info; installiert wird über die IT-Verteilung).
     const [updateLatest, setUpdateLatest] = useState<string | null>(null);
@@ -207,11 +242,11 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     }));
 
     const createRecord = async () => {
-        const record = await GoCreateRecord(parseInt(userId), title || "Client-Aufnahme", selectedCategoryId, await getFreshToken());
+        const record = await GoCreateRecord(parseInt(userId), title || "Client-Aufnahme", selectedCategoryId, sourceLanguageRef.current, await getFreshToken());
 
         setSessionId(record.session_id);
         sessionIdRef.current = record.session_id;
-        toast.success("Aufnahme gestartet");
+        toast.success(i18n.t("toast.started"));
         if (onRecordingStart) {
             onRecordingStart(record);
         }
@@ -242,12 +277,22 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 setStableTranscript(record.summarize || "");
                 setLiveTranscript("");
                 setRecordId(record.id);
-                const autoInsert = autoInsertRef.current;
+                // Übersetzung: weicht eine Zahl zwischen Original und Übersetzung ab, wird nicht
+                // automatisch eingefügt, sondern erst nach manuellem Akzeptieren.
+                const deviating = new Set<string>();
+                for (const seg of record.translation_segments ?? []) {
+                    for (const n of [...(seg.missing_numbers ?? []), ...(seg.extra_numbers ?? [])]) deviating.add(n);
+                }
+                setNumberWarning([...deviating]);
+                const autoInsert = autoInsertRef.current && deviating.size === 0;
+                if (deviating.size > 0) {
+                    toast.warning(i18n.t("toast.numbersDeviate"), {duration: 6000});
+                }
                 autoInsertRef.current = false;
                 if (autoInsert && record.summarize) {
                     acceptAndInsertRef.current(true, record.summarize);
                 } else {
-                    toast.success(`Transkription abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
+                    toast.success(i18n.t("toast.done", {mod: modKeyLabel}));
                 }
                 if (onFinalTranscription) {
                     onFinalTranscription(pollSessionId, taskId);
@@ -255,9 +300,10 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             } catch (err) {
                 console.error(err);
                 autoInsertRef.current = false;
-                toast.error("Fehler beim Abrufen der fertigen Aufnahme");
+                toast.error(i18n.t("toast.fetchFailed"), {duration: 4000});
             } finally {
                 setIsProcessing(false);
+                setProcessingStep("");
                 if (processingTimeoutRef.current) {
                     clearTimeout(processingTimeoutRef.current);
                     processingTimeoutRef.current = null;
@@ -273,11 +319,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 clearTimeout(processingTimeoutRef.current);
                 processingTimeoutRef.current = null;
             }
-            toast.error(status.error || "Verarbeitung fehlgeschlagen");
+            toast.error(status.error || i18n.t("toast.processingFailed"), {duration: 4000});
             return;
         }
 
-        // pending / running / transcribing / processing_llm -> weiter pollen
+        // pending / running / transcribing / translating / processing_llm -> weiter pollen
+        setProcessingStep(status.status === "translating" ? i18n.t("status.translating") : "");
         pollTimeoutRef.current = setTimeout(() => pollTaskStatus(taskId, pollSessionId), 2000);
     };
 
@@ -291,17 +338,17 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         setIsProcessing(true);
         processingTimeoutRef.current = setTimeout(() => {
             setIsProcessing(false);
-            toast.error("Zeitüberschreitung – Neuverarbeitung fehlgeschlagen");
+            toast.error(i18n.t("toast.reprocessTimeout"), {duration: 4000});
         }, 90_000);
 
         try {
             const record = await GoReprocessWithCategory(recordId, newCategoryId, await getFreshToken());
             if (sessionIdRef.current !== pollSessionId) return;
             setStableTranscript(record.summarize || "");
-            toast.success(`Neuverarbeitung abgeschlossen – ${modKeyLabel}+V zum Einfügen`);
+            toast.success(i18n.t("toast.reprocessDone", {mod: modKeyLabel}));
         } catch (err) {
             console.error("Neuverarbeitung fehlgeschlagen:", err);
-            toast.error("Neuverarbeitung fehlgeschlagen");
+            toast.error(i18n.t("toast.reprocessFailed"), {duration: 4000});
         } finally {
             if (processingTimeoutRef.current) {
                 clearTimeout(processingTimeoutRef.current);
@@ -333,7 +380,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 // Der Server lehnt ab und schließt den Socket direkt danach (z.B. wenn das
                 // bisherige Audio einer fortgesetzten Aufnahme auf einer anderen Instanz liegt).
                 serverErrorShownRef.current = true;
-                toast.error(SERVER_ERROR_MESSAGES[data.code] ?? data.error);
+                toast.error(SERVER_ERROR_KEYS[data.code] ? i18n.t(SERVER_ERROR_KEYS[data.code]) : data.error, {duration: 4000});
                 return;
             }
 
@@ -363,7 +410,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 // Signalisiert nur, dass die Hintergrund-Transkription gestartet wurde -
                 // isProcessing bleibt an, bis pollTaskStatus das fertige Ergebnis hat.
                 wsFinishedRef.current = true;
-                toast.success("Aufnahme wird verarbeitet...");
+                toast.success(i18n.t("toast.processingStarted"));
                 if (data.task_id && sessionIdRef.current) {
                     pollTaskStatus(data.task_id, sessionIdRef.current);
                 }
@@ -378,13 +425,13 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     processingTimeoutRef.current = null;
                 }
                 setIsProcessing(false);
-                toast.error(data.message || "Fehler bei der Aufnahme");
+                toast.error(data.message || i18n.t("toast.recordingError"), {duration: 4000});
             }
         };
 
         ws.onerror = (error) => {
             console.error("WebSocket Fehler:", error);
-            toast.error("WebSocket Fehler");
+            toast.error(i18n.t("toast.wsError"), {duration: 4000});
         };
 
         ws.onclose = () => {
@@ -398,12 +445,36 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     processingTimeoutRef.current = null;
                 }
                 if (!serverErrorShownRef.current) {
-                    toast.error("Verbindung unterbrochen – bitte Aufnahme neu starten");
+                    toast.error(i18n.t("toast.connectionLost"), {duration: 4000});
                 }
             }
             wsFinishedRef.current = false;
             serverErrorShownRef.current = false;
         };
+    };
+
+    // Ohne eigene Wahl ("Systemstandard") ein konkretes Eingabegerät bestimmen. WebKitGTK und
+    // WKWebView liefern bei getUserMedia ohne deviceId teils ein Gerät ohne Signal (etwa eine
+    // Monitor-Quelle) — die Aufnahme läuft, aber es kommt kein Ton. Mit explizitem deviceId
+    // (wie bei einer Auswahl im Menü) funktioniert es. Vor der ersten Freigabe liefert
+    // enumerateDevices nur Platzhalter ohne deviceId/Label, daher einmal kurz freigeben lassen.
+    const pickDefaultMic = async (): Promise<string> => {
+        const md = navigator.mediaDevices;
+        if (!md) return "";
+        try {
+            let mics = (await md.enumerateDevices()).filter((d) => d.kind === "audioinput");
+            if (mics.length === 0 || mics.some((m) => !m.deviceId || !m.label)) {
+                const probe = await md.getUserMedia({audio: true});
+                probe.getTracks().forEach((tr) => tr.stop());
+                mics = (await md.enumerateDevices()).filter((d) => d.kind === "audioinput");
+            }
+            const pick = chooseDefaultMic(mics);
+            if (pick) console.info("Mikrofon (Systemstandard) aufgelöst:", mics.find((m) => m.deviceId === pick)?.label || pick);
+            return pick;
+        } catch (err) {
+            console.warn("Standard-Mikrofon nicht bestimmbar, nutze Systemvorgabe:", err);
+            return "";
+        }
     };
 
     const startRecording = async (opts?: {autoInsert?: boolean}) => {
@@ -424,7 +495,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             // Neue Aufnahme: altes Transkript verwerfen.
             // Bei Resume (unfertige Session) den Text vom Server restoren lassen.
             if (!resumeId) {
-                setStableTranscript("");
+                setStableTranscript(""); setNumberWarning([]);
                 setLiveTranscript("");
                 setRecordId(null);
             }
@@ -444,17 +515,23 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
             // 1) User-Audio holen — deviceId aus dem Ref, weil startRecording über
             //    Hotkey-/Mount-Closures laufen kann, die einen veralteten State sähen.
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: 1,
-                    sampleRate: 16000,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    ...(selectedMicIdRef.current
-                        ? {deviceId: {exact: selectedMicIdRef.current}}
-                        : {}),
-                }
-            });
+            const micId = selectedMicIdRef.current || await pickDefaultMic();
+            const audioConstraints = {
+                channelCount: 1,
+                sampleRate: 16000,
+                echoCancellation: true,
+                noiseSuppression: true,
+            };
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: micId ? {...audioConstraints, deviceId: {exact: micId}} : audioConstraints,
+                });
+            } catch (err: any) {
+                // Gerät inzwischen weg oder ID nicht mehr gültig: mit der Systemvorgabe weiter.
+                if (!micId || err?.name !== "OverconstrainedError") throw err;
+                stream = await navigator.mediaDevices.getUserMedia({audio: audioConstraints});
+            }
             streamRef.current = stream;
             // Mit erteilter Freigabe kennt der Browser jetzt alle Geräte samt Labels.
             refreshMics();
@@ -516,11 +593,11 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
             // häufigste Grund, dass der Button nicht umschaltet, obwohl die Session
             // auf dem Server bereits angelegt ist.
             const msg = err?.name === "NotAllowedError"
-                ? "Mikrofonzugriff verweigert – in macOS-Einstellungen prüfen"
+                ? i18n.t("toast.micDenied")
                 : err?.name === "NotFoundError"
-                    ? "Kein Mikrofon gefunden"
-                    : "Fehler beim Starten der Aufnahme";
-            toast.error(msg);
+                    ? i18n.t("toast.noMic")
+                    : i18n.t("toast.startFailed");
+            toast.error(msg, {duration: 4000});
             autoInsertRef.current = false;
             micReleasedEarlyRef.current = false;
             // Verwaiste Session auf dem Server abbrechen, damit keine leere Aufnahme
@@ -569,12 +646,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 }
                 autoInsertRef.current = false;
                 setIsProcessing(false);
-                toast.error("Zeitüberschreitung – Aufnahme konnte nicht verarbeitet werden");
+                toast.error(i18n.t("toast.processTimeout"), {duration: 4000});
             }, 90_000);
         } else {
             autoInsertRef.current = false;
             setIsProcessing(false);
-            toast.error("Verbindung bereits unterbrochen");
+            toast.error(i18n.t("toast.alreadyDisconnected"), {duration: 4000});
         }
     };
 
@@ -600,7 +677,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         setIsRecording(false);
         setIsPaused(false);
         setIsProcessing(false);
-        setStableTranscript("");
+        setStableTranscript(""); setNumberWarning([]);
         setLiveTranscript("");
         setSessionId(null);
         sessionIdRef.current = null;
@@ -608,10 +685,10 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
         try {
             await GoCancelSession(parseInt(userId), await getFreshToken());
-            toast.success("Aufnahme abgebrochen");
+            toast.success(i18n.t("toast.cancelled"));
         } catch (err) {
             console.error(err);
-            toast.error("Fehler beim Abbrechen der Aufnahme");
+            toast.error(i18n.t("toast.cancelFailed"), {duration: 4000});
         }
     };
 
@@ -663,7 +740,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     const insertNow = (viaHotkey: boolean, text: string = stableTranscript) => {
         setPendingInsert(null);
         GoInsertTranscript(text, viaHotkey).catch((err: unknown) => {
-            toast.error(String(err), {duration: 12000});
+            toast.error(goMessage(err), {duration: 5000});
         });
     };
 
@@ -729,18 +806,18 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
         ]).then(([axOk, hkOk]: [boolean, boolean]) => {
             if (!axOk && !hkOk) {
                 toast.error(
-                    "Bedienhilfen und Eingabeüberwachung fehlen – in den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen und Eingabeüberwachung erlauben.",
-                    {duration: 12000}
+                    i18n.t("toast.macPermAll"),
+                    {duration: 8000}
                 );
             } else if (!axOk) {
                 toast.error(
-                    "Bedienhilfen-Berechtigung fehlt – Einfügen deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Bedienhilfen erlauben.",
-                    {duration: 12000}
+                    i18n.t("toast.macPermAx"),
+                    {duration: 8000}
                 );
             } else if (!hkOk) {
                 toast.error(
-                    "Eingabeüberwachung-Berechtigung fehlt – Hotkeys deaktiviert. In den macOS-Systemeinstellungen unter Datenschutz → Eingabeüberwachung erlauben.",
-                    {duration: 12000}
+                    i18n.t("toast.macPermInput"),
+                    {duration: 8000}
                 );
             }
         });
@@ -802,6 +879,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
     // Ohne Freigabe ist unbekannt, wie viele Mikrofone es gibt — dann die Auswahl
     // trotzdem anbieten, statt sie erst nach der ersten Aufnahme einzublenden.
     const micsUnknown = micDevices.some((d) => !d.label);
+    // Ohne eigene Wahl ist das Gerät markiert, das beim Start tatsächlich benutzt wird.
+    const effectiveMicId = selectedMicId || chooseDefaultMic(micDevices);
 
     const openMicMenu = async () => {
         if (micMenuOpen) {
@@ -946,10 +1025,10 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             ? (isPaused ? "paused" : "recording")
                             : (isBackendReachable ? "reachable" : "unreachable")
                     }`}
-                    title={isRecording ? undefined : (isBackendReachable ? "openDox-Server erreichbar" : "openDox-Server nicht erreichbar")}
+                    title={isRecording ? undefined : (isBackendReachable ? t("status.serverReachable") : t("status.serverUnreachable"))}
                 />
                 <span className="recorder-status-text">
-                    {isPaused ? "Aufnahme pausiert" : isRecording ? "Aufnahme läuft..." : (isBackendReachable ? "Bereit" : "Nicht erreichbar")}
+                    {isPaused ? t("status.paused") : isRecording ? t("status.recording") : (isBackendReachable ? t("status.ready") : t("status.unreachable"))}
                 </span>
 
                 {/* Rechts gruppierte Aktionen: Mikrofon-Wahl + Kategorie-Dropdown +
@@ -960,8 +1039,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                         <button
                             className="recorder-logout-btn"
                             onClick={toggleLiveView}
-                            title={liveView ? "Live-Ansicht ausschalten" : "Live-Ansicht einschalten"}
-                            aria-label={liveView ? "Live-Ansicht ausschalten" : "Live-Ansicht einschalten"}
+                            title={liveView ? t("toolbar.liveOff") : t("toolbar.liveOn")}
+                            aria-label={liveView ? t("toolbar.liveOff") : t("toolbar.liveOn")}
                             aria-pressed={liveView}
                         >
                             {liveView ? <Eye size={14}/> : <EyeOff size={14}/>}
@@ -971,8 +1050,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                         <button
                             className="recorder-logout-btn"
                             onClick={() => setPrefsOpen(true)}
-                            title="Einstellungen"
-                            aria-label="Einstellungen"
+                            title={t("toolbar.settings")}
+                            aria-label={t("toolbar.settings")}
                         >
                             <SettingsIcon size={14}/>
                         </button>
@@ -980,8 +1059,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     <button
                         className="recorder-logout-btn"
                         onClick={() => setHelpOpen(true)}
-                        title="Tastenkürzel"
-                        aria-label="Tastenkürzel anzeigen"
+                        title={t("toolbar.shortcuts")}
+                        aria-label={t("toolbar.shortcutsShow")}
                     >
                         <HelpCircle size={14}/>
                     </button>
@@ -990,8 +1069,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             <button
                                 className={`recorder-mic-select-btn ${micMenuOpen ? "open" : ""}`}
                                 onClick={openMicMenu}
-                                title="Mikrofon auswählen"
-                                aria-label="Mikrofon auswählen"
+                                title={t("toolbar.micSelect")}
+                                aria-label={t("toolbar.micSelect")}
                                 aria-haspopup="menu"
                                 aria-expanded={micMenuOpen}
                             >
@@ -1002,27 +1081,33 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                                     {/* Fängt Klicks außerhalb des Menüs ab */}
                                     <div className="recorder-mic-backdrop" onClick={() => setMicMenuOpen(false)}/>
                                     <div className="recorder-mic-menu" role="menu">
-                                        <div className="recorder-mic-menu-title">Mikrofon</div>
+                                        <div className="recorder-mic-menu-title">{t("toolbar.mic")}</div>
                                         {micDevices.map((mic, idx) => (
                                             <button
                                                 key={mic.deviceId || idx}
                                                 role="menuitemradio"
-                                                aria-checked={mic.deviceId === selectedMicId}
-                                                className={`recorder-mic-item ${mic.deviceId === selectedMicId ? "active" : ""}`}
+                                                aria-checked={mic.deviceId === effectiveMicId}
+                                                className={`recorder-mic-item ${mic.deviceId === effectiveMicId ? "active" : ""}`}
                                                 onClick={() => {
                                                     setSelectedMicId(mic.deviceId);
                                                     setMicMenuOpen(false);
                                                 }}
                                             >
                                                 <span className="recorder-mic-item-label">
-                                                    {mic.label || `Mikrofon ${idx + 1}`}
+                                                    {mic.label || t("toolbar.micNumber", {n: idx + 1})}
                                                 </span>
-                                                {mic.deviceId === selectedMicId && <Check size={13}/>}
+                                                {mic.deviceId === effectiveMicId && <Check size={13}/>}
                                             </button>
                                         ))}
                                     </div>
                                 </>
                             )}
+                        </div>
+                    )}
+
+                    {sourceLanguage && (
+                        <div className="recorder-target" title={t("toolbar.dictationLanguageHint")}>
+                            <strong>{languageName(sourceLanguage)} → {languageName(translation.target || "de")}</strong>
                         </div>
                     )}
 
@@ -1041,7 +1126,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                                     reprocessWithCategory(newCategoryId);
                                 }
                             }}
-                            title="Kategorie auswählen"
+                            title={t("toolbar.category")}
                         >
                             {categories.map((cat) => (
                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -1053,8 +1138,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                         <button
                             className="recorder-logout-btn"
                             onClick={onLogout}
-                            title="Abmelden"
-                            aria-label="Abmelden"
+                            title={t("common.logout")}
+                            aria-label={t("common.logout")}
                         >
                             <LogOut size={14}/>
                         </button>
@@ -1078,7 +1163,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             </p>
                         ) : (
                             <div className="recorder-placeholder">
-                                <p>Sprechen Sie, um die Transkription zu starten</p>
+                                <p>{t("transcript.placeholder")}</p>
                             </div>
                         )}
                     </div>
@@ -1106,8 +1191,8 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                                 <button
                                     onClick={handleCancelClick}
                                     className="recorder-cancel-btn"
-                                    aria-label="Aufnahme abbrechen"
-                                    title="Aufnahme abbrechen"
+                                    aria-label={t("controls.cancel")}
+                                    title={t("controls.cancel")}
                                 >
                                     <X className="icon-fill"/>
                                 </button>
@@ -1117,7 +1202,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                                 <button
                                     onClick={isPaused ? resumeSession : pauseSession}
                                     className={`recorder-pause-btn ${isPaused ? "resuming" : "pausing"}`}
-                                    aria-label={isPaused ? "Fortsetzen" : "Pausieren"}
+                                    aria-label={isPaused ? t("controls.resume") : t("controls.pause")}
                                 >
                                     {isPaused ? <Play className="icon-fill"/> : <Pause className="icon-fill"/>}
                                 </button>
@@ -1126,7 +1211,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                             <button
                                 onClick={isRecording ? handleStopClick : () => startRecording()}
                                 className={`recorder-mic-btn ${isRecording ? "recording" : ""}`}
-                                aria-label={isRecording ? "Stop" : "Aufnahme starten"}
+                                aria-label={isRecording ? t("controls.stop") : t("controls.start")}
                             >
                                 {isRecording ? (
                                     <Square className="icon-fill"/>
@@ -1141,7 +1226,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     ) : (
                         <div className="recorder-processing">
                             <Loader2 className="icon-spin"/>
-                            <span>Verarbeite...</span>
+                            <span>{processingStep || t("status.processing")}</span>
                         </div>
                     )}
                 </div>
@@ -1153,33 +1238,38 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                     {insertTarget?.process && (
                         <div
                             className={`recorder-target${insertTarget.list_active && !insertTarget.allowed ? ' warn' : ''}`}
-                            title={insertTarget.title ? `Einfügen in: ${insertTarget.process} – ${insertTarget.title}` : `Einfügen in: ${insertTarget.process}`}
+                            title={insertTarget.title ? t("actions.insertInTitle", {process: insertTarget.process, title: insertTarget.title}) : t("actions.insertIn", {process: insertTarget.process})}
                         >
                             <strong>{insertTarget.process}</strong>
+                        </div>
+                    )}
+                    {numberWarning.length > 0 && (
+                        <div className="recorder-target warn" role="alert">
+                            {t("actions.numbersCheck")} <strong>{numberWarning.join(", ")}</strong>
                         </div>
                     )}
                     <div className="recorder-action-icons">
                         <button
                             onClick={() => acceptAndInsert(false)}
                             className="recorder-icon-btn primary"
-                            title={`Akzeptieren und einfügen (${modKeyLabel}+V)`}
-                            aria-label="Akzeptieren und einfügen"
+                            title={t("actions.acceptTitle", {mod: modKeyLabel})}
+                            aria-label={t("actions.accept")}
                         >
                             <Check size={18}/>
                         </button>
                         <button
                             onClick={() => startRecording()}
                             className="recorder-icon-btn"
-                            title={`Neue Aufnahme starten (${modKeyLabel}+R)`}
-                            aria-label="Neue Aufnahme"
+                            title={t("actions.newRecordingTitle", {mod: modKeyLabel})}
+                            aria-label={t("actions.newRecording")}
                         >
                             <Mic size={18}/>
                         </button>
                         <button
                             onClick={() => GoOpenDashboard()}
                             className="recorder-icon-btn"
-                            title="In openDox öffnen"
-                            aria-label="In openDox öffnen"
+                            title={t("actions.openInOpenDox")}
+                            aria-label={t("actions.openInOpenDox")}
                         >
                             <ExternalLink size={18}/>
                         </button>
@@ -1209,21 +1299,21 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 <div className="recorder-help-overlay" onClick={() => setHelpOpen(false)}>
                     <div className="recorder-help" onClick={(e) => e.stopPropagation()}>
                         <div className="recorder-help-head">
-                            <span>Tastenkürzel</span>
+                            <span>{t("shortcuts.title")}</span>
                             <button
                                 className="recorder-logout-btn"
                                 onClick={() => setHelpOpen(false)}
-                                aria-label="Schließen"
+                                aria-label={t("common.close")}
                             >
                                 <X size={14}/>
                             </button>
                         </div>
                         <ul>
-                            <li><kbd>{modKeyLabel}+R</kbd> Aufnahme starten / stoppen</li>
-                            <li><kbd>{modKeyLabel}+P</kbd> Pausieren / Fortsetzen</li>
-                            <li><kbd>{modKeyLabel}+V</kbd> Akzeptieren und einfügen</li>
-                            <li><kbd>{modKeyLabel}+D</kbd> Halten zum Diktieren</li>
-                            <li><kbd>{modKeyLabel}+H</kbd> Overlay ein- / ausblenden</li>
+                            <li><kbd>{modKeyLabel}+R</kbd> {t("shortcuts.record")}</li>
+                            <li><kbd>{modKeyLabel}+P</kbd> {t("shortcuts.pause")}</li>
+                            <li><kbd>{modKeyLabel}+V</kbd> {t("shortcuts.insert")}</li>
+                            <li><kbd>{modKeyLabel}+D</kbd> {t("shortcuts.hold")}</li>
+                            <li><kbd>{modKeyLabel}+H</kbd> {t("shortcuts.hide")}</li>
                         </ul>
                     </div>
                 </div>
@@ -1233,49 +1323,69 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
                 <div className="recorder-help-overlay" onClick={() => setPrefsOpen(false)}>
                     <div className="recorder-help" onClick={(e) => e.stopPropagation()}>
                         <div className="recorder-help-head">
-                            <span>Einstellungen</span>
+                            <span>{t("settings.title")}</span>
                             <button
                                 className="recorder-logout-btn"
                                 onClick={() => setPrefsOpen(false)}
-                                aria-label="Schließen"
+                                aria-label={t("common.close")}
                             >
                                 <X size={14}/>
                             </button>
                         </div>
                         <div className="recorder-prefs">
                             <PrefRow
-                                label="Design"
+                                label={t("settings.theme")}
                                 value={prefs.theme}
-                                options={[["dark", "Dunkel"], ["light", "Hell"]]}
+                                options={[["dark", t("settings.themeDark")], ["light", t("settings.themeLight")]]}
                                 onChange={(theme) => savePreferences({theme})}
                             />
                             {serverLive && (
                                 <PrefRow
-                                    label="Live-Ansicht"
+                                    label={t("settings.liveView")}
                                     value={prefs.live_view ? "on" : "off"}
-                                    options={[["on", "An"], ["off", "Aus"]]}
+                                    options={[["on", t("settings.on")], ["off", t("settings.off")]]}
                                     onChange={(v) => savePreferences({live_view: v === "on"})}
                                 />
                             )}
+                            <div className="recorder-prefs-row">
+                                <span>{t("settings.uiLanguage")}</span>
+                                <UiLanguageSelect className="recorder-category-select"/>
+                            </div>
+                            {translation.languages.length > 0 && (
+                                <div className="recorder-prefs-row">
+                                    <span>{t("settings.dictationLanguage")}</span>
+                                    <select
+                                        className="recorder-category-select"
+                                        value={sourceLanguage}
+                                        onChange={(e) => savePreferences({dictation_language: e.target.value})}
+                                        aria-label={t("settings.dictationLanguage")}
+                                    >
+                                        <option value="">{t("settings.noTranslation", {language: languageName(translation.target || "de")})}</option>
+                                        {translation.languages.map((l) => (
+                                            <option key={l} value={l}>{`${languageName(l)} → ${languageName(translation.target || "de")}`}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             <PrefRow
-                                label="Mikrofontaste"
+                                label={t("settings.micButton")}
                                 value={prefs.dictation_mic_mode}
-                                options={[["hold", "Halten"], ["toggle", "Umschalten"]]}
+                                options={[["hold", t("settings.micHold")], ["toggle", t("settings.micToggle")]]}
                                 onChange={(dictation_mic_mode) => savePreferences({dictation_mic_mode})}
                             />
                             <button className="recorder-prefs-reset" onClick={() => resetPreferences()}>
-                                Auf Standard zurücksetzen
+                                {t("settings.reset")}
                             </button>
                             {/* AGPL: Hinweis auf Lizenz und Quellcode. Die Lizenztexte aller
                                 Komponenten liegen auch neben dem Programm (THIRD_PARTY_LICENSES.txt). */}
                             <div className="recorder-prefs-about">
                                 openDox Client {__APP_VERSION__} · AGPL-3.0 ·{" "}
                                 <button onClick={() => BrowserOpenURL(SOURCE_URL)}>
-                                    Quellcode und Lizenzen
+                                    {t("settings.source")}
                                 </button>
                                 {updateLatest && (
                                     <div className="recorder-prefs-update">
-                                        (Version {updateLatest} verfügbar – wird von Ihrer IT bereitgestellt)
+                                        {t("settings.updateAvailable", {version: updateLatest})}
                                     </div>
                                 )}
                             </div>
@@ -1286,30 +1396,28 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(({userId, title, cate
 
             <ConfirmModal
                 open={isStopDialogOpen}
-                title="Aufnahme beenden"
-                description="Möchten Sie die Aufnahme wirklich beenden und speichern?"
-                confirmLabel="Aufnahme beenden"
-                cancelLabel="Abbrechen"
+                title={t("dialog.stopTitle")}
+                description={t("dialog.stopDescription")}
+                confirmLabel={t("dialog.stopTitle")}
                 onConfirm={confirmStop}
                 onCancel={() => setIsStopDialogOpen(false)}
             />
 
             <ConfirmModal
                 open={isCancelDialogOpen}
-                title="Aufnahme abbrechen"
-                description="Aufnahme wirklich abbrechen? Die Aufnahme wird nicht gespeichert und kann nicht wiederhergestellt werden."
-                confirmLabel="Aufnahme abbrechen"
-                cancelLabel="Zurück"
+                title={t("dialog.cancelTitle")}
+                description={t("dialog.cancelDescription")}
+                confirmLabel={t("dialog.cancelTitle")}
+                cancelLabel={t("common.back")}
                 onConfirm={confirmCancel}
                 onCancel={() => setIsCancelDialogOpen(false)}
             />
 
             <ConfirmModal
                 open={pendingInsert !== null}
-                title="Einfügen bestätigen"
-                description={`„${pendingInsert?.target.process || 'Unbekanntes Fenster'}“ ist auf diesem Arbeitsplatz nicht freigegeben. Trotzdem einfügen?`}
-                confirmLabel="Trotzdem einfügen"
-                cancelLabel="Abbrechen"
+                title={t("dialog.insertTitle")}
+                description={t("dialog.insertDescription", {process: pendingInsert?.target.process || t("dialog.unknownWindow")})}
+                confirmLabel={t("dialog.insertAnyway")}
                 onConfirm={confirmPendingInsert}
                 onCancel={() => setPendingInsert(null)}
             />

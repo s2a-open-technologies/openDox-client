@@ -12,6 +12,36 @@ afterwards with `scripts/release.sh`.
 
 ## [Unreleased]
 
+### Added
+
+- **Übersetzung (Diktat in Fremdsprache)** — Ab openDox-Server 0.12.0 kann in den Einstellungen eine Diktiersprache gewählt
+  werden. Die Auswahl erscheint nur, wenn der Server die Übersetzung für den Nutzer freigegeben hat
+  (`/api/v1/settings/translation/me`). Der Client sendet dann `source_language` beim Anlegen der Aufnahme und fügt den
+  übersetzten Text ein. Das Overlay zeigt die Sprachrichtung und den Schritt „Übersetze…“. Weichen Zahlen zwischen Original
+  und Übersetzung ab, wird nicht automatisch eingefügt (auch nicht per Mikrofontaste), sondern erst nach manuellem Akzeptieren,
+  mit Hinweis auf die betroffenen Zahlen. Sprachen ohne Live-Vorschau zeigen nur den Orb. Die Wahl liegt in `preferences.json`
+  (`dictation_language`).
+- **Oberflächensprachen Deutsch, Englisch, Spanisch** — Wie in der openDox-Web-Oberfläche lässt sich der Client auf Deutsch,
+  Englisch oder Spanisch umstellen (Anmeldebildschirm und Einstellungen → Sprache, gespeichert in `preferences.json` als
+  `ui_language`). Ohne Wahl gilt die Sprache des Betriebssystems, sonst Deutsch; die Vorgabe kann die IT in der
+  `settings.json` setzen. Die Namen der Diktiersprachen erscheinen in der gewählten Sprache. Auch Meldungen aus dem Go-Teil
+  (Einfüge-Fehler, SSO-Fehler, die Benachrichtigung „Text eingefügt“) folgen der Sprache.
+
+### Fixed
+
+- **Aufnahme ohne Mikrofon-Auswahl blieb stumm (Linux, macOS)** — Ohne eigene Wahl fragte der Client das Mikrofon ohne
+  Geräte-ID an; WebKitGTK und WKWebView lieferten dann teils ein Gerät ohne Signal, die Aufnahme lief ohne Ton und Text,
+  bis man im Menü ein Gerät wählte. Der Client bestimmt jetzt bei jedem Start das Standard-Mikrofon selbst (Monitor-Quellen
+  werden übersprungen) und fällt bei einem ungültigen Gerät auf die Systemvorgabe zurück.
+
+### Changed
+
+- **Mikrofon-Menü hakt das benutzte Gerät ab** — Ohne eigene Wahl war im Menü kein Eintrag markiert. Jetzt ist das Gerät
+  abgehakt, das der Client beim Start tatsächlich nimmt; zusätzliche Einträge gibt es nicht. Namenlose Geräte heißen
+  „Mikrofon 1, 2, …“ in der gewählten Sprache.
+- **Toasts verschwinden schneller** — Hinweise nach 1,5 s (vorher 2,5 s), Fehler nach 4–5 s (vorher bis 12 s),
+  Berechtigungshinweise nach 8 s.
+
 ## [0.8.7] — 2026-11-06
 
 ### Security

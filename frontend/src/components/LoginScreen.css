@@ -41,6 +41,28 @@
     color: var(--text);
 }
 
+.login-lang-select {
+    position: absolute;
+    top: 9px;
+    right: 72px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background-color: var(--bg-deep);
+    color: var(--text-soft);
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    z-index: 60;
+    -webkit-app-region: no-drag;
+}
+
+.login-lang-select option {
+    background-color: var(--bg-deep);
+    color: var(--text-soft);
+}
+
 .login-inner {
     flex: 1;
     display: flex;

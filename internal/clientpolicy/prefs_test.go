@@ -76,3 +76,41 @@ func TestPreferencesRoundTrip(t *testing.T) {
 		t.Errorf("kaputte Datei muss leere Preferences ergeben, got %+v", got)
 	}
 }
+
+func ptrStr(s string) *string { return &s }
+
+func TestDictationLanguageCleanAndUpdate(t *testing.T) {
+	if got := (Preferences{DictationLanguage: ptrStr("deutsch")}).Clean(); got.DictationLanguage != nil {
+		t.Fatalf("ungültiger Code muss verworfen werden, got %q", *got.DictationLanguage)
+	}
+	if got := (Preferences{DictationLanguage: ptrStr(" PL ")}).Clean(); got.DictationLang() != "pl" {
+		t.Fatalf("Code wird normalisiert, got %q", got.DictationLang())
+	}
+	p := Preferences{DictationLanguage: ptrStr("pl")}
+	// nil lässt den Stand unverändert, "" setzt bewusst auf "keine Übersetzung" zurück.
+	if got := p.Update(Preferences{Theme: "light"}); got.DictationLang() != "pl" {
+		t.Fatalf("nil darf nichts ändern, got %q", got.DictationLang())
+	}
+	if got := p.Update(Preferences{DictationLanguage: ptrStr("")}); got.DictationLang() != "" || got.DictationLanguage == nil {
+		t.Fatalf("leerer String muss zurücksetzen")
+	}
+}
+
+func TestUILanguagePreference(t *testing.T) {
+	if got := (Preferences{UILanguage: " ES "}).Clean(); got.UILanguage != "es" {
+		t.Fatalf("got %q", got.UILanguage)
+	}
+	if got := (Preferences{UILanguage: "fr"}).Clean(); got.UILanguage != "" {
+		t.Fatalf("unbekannte Sprache muss verworfen werden, got %q", got.UILanguage)
+	}
+	policy := Settings{UILanguage: "en"}
+	if got := (Preferences{}).Apply(policy).UILanguageDefault(); got != "en" {
+		t.Fatalf("Vorgabe aus settings.json, got %q", got)
+	}
+	if got := (Preferences{UILanguage: "es"}).Apply(policy).UILanguageDefault(); got != "es" {
+		t.Fatalf("Nutzerwahl gewinnt, got %q", got)
+	}
+	if got := Merge(Settings{}, Settings{UILanguage: "es"}).UILanguageDefault(); got != "es" {
+		t.Fatalf("lokale settings.json gewinnt im Merge, got %q", got)
+	}
+}

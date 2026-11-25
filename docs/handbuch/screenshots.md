@@ -24,4 +24,5 @@ Alle Bilder, die die Handbücher referenzieren. Fehlende Dateien ersetzt
 | `bilder/benutzer/04-aufnahme-laeuft.png` | Laufende Aufnahme mit Live-Text, Pause/Stopp/Abbrechen sichtbar | Benutzer |
 | `bilder/benutzer/05-aufnahme-ohne-live.png` | Laufende Aufnahme mit ausgeschalteter Live-Ansicht (leuchtender Kreis) | Benutzer |
 | `bilder/benutzer/06-fertiger-text.png` | Fertiger Text, **Einfügen in:** mit Demo-Programm, Schaltflächen Akzeptieren / Neue Aufnahme / In openDox öffnen | Benutzer |
-| `bilder/benutzer/07-einstellungen.png` | Dialog **Einstellungen** (Design, Live-Ansicht, Mikrofontaste) | Benutzer |
+| `bilder/benutzer/07-einstellungen.png` | Dialog **Einstellungen** (Design, Sprache, Live-Ansicht, Diktiersprache, Mikrofontaste); Konto mit Übersetzungs-Freigabe, damit **Diktiersprache** sichtbar ist | Benutzer |
+| `bilder/benutzer/08-diktiersprache.png` | Fertiger Text nach Diktat „Polnisch → Deutsch“ mit der Sprachrichtung im Fenster; optional zweites Bild mit **Zahlen prüfen** (Demo-Daten) | Benutzer (Übersetzung) |

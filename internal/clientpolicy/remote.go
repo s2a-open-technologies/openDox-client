@@ -83,6 +83,9 @@ func Merge(remote, local Settings) Settings {
 	if normalize(local.Theme) != "" {
 		merged.Theme = local.Theme
 	}
+	if normalize(local.UILanguage) != "" {
+		merged.UILanguage = local.UILanguage
+	}
 	return merged
 }
 
